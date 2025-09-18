@@ -50,14 +50,44 @@ export default function CitizenSignupPage() {
       return
     }
 
-    toast({
-      title: "Account Created",
-      description: "Welcome! Please check your email to verify your account.",
+    // Call signup API
+    fetch("/api/auth/signup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: "citizen",
+      }),
     })
-
-    setTimeout(() => {
-      window.location.href = "/citizen/login"
-    }, 2000)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          toast({
+            title: "Signup Failed",
+            description: data.error || "Unknown error.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Account Created",
+          description: "Welcome! Redirecting to dashboard...",
+        });
+        setTimeout(() => {
+          window.location.href = "/citizen/dashboard";
+        }, 1500);
+      })
+      .catch(() => {
+        toast({
+          title: "Signup Failed",
+          description: "Network error. Please try again.",
+          variant: "destructive",
+        });
+      });
   }
 
   const handleGoogleSignup = () => {

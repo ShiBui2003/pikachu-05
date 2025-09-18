@@ -20,15 +20,41 @@ export default function CitizenLoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    // Placeholder login logic
-    toast({
-      title: "Login Successful",
-      description: "Welcome back! Redirecting to your dashboard...",
+    fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
     })
-    // In a real app, this would redirect to the citizen dashboard
-    setTimeout(() => {
-      window.location.href = "/citizen/dashboard"
-    }, 1500)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          toast({
+            title: "Login Failed",
+            description: data.error || "Unknown error.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Login Successful",
+          description: "Welcome back! Redirecting to your dashboard...",
+        });
+        setTimeout(() => {
+          window.location.href = "/citizen/dashboard";
+        }, 1500);
+      })
+      .catch(() => {
+        toast({
+          title: "Login Failed",
+          description: "Network error. Please try again.",
+          variant: "destructive",
+        });
+      });
   }
 
   const handleGoogleLogin = () => {

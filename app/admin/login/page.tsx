@@ -19,13 +19,49 @@ export default function AdminLoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    toast({
-      title: "Admin Login Successful",
-      description: "Welcome to the admin dashboard. Redirecting...",
+    fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
     })
-    setTimeout(() => {
-      window.location.href = "/admin/dashboard"
-    }, 1500)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          toast({
+            title: "Login Failed",
+            description: data.error || "Unknown error.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (data.user?.role !== "admin") {
+          toast({
+            title: "Access Denied",
+            description: "You are not an admin.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Admin Login Successful",
+          description: "Welcome to the admin dashboard. Redirecting...",
+        });
+        setTimeout(() => {
+          window.location.href = "/admin/dashboard";
+        }, 1500);
+      })
+      .catch(() => {
+        toast({
+          title: "Login Failed",
+          description: "Network error. Please try again.",
+          variant: "destructive",
+        });
+      });
   }
 
   return (
