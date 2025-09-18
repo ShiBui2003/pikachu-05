@@ -9,7 +9,7 @@ export default function CitizenLayout({
   return (
     <div className="min-h-screen bg-background">
       <CitizenNav />
-      <main>{children}</main>
+      <main className="pb-safe">{children}</main>
     </div>
   )
 }
