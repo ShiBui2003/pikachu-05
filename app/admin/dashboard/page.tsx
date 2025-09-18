@@ -140,32 +140,43 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Shield className="w-8 h-8 text-accent" />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-accent flex-shrink-0" />
               <div>
-                <h1 className="text-2xl font-bold">Municipal Dashboard</h1>
-                <p className="text-muted-foreground">Civic issue management and analytics</p>
+                <h1 className="text-xl sm:text-2xl font-bold">Municipal Dashboard</h1>
+                <p className="text-sm sm:text-base text-muted-foreground">Civic issue management and analytics</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" asChild>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="h-10 justify-start sm:justify-center bg-transparent"
+              >
                 <Link href="/admin/notifications">
                   <Bell className="w-4 h-4 mr-2" />
-                  Notifications
-                  <Badge variant="destructive" className="ml-2 px-1 py-0 text-xs">
+                  <span className="sm:hidden">Notifications</span>
+                  <span className="hidden sm:inline">Notifications</span>
+                  <Badge variant="destructive" className="ml-auto sm:ml-2 px-1 py-0 text-xs">
                     5
                   </Badge>
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="h-10 justify-start sm:justify-center bg-transparent"
+              >
                 <Link href="/admin/reports">
                   <FileText className="w-4 h-4 mr-2" />
                   Reports
                 </Link>
               </Button>
-              <Button size="sm" asChild>
+              <Button size="sm" asChild className="h-10 justify-start sm:justify-center">
                 <Link href="/admin/issues">
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Manage Issues
@@ -176,76 +187,76 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Issues</p>
-                  <p className="text-2xl font-bold">{overviewStats.totalIssues.toLocaleString()}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total Issues</p>
+                  <p className="text-lg sm:text-2xl font-bold">{overviewStats.totalIssues.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">
                     <span className="text-status-resolved">+{overviewStats.newThisWeek}</span> this week
                   </p>
                 </div>
-                <AlertTriangle className="w-8 h-8 text-muted-foreground" />
+                <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Pending</p>
-                  <p className="text-2xl font-bold status-submitted">{overviewStats.pendingIssues}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Pending</p>
+                  <p className="text-lg sm:text-2xl font-bold status-submitted">{overviewStats.pendingIssues}</p>
                   <p className="text-xs text-muted-foreground">Awaiting assignment</p>
                 </div>
-                <Clock className="w-8 h-8 text-status-submitted" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-status-submitted flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">In Progress</p>
-                  <p className="text-2xl font-bold status-progress">{overviewStats.inProgressIssues}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">In Progress</p>
+                  <p className="text-lg sm:text-2xl font-bold status-progress">{overviewStats.inProgressIssues}</p>
                   <p className="text-xs text-muted-foreground">Being worked on</p>
                 </div>
-                <Eye className="w-8 h-8 text-status-progress" />
+                <Eye className="w-6 h-6 sm:w-8 sm:h-8 text-status-progress flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Resolved</p>
-                  <p className="text-2xl font-bold status-resolved">{overviewStats.resolvedIssues}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Resolved</p>
+                  <p className="text-lg sm:text-2xl font-bold status-resolved">{overviewStats.resolvedIssues}</p>
                   <p className="text-xs text-muted-foreground">
                     <span className="text-status-resolved">+{overviewStats.resolvedThisWeek}</span> this week
                   </p>
                 </div>
-                <CheckCircle className="w-8 h-8 text-status-resolved" />
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-status-resolved flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Performance Metrics */}
-        <div className="grid lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <TrendingUp className="w-5 h-5 mr-2 text-accent" />
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="flex items-center text-base sm:text-lg">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-accent" />
                 Key Metrics
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Avg. Resolution Time</span>
                 <span className="font-semibold">{overviewStats.averageResolutionTime} days</span>
@@ -272,19 +283,19 @@ export default function AdminDashboard() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Issues by Category</CardTitle>
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="text-base sm:text-lg">Issues by Category</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-64">
+              <div className="h-48 sm:h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={categoryData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={40}
-                      outerRadius={80}
+                      innerRadius={30}
+                      outerRadius={60}
                       paddingAngle={2}
                       dataKey="value"
                     >
@@ -296,12 +307,12 @@ export default function AdminDashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 mt-3 sm:mt-4">
                 {categoryData.map((item, index) => (
-                  <div key={index} className="flex items-center text-sm">
-                    <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: item.color }} />
-                    <span className="truncate">{item.name}</span>
-                    <span className="ml-auto font-medium">{item.value}</span>
+                  <div key={index} className="flex items-center text-xs sm:text-sm">
+                    <div className="w-3 h-3 rounded-full mr-2 flex-shrink-0" style={{ backgroundColor: item.color }} />
+                    <span className="truncate flex-1">{item.name}</span>
+                    <span className="ml-2 font-medium">{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -309,18 +320,18 @@ export default function AdminDashboard() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Department Performance</CardTitle>
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="text-base sm:text-lg">Department Performance</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {departmentPerformance.map((dept, index) => (
                 <div key={index} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{dept.department}</span>
-                    <span>{dept.efficiency}%</span>
+                  <div className="flex justify-between text-xs sm:text-sm">
+                    <span className="font-medium truncate pr-2">{dept.department}</span>
+                    <span className="flex-shrink-0">{dept.efficiency}%</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>
+                    <span className="flex-shrink-0">
                       {dept.completed}/{dept.assigned} completed
                     </span>
                     <Progress value={dept.efficiency} className="h-1 flex-1" />
@@ -332,14 +343,14 @@ export default function AdminDashboard() {
         </div>
 
         {/* Charts and Recent Activity */}
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Monthly Trends</CardTitle>
-              <CardDescription>Issues reported vs resolved over time</CardDescription>
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="text-base sm:text-lg">Monthly Trends</CardTitle>
+              <CardDescription className="text-sm">Issues reported vs resolved over time</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
+              <div className="h-64 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={monthlyTrends}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -355,27 +366,30 @@ export default function AdminDashboard() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Recent Issues</CardTitle>
-              <CardDescription>Latest reports requiring attention</CardDescription>
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="text-base sm:text-lg">Recent Issues</CardTitle>
+              <CardDescription className="text-sm">Latest reports requiring attention</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4">
               {recentIssues.map((issue) => (
-                <div key={issue.id} className="flex items-center gap-4 p-3 rounded-lg border">
+                <div key={issue.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-sm truncate">{issue.title}</h4>
-                      <Badge className={getStatusColor(issue.status)} variant="secondary">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                      <h4 className="font-medium text-sm truncate flex-1">{issue.title}</h4>
+                      <Badge
+                        className={`${getStatusColor(issue.status)} self-start sm:self-center text-xs`}
+                        variant="secondary"
+                      >
                         {issue.status.replace("-", " ")}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {issue.location}
+                        <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                        <span className="truncate">{issue.location}</span>
                       </span>
                       <span className="flex items-center">
-                        <Calendar className="w-3 h-3 mr-1" />
+                        <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
                         {new Date(issue.reportedDate).toLocaleDateString()}
                       </span>
                       <Badge className={getPriorityColor(issue.priority)} variant="outline">
@@ -383,13 +397,13 @@ export default function AdminDashboard() {
                       </Badge>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto h-9 bg-transparent">
                     <Link href={`/admin/issues/${issue.id}`}>View</Link>
                   </Button>
                 </div>
               ))}
               <div className="text-center pt-2">
-                <Button variant="outline" asChild>
+                <Button variant="outline" asChild className="w-full sm:w-auto bg-transparent">
                   <Link href="/admin/issues">View All Issues</Link>
                 </Button>
               </div>
@@ -398,11 +412,11 @@ export default function AdminDashboard() {
         </div>
 
         {/* Comprehensive Analytics Charts Section */}
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Detailed Analytics</CardTitle>
-              <CardDescription>Comprehensive data visualization and insights</CardDescription>
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="text-base sm:text-lg">Detailed Analytics</CardTitle>
+              <CardDescription className="text-sm">Comprehensive data visualization and insights</CardDescription>
             </CardHeader>
             <CardContent>
               <AnalyticsCharts />

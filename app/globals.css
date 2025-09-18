@@ -165,4 +165,80 @@
   .bg-status-resolved {
     background-color: var(--status-resolved);
   }
+
+  /* Mobile-first touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better mobile scrolling */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Safe area handling for mobile devices */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Improved mobile text readability */
+  .mobile-text {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 640px) {
+  /* Ensure proper touch targets on mobile */
+  button,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better mobile form inputs */
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Improved mobile card spacing */
+  .card-mobile {
+    margin: 0.75rem;
+    border-radius: 0.75rem;
+  }
+}
+
+/* Enhanced focus states for accessibility */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground mobile-text;
+  }
+
+  /* Better focus indicators */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Improved button focus states */
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
 }
