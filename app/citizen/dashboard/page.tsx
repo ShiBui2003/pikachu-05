@@ -7,7 +7,20 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MapPin, Plus, Search, Map, List, Calendar, AlertTriangle, CheckCircle, Clock, Eye } from "lucide-react"
+import {
+  MapPin,
+  Plus,
+  Search,
+  Map,
+  List,
+  Calendar,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Eye,
+  ThumbsUp,
+  MessageCircle,
+} from "lucide-react"
 import InteractiveMap from "@/components/interactive-map"
 
 // Mock data for issues
@@ -22,6 +35,8 @@ const mockIssues = [
     image: "/street-pothole.png",
     description: "Deep pothole causing damage to vehicles",
     reporter: "John Doe",
+    upvotes: 47,
+    commentsCount: 12,
   },
   {
     id: "ISS-002",
@@ -33,6 +48,8 @@ const mockIssues = [
     image: "/broken-streetlight.jpg",
     description: "Streetlight has been out for 3 days",
     reporter: "Jane Smith",
+    upvotes: 23,
+    commentsCount: 5,
   },
   {
     id: "ISS-003",
@@ -44,6 +61,8 @@ const mockIssues = [
     image: "/overflowing-garbage-bin.png",
     description: "Garbage bin needs immediate attention",
     reporter: "Mike Johnson",
+    upvotes: 15,
+    commentsCount: 8,
   },
   {
     id: "ISS-004",
@@ -55,6 +74,8 @@ const mockIssues = [
     image: "/water-leak-on-sidewalk.jpg",
     description: "Continuous water leak creating puddles",
     reporter: "Sarah Wilson",
+    upvotes: 31,
+    commentsCount: 7,
   },
 ]
 
@@ -266,39 +287,68 @@ export default function CitizenDashboard() {
           <div className="grid gap-4">
             {filteredIssues.map((issue) => (
               <Card key={issue.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="w-full md:w-48 h-32 bg-muted rounded-lg overflow-hidden">
-                      <img
-                        src={issue.image || "/placeholder.svg"}
-                        alt={issue.title}
-                        className="w-full h-full object-cover"
-                      />
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col gap-4">
+                    {/* Mobile-first layout */}
+                    <div className="flex gap-3">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                        <img
+                          src={issue.image || "/placeholder.svg"}
+                          alt={issue.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <Link href={`/citizen/issues/${issue.id}`} className="hover:underline">
+                            <h3 className="font-semibold text-sm sm:text-base line-clamp-2 text-balance">
+                              {issue.title}
+                            </h3>
+                          </Link>
+                          <Badge className={`${getStatusColor(issue.status)} flex-shrink-0 text-xs`}>
+                            {getStatusIcon(issue.status)}
+                            <span className="ml-1 hidden sm:inline capitalize">{issue.status.replace("-", " ")}</span>
+                          </Badge>
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">
+                          {issue.description}
+                        </p>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <div className="flex items-center">
+                              <MapPin className="w-3 h-3 mr-1" />
+                              <span className="truncate max-w-[120px] sm:max-w-none">{issue.location}</span>
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {getCategoryLabel(issue.category)}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="text-lg font-semibold mb-1">{issue.title}</h3>
-                          <p className="text-sm text-muted-foreground mb-2">{issue.description}</p>
-                        </div>
-                        <Badge className={getStatusColor(issue.status)}>
-                          {getStatusIcon(issue.status)}
-                          <span className="ml-1 capitalize">{issue.status.replace("-", " ")}</span>
-                        </Badge>
-                      </div>
-
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <div className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          {issue.location}
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
+                          <Calendar className="w-3 h-3 mr-1" />
                           {new Date(issue.reportedDate).toLocaleDateString()}
                         </div>
-                        <Badge variant="outline">{getCategoryLabel(issue.category)}</Badge>
+                        <div className="flex items-center">
+                          <ThumbsUp className="w-3 h-3 mr-1" />
+                          {issue.upvotes}
+                        </div>
+                        <div className="flex items-center">
+                          <MessageCircle className="w-3 h-3 mr-1" />
+                          {issue.commentsCount}
+                        </div>
                       </div>
+
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/citizen/issues/${issue.id}`}>View Details</Link>
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

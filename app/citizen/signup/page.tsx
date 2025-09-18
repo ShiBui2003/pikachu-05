@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,6 +13,7 @@ import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MapPin, Mail, Lock, Eye, EyeOff, User } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { createClient } from "@/lib/supabase/client"
 
 export default function CitizenSignupPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -23,13 +25,15 @@ export default function CitizenSignupPage() {
     confirmPassword: "",
     agreeToTerms: false,
   })
+  const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (formData.password !== formData.confirmPassword) {
@@ -127,6 +131,7 @@ export default function CitizenSignupPage() {
                     onChange={(e) => handleInputChange("name", e.target.value)}
                     className="pl-10"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -143,6 +148,7 @@ export default function CitizenSignupPage() {
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     className="pl-10"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -159,11 +165,13 @@ export default function CitizenSignupPage() {
                     onChange={(e) => handleInputChange("password", e.target.value)}
                     className="pl-10 pr-10"
                     required
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                    disabled={isLoading}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -182,11 +190,13 @@ export default function CitizenSignupPage() {
                     onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                     className="pl-10 pr-10"
                     required
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                    disabled={isLoading}
                   >
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -198,6 +208,7 @@ export default function CitizenSignupPage() {
                   id="terms"
                   checked={formData.agreeToTerms}
                   onCheckedChange={(checked) => handleInputChange("agreeToTerms", checked as boolean)}
+                  disabled={isLoading}
                 />
                 <Label htmlFor="terms" className="text-sm">
                   I agree to the{" "}
@@ -211,8 +222,8 @@ export default function CitizenSignupPage() {
                 </Label>
               </div>
 
-              <Button type="submit" className="w-full">
-                Create Account
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Creating Account..." : "Create Account"}
               </Button>
             </form>
 
