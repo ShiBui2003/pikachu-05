@@ -33,27 +33,7 @@ import {
 } from "lucide-react"
 import AnalyticsCharts from "@/components/analytics-charts"
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-
-
-export default function AdminDashboard() {
-  const router = useRouter();
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (error || !data?.user || (data.user.user_metadata?.role !== "admin" && data.user.role !== "admin")) {
-        router.push("/admin/login");
-      }
-    });
-  }, [router]);
-
-  const [selectedTimeRange, setSelectedTimeRange] = useState("7d");
-
-  // ...existing code...
-
-
+// Removed client-side auth redirect; middleware enforces admin access
 // Mock data for admin dashboard
 const overviewStats = {
   totalIssues: 1247,

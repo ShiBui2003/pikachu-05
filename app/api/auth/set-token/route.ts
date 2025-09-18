@@ -13,6 +13,20 @@ export async function POST(request: NextRequest) {
     path: "/",
     maxAge: 60 * 60 * 24,
   });
+  try {
+    const { decodeJwt } = await import("jose");
+    const claims = decodeJwt(access_token) as any;
+    const role = claims?.user_metadata?.role || claims?.role;
+    if (role) {
+      response.cookies.set("app-role", String(role), {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24,
+      });
+    }
+  } catch {}
   if (refresh_token) {
     response.cookies.set("sb-refresh-token", refresh_token, {
       httpOnly: true,
@@ -42,6 +56,20 @@ export async function GET(request: NextRequest) {
     path: "/",
     maxAge: 60 * 60 * 24,
   });
+  try {
+    const { decodeJwt } = await import("jose");
+    const claims = decodeJwt(access_token) as any;
+    const role = claims?.user_metadata?.role || claims?.role;
+    if (role) {
+      response.cookies.set("app-role", String(role), {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24,
+      });
+    }
+  } catch {}
   if (refresh_token) {
     response.cookies.set("sb-refresh-token", refresh_token, {
       httpOnly: true,

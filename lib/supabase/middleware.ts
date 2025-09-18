@@ -50,7 +50,7 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Role-based protection using decoded role
+    // Role-based protection using decoded role; allow cookie override
     // Admin allowlist fallback via env
     const allowedEmails = (process.env.ADMIN_EMAILS || "")
         .split(",")
@@ -61,9 +61,11 @@ export async function updateSession(request: NextRequest) {
         ? allowedEmails.includes(email.toLowerCase()) ||
           (allowedDomain && email.toLowerCase().endsWith(`@${allowedDomain}`))
         : false;
+    const appRoleCookie = request.cookies.get("app-role")?.value;
+    const effectiveRole = appRoleCookie || role;
 
-    console.log('[MIDDLEWARE] Decoded identity:', { email, role, isEmailAllowed });
-    if (request.nextUrl.pathname.startsWith("/admin") && role !== "admin" && !isEmailAllowed) {
+    console.log('[MIDDLEWARE] Decoded identity:', { email, role: effectiveRole, isEmailAllowed });
+    if (request.nextUrl.pathname.startsWith("/admin") && effectiveRole !== "admin" && !isEmailAllowed) {
         return NextResponse.redirect(new URL("/admin/login", request.url));
     }
     // Citizen area: only require a valid session, not a strict role match

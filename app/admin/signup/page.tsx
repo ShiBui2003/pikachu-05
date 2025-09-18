@@ -27,10 +27,35 @@ export default function AdminSignupPage() {
       const accessToken = params.get('access_token')
       const refreshToken = params.get('refresh_token')
       if (accessToken) {
-        window.location.href = `/api/auth/set-token?access_token=${encodeURIComponent(accessToken)}${refreshToken ? `&refresh_token=${encodeURIComponent(refreshToken)}` : ''}&redirect=/admin/dashboard`
+        window.location.href = `/api/auth/set-token?access_token=${encodeURIComponent(accessToken)}${refreshToken ? `&refresh_token=${encodeURIComponent(refreshToken)}` : ''}&redirect=/admin/signup`
       }
     }
   }, [])
+
+  useEffect(() => {
+    // If already signed in (cookies set), ensure role is admin, refresh session, and redirect
+    const run = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      if ((user.user_metadata as any)?.role !== "admin") {
+        await supabase.auth.updateUser({ data: { role: "admin", name } })
+        const { data: refreshed } = await supabase.auth.refreshSession()
+        if (refreshed?.session?.access_token) {
+          await fetch("/api/auth/set-token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              access_token: refreshed.session.access_token,
+              refresh_token: refreshed.session.refresh_token,
+            }),
+          })
+        }
+      }
+      router.push("/admin/dashboard")
+    }
+    run().catch(() => {})
+  }, [name, router])
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
