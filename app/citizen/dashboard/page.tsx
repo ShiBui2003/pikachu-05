@@ -25,10 +25,6 @@ import {
 import InteractiveMap from "@/components/interactive-map"
 
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-
 // Mock data for issues
 const mockIssues = [
   {
