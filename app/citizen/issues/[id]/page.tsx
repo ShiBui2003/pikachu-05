@@ -89,11 +89,19 @@ export default function IssueDetailPage() {
       try {
         setLoading(true)
         setError(null)
-        const res = await fetch(`/api/issues?id=${id}`, { credentials: 'include' })
-        const json = await res.json()
-        if (!res.ok) throw new Error(json.error || 'Failed to load issue')
-        setIssue(json.issue)
-        setUpvotes(json.issue.upvotes || 0)
+        const [issueRes, voteRes, commentsRes] = await Promise.all([
+          fetch(`/api/issues?id=${id}`, { credentials: 'include' }),
+          fetch(`/api/issues/${id}/vote`, { credentials: 'include' }),
+          fetch(`/api/issues/${id}/comments`, { credentials: 'include' })
+        ])
+        const issueJson = await issueRes.json()
+        const voteJson = await voteRes.json()
+        const commentsJson = await commentsRes.json()
+        if (!issueRes.ok) throw new Error(issueJson.error || 'Failed to load issue')
+        setIssue(issueJson.issue)
+        setUpvotes((voteJson && typeof voteJson.votesCount === 'number') ? voteJson.votesCount : (issueJson.issue.upvotes || 0))
+        setHasUpvoted(!!(voteJson && voteJson.hasVoted))
+        setComments(commentsJson.comments || [])
       } catch (e: any) {
         setError(e.message || 'Failed to load issue')
       } finally {
@@ -103,13 +111,23 @@ export default function IssueDetailPage() {
     fetchIssue()
   }, [params])
 
-  const handleUpvote = () => {
-    if (hasUpvoted) {
-      setUpvotes((prev) => prev - 1)
-      setHasUpvoted(false)
-    } else {
-      setUpvotes((prev) => prev + 1)
-      setHasUpvoted(true)
+  const handleUpvote = async () => {
+    if (!issue?.id) return
+    try {
+      if (hasUpvoted) {
+        const res = await fetch(`/api/issues/${issue.id}/vote`, { method: 'DELETE', credentials: 'include' })
+        if (!res.ok) throw new Error('Failed to remove vote')
+        setHasUpvoted(false)
+        setUpvotes((prev) => Math.max(0, prev - 1))
+      } else {
+        const res = await fetch(`/api/issues/${issue.id}/vote`, { method: 'POST', credentials: 'include' })
+        if (!res.ok) throw new Error('Failed to add vote')
+        setHasUpvoted(true)
+        setUpvotes((prev) => prev + 1)
+      }
+    } catch (e) {
+      // Optionally show a toast
+      console.error(e)
     }
   }
 
@@ -123,19 +141,23 @@ export default function IssueDetailPage() {
     }
   }
 
-  const handleSubmitComment = () => {
-    if (newComment.trim()) {
-      const comment = {
-        id: Date.now().toString(),
-        user: "Current User",
-        userType: "citizen" as const,
-        avatar: "/placeholder.svg?height=32&width=32",
-        message: newComment,
-        timestamp: new Date().toISOString(),
-        upvotes: 0,
-      }
-      setComments((prev) => [...prev, comment])
-      setNewComment("")
+  const handleSubmitComment = async () => {
+    if (!issue?.id) return
+    const content = newComment.trim()
+    if (!content) return
+    try {
+      const res = await fetch(`/api/issues/${issue.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ content })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed to add comment')
+      setComments(prev => [...prev, json.comment])
+      setNewComment('')
+    } catch (e) {
+      console.error(e)
     }
   }
 
@@ -261,7 +283,35 @@ export default function IssueDetailPage() {
 
                 <Separator />
 
-                <div className="text-sm text-muted-foreground">Comments coming soon.</div>
+                {/* Comments List */}
+                <div className="space-y-4">
+                  {comments.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">No comments yet.</div>
+                  ) : (
+                    comments.map((c: any) => (
+                      <div key={c.id} className="flex gap-3">
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={"/placeholder.svg"} />
+                          <AvatarFallback>{(c.profiles?.full_name || 'U')[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 space-y-2">
+                          <div className="bg-muted rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-medium text-sm">{c.profiles?.full_name || 'User'}</span>
+                              <Badge variant={c.is_admin ? 'default' : 'secondary'} className="text-xs">
+                                {c.is_admin ? 'admin' : 'citizen'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm">{c.content}</p>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{new Date(c.created_at).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>

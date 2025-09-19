@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const supabase = createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { id } = params;
+
+    // Count total votes
+    const [{ count: votesCount }, { data: existing, error: voteErr }] = await Promise.all([
+      supabase.from('issue_votes').select('*', { count: 'exact', head: true }).eq('issue_id', id),
+      user ? supabase.from('issue_votes').select('id').eq('issue_id', id).eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null, error: null } as any)
+    ]);
+
+    const hasVoted = !!existing;
+    return NextResponse.json({ hasVoted, votesCount: votesCount || 0 });
+  } catch (error) {
+    console.error('Error in GET /api/issues/[id]/vote:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const supabase = createServerClient();

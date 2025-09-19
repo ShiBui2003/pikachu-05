@@ -356,13 +356,11 @@ export default function CitizenDashboard() {
                         </div>
                         <div className="flex items-center">
                           <ThumbsUp className="w-3 h-3 mr-1" />
-                          {issue.upvotes ?? 0}
+                          {(issue as any).votes_count ?? issue.upvotes ?? 0}
                         </div>
                         <div className="flex items-center">
                           <MessageCircle className="w-3 h-3 mr-1" />
-                          {/* Optionally fetch counts via API if needed */}
-                          {/* Placeholder 0 unless you expand API to include counts in list */}
-                          0
+                          {(issue as any).comments_count ?? 0}
                         </div>
                       </div>
 

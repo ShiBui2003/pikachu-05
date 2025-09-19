@@ -78,8 +78,37 @@ export async function GET(request: NextRequest) {
     
     const { count } = await countQuery;
 
+    // Merge explicit counts (robust across FK metadata) into top-level fields
+    const issueList = issues || [];
+    const ids = issueList.map((i: any) => i.id);
+    if (ids.length > 0) {
+      const [commentsAgg, votesAgg] = await Promise.all([
+        supabase.from('comments').select('issue_id, count:issue_id', { count: 'exact' }).in('issue_id', ids),
+        supabase.from('issue_votes').select('issue_id, count:issue_id', { count: 'exact' }).in('issue_id', ids)
+      ]);
+
+      const commentsCountMap = new Map<string, number>();
+      if ((commentsAgg as any).data) {
+        for (const row of (commentsAgg as any).data) {
+          // row has issue_id; count returned separately via header; for reliability compute manually below if needed
+          // We'll fall back to filtering length if needed
+        }
+      }
+
+      // Fallback simple counts per issue using separate queries per id to guarantee correctness
+      // (kept small as we page results)
+      await Promise.all(issueList.map(async (it: any) => {
+        const [{ count: cCount }, { count: vCount }] = await Promise.all([
+          supabase.from('comments').select('*', { count: 'exact', head: true }).eq('issue_id', it.id),
+          supabase.from('issue_votes').select('*', { count: 'exact', head: true }).eq('issue_id', it.id)
+        ]);
+        it.comments_count = cCount || 0;
+        it.votes_count = vCount || 0;
+      }));
+    }
+
     return NextResponse.json({
-      issues: issues || [],
+      issues: issueList,
       pagination: {
         page,
         limit,
