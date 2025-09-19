@@ -81,6 +81,7 @@ export default function IssueDetailPage() {
   const [followers, setFollowers] = useState(0)
   const [newComment, setNewComment] = useState("")
   const [comments, setComments] = useState<any[]>([])
+  const [timeline, setTimeline] = useState<any[]>([])
 
   useEffect(() => {
     const id = Array.isArray(params?.id) ? params?.id[0] : (params as any)?.id
@@ -99,6 +100,7 @@ export default function IssueDetailPage() {
         const commentsJson = await commentsRes.json()
         if (!issueRes.ok) throw new Error(issueJson.error || 'Failed to load issue')
         setIssue(issueJson.issue)
+        setTimeline((issueJson.meta && issueJson.meta.timeline) || [])
         setUpvotes((voteJson && typeof voteJson.votesCount === 'number') ? voteJson.votesCount : (issueJson.issue.upvotes || 0))
         setHasUpvoted(!!(voteJson && voteJson.hasVoted))
         setComments(commentsJson.comments || [])
@@ -254,7 +256,30 @@ export default function IssueDetailPage() {
                 <CardTitle>Progress Timeline</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">Timeline coming soon.</div>
+                {timeline.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No updates yet.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {timeline.map((ev: any, idx: number) => (
+                      <div key={ev.id || idx} className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getStatusColor(ev.status || 'submitted')}`}>
+                            {getStatusIcon(ev.status || 'submitted')}
+                          </div>
+                          {idx < timeline.length - 1 && <div className="w-px h-8 bg-border mt-2" />}
+                        </div>
+                        <div className="flex-1 pb-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                            <h4 className="font-medium capitalize">{String(ev.status || '').replace(/[_-]/g,' ') || 'update'}</h4>
+                            <span className="text-sm text-muted-foreground">{ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}</span>
+                          </div>
+                          {ev.comment && (<p className="text-sm text-muted-foreground mt-1">{ev.comment}</p>)}
+                          <p className="text-xs text-muted-foreground mt-1">by {ev.profiles?.full_name || 'User'}{ev.profiles?.email ? ` • ${ev.profiles.email}` : ''}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -332,6 +357,12 @@ export default function IssueDetailPage() {
                   <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
                   <span>Reported {issue ? new Date(issue.created_at).toLocaleDateString() : '-'}</span>
                 </div>
+                {issue?.assigned_profile && (
+                  <div className="flex items-center text-sm">
+                    <User className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <span>POC: {issue.assigned_profile.full_name}{issue.assigned_profile.email ? ` • ${issue.assigned_profile.email}` : ''}</span>
+                  </div>
+                )}
                 {issue?.landmark && (
                   <div className="flex items-center text-sm">
                     <User className="w-4 h-4 mr-2 text-muted-foreground" />

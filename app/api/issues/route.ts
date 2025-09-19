@@ -31,12 +31,21 @@ export async function GET(request: NextRequest) {
       }
 
       // Optionally, fetch counts for comments and votes
-      const [{ count: commentsCount }, { count: votesCount }] = await Promise.all([
+      const [commentsAgg, votesAgg, timelineRes] = await Promise.all([
         supabase.from('comments').select('*', { count: 'exact', head: true }).eq('issue_id', id),
         supabase.from('issue_votes').select('*', { count: 'exact', head: true }).eq('issue_id', id),
+        supabase
+          .from('issue_updates')
+          .select(`*, profiles:user_id(full_name, email)`) // who made the update
+          .eq('issue_id', id)
+          .order('created_at', { ascending: true })
       ]);
 
-      return NextResponse.json({ issue, meta: { commentsCount: commentsCount || 0, votesCount: votesCount || 0 } });
+      const commentsCount = (commentsAgg as any).count || 0;
+      const votesCount = (votesAgg as any).count || 0;
+      const timeline = (timelineRes as any).data || [];
+
+      return NextResponse.json({ issue, meta: { commentsCount, votesCount, timeline } });
     }
     
     let query = supabase
