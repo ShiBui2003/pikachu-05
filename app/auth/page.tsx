@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { 
   Mail, 
@@ -16,15 +17,19 @@ import {
   ArrowLeft,
   User,
   UserPlus,
-  LogIn
+  LogIn,
+  Shield,
+  MapPin
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 
 type AuthMode = "signin" | "signup"
+type UserRole = "citizen" | "admin"
 
 export default function UnifiedAuthPage() {
   const [authMode, setAuthMode] = useState<AuthMode>("signin")
+  const [selectedRole, setSelectedRole] = useState<UserRole>("citizen")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
@@ -95,7 +100,7 @@ export default function UnifiedAuthPage() {
         }
         // If no redirect, the useEffect will handle role-based redirect
       } else {
-        const { error } = await signUp(formData.email, formData.password, formData.fullName)
+        const { error } = await signUp(formData.email, formData.password, formData.fullName, selectedRole)
         if (error) throw error
         
         toast({
@@ -119,8 +124,10 @@ export default function UnifiedAuthPage() {
 
   const handleGoogleAuth = async () => {
     try {
-      // Use default role for Google OAuth - the system will auto-detect the actual role
-      const { error } = await signInWithGoogle('citizen')
+      // For signin, use default role (system will auto-detect)
+      // For signup, use the selected role
+      const roleToUse = authMode === "signin" ? 'citizen' : selectedRole
+      const { error } = await signInWithGoogle(roleToUse)
       
       if (error) throw error
       
@@ -197,6 +204,31 @@ export default function UnifiedAuthPage() {
               </Button>
             </div>
 
+            {/* Role Selection - Only for Signup */}
+            {authMode === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="role">Select Your Role</Label>
+                <Select value={selectedRole} onValueChange={(value: UserRole) => setSelectedRole(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="citizen">
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="w-4 h-4 text-blue-600" />
+                        <span>Citizen - Report and track civic issues</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="admin">
+                      <div className="flex items-center space-x-2">
+                        <Shield className="w-4 h-4 text-purple-600" />
+                        <span>Administrator - Manage and resolve issues</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">

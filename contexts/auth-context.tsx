@@ -9,7 +9,7 @@ type AuthContextType = {
   user: User | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error?: Error }>
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error?: Error }>
+  signUp: (email: string, password: string, fullName: string, role?: 'admin' | 'citizen') => Promise<{ error?: Error }>
   signOut: () => Promise<{ error?: Error }>
   signInWithGoogle: (userType?: 'admin' | 'citizen') => Promise<{ error?: Error }>
 }
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, role: 'admin' | 'citizen' = 'citizen') => {
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           data: {
             full_name: fullName,
-            role: 'citizen',
+            role: role,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
