@@ -7,11 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { 
-  Shield, 
-  MapPin, 
   Mail, 
   Lock, 
   Eye, 
@@ -24,12 +21,10 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 
-type UserRole = "citizen" | "admin"
 type AuthMode = "signin" | "signup"
 
 export default function UnifiedAuthPage() {
   const [authMode, setAuthMode] = useState<AuthMode>("signin")
-  const [selectedRole, setSelectedRole] = useState<UserRole>("citizen")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
@@ -92,6 +87,13 @@ export default function UnifiedAuthPage() {
           title: "Login Successful",
           description: `Welcome back! Redirecting to your dashboard...`,
         })
+        
+        // Auto-redirect based on user role will be handled by the useEffect
+        const redirectTo = searchParams.get('redirectedFrom')
+        if (redirectTo && redirectTo.startsWith('/')) {
+          router.push(redirectTo as any)
+        }
+        // If no redirect, the useEffect will handle role-based redirect
       } else {
         const { error } = await signUp(formData.email, formData.password, formData.fullName)
         if (error) throw error
@@ -100,16 +102,8 @@ export default function UnifiedAuthPage() {
           title: "Account Created Successfully!",
           description: `Welcome! Please check your email to verify your account.`,
         })
-        router.push("/login")
+        router.push("/auth")
         return
-      }
-
-      // Redirect based on selected role for signin
-      const redirectTo = searchParams.get('redirectedFrom')
-      if (redirectTo && redirectTo.startsWith('/')) {
-        router.push(redirectTo as any)
-      } else {
-        router.push(`/${selectedRole}/dashboard`)
       }
     } catch (error: any) {
       setError(error.message || `${authMode === "signin" ? "Login" : "Sign up"} failed. Please try again.`)
@@ -125,13 +119,14 @@ export default function UnifiedAuthPage() {
 
   const handleGoogleAuth = async () => {
     try {
-      const { error } = await signInWithGoogle(selectedRole)
+      // Use default role for Google OAuth - the system will auto-detect the actual role
+      const { error } = await signInWithGoogle('citizen')
       
       if (error) throw error
       
       toast({
         title: `${authMode === "signin" ? "Login" : "Sign Up"} Successful`,
-        description: `Welcome! Redirecting to your ${selectedRole} dashboard...`,
+        description: `Welcome! Redirecting to your dashboard...`,
       })
     } catch (error: any) {
       toast({
@@ -202,29 +197,6 @@ export default function UnifiedAuthPage() {
               </Button>
             </div>
 
-            {/* Role Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="role">Select Your Role</Label>
-              <Select value={selectedRole} onValueChange={(value: UserRole) => setSelectedRole(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose your role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="citizen">
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="w-4 h-4 text-blue-600" />
-                      <span>Citizen - Report and track civic issues</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="admin">
-                    <div className="flex items-center space-x-2">
-                      <Shield className="w-4 h-4 text-purple-600" />
-                      <span>Administrator - Manage and resolve issues</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">

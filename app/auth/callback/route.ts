@@ -25,6 +25,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If there's an error or no code, redirect to home
-  return NextResponse.redirect(new URL('/', request.url));
+  // If there's an error or no code, redirect to auth page
+  return NextResponse.redirect(new URL('/auth', request.url));
 }

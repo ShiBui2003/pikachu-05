@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Force a hard redirect to ensure all state is cleared
       if (typeof window !== 'undefined') {
-        window.location.href = '/';
+        window.location.href = '/auth';
         // Prevent any further execution after redirect
         await new Promise(() => {});
       }
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error during sign out:', error);
       // Even if there's an error, try to redirect
       if (typeof window !== 'undefined') {
-        window.location.href = '/';
+        window.location.href = '/auth';
       }
       return { error: error as Error };
     }
