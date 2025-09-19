@@ -20,15 +20,7 @@ export default function HomePage() {
               size="lg"
               className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-3"
             >
-              <Link href="/login">Sign In</Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-3 bg-white"
-            >
-              <Link href="/citizen/signup">Get Started</Link>
+              <Link href="/auth">Get Started</Link>
             </Button>
           </div>
         </div>

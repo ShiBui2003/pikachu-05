@@ -3,7 +3,9 @@ import { createServerClient } from '@/lib/supabase/server';
 
 const publicRoutes = [
   '/',
-  '/login', // Added unified login page
+  '/auth', // Added unified auth page
+  '/login', // Keep for backward compatibility
+  '/signup', // Keep for backward compatibility
   '/admin/login',
   '/admin/signup',
   '/citizen/login',
@@ -37,7 +39,7 @@ export async function middleware(request: NextRequest) {
     
     // If no session and trying to access protected routes
     if (!user || error) {
-      const redirectUrl = new URL('/login', request.url); // Redirect to unified login
+      const redirectUrl = new URL('/auth', request.url); // Redirect to unified auth
       // Add the current path as a query parameter for redirecting back after login
       if (pathname !== '/') {
         redirectUrl.searchParams.set('redirectedFrom', pathname);
@@ -49,8 +51,8 @@ export async function middleware(request: NextRequest) {
     // Check user role
     const role = user?.user_metadata?.role || 'citizen'; // Default to citizen
     
-    // Redirect to appropriate dashboard if already logged in and trying to access login pages
-    if (pathname === '/login' || pathname === '/admin/login' || pathname === '/citizen/login') {
+    // Redirect to appropriate dashboard if already logged in and trying to access auth pages
+    if (pathname === '/auth' || pathname === '/login' || pathname === '/signup' || pathname === '/admin/login' || pathname === '/admin/signup' || pathname === '/citizen/login' || pathname === '/citizen/signup') {
       const dashboardPath = role === 'admin' ? '/admin/dashboard' : '/citizen/dashboard';
       return NextResponse.redirect(new URL(dashboardPath, request.url));
     }
