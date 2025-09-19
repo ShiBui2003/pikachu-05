@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 
 const publicRoutes = [
   '/',
+  '/login', // Added unified login page
   '/admin/login',
   '/admin/signup',
   '/citizen/login',
@@ -36,11 +37,7 @@ export async function middleware(request: NextRequest) {
     
     // If no session and trying to access protected routes
     if (!user || error) {
-      const loginUrl = pathname.startsWith('/admin') 
-        ? '/admin/login' 
-        : '/citizen/login';
-      
-      const redirectUrl = new URL(loginUrl, request.url);
+      const redirectUrl = new URL('/login', request.url); // Redirect to unified login
       // Add the current path as a query parameter for redirecting back after login
       if (pathname !== '/') {
         redirectUrl.searchParams.set('redirectedFrom', pathname);
@@ -53,7 +50,7 @@ export async function middleware(request: NextRequest) {
     const role = user?.user_metadata?.role || 'citizen'; // Default to citizen
     
     // Redirect to appropriate dashboard if already logged in and trying to access login pages
-    if (pathname === '/admin/login' || pathname === '/citizen/login') {
+    if (pathname === '/login' || pathname === '/admin/login' || pathname === '/citizen/login') {
       const dashboardPath = role === 'admin' ? '/admin/dashboard' : '/citizen/dashboard';
       return NextResponse.redirect(new URL(dashboardPath, request.url));
     }
