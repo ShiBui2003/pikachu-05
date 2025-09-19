@@ -178,55 +178,27 @@ export default function CitizenNav() {
 
                     {/* Desktop User Actions */}
                     <div className="hidden lg:flex lg:items-center lg:space-x-2">
-                        <RealTimeNotifications />
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-9">
+                        {/* Combined Profile Button with Notifications */}
+                        <div className="flex items-center space-x-2">
+                            <RealTimeNotifications />
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="h-9 bg-orange-500 hover:bg-orange-600 text-white px-4"
+                                asChild
+                            >
+                                <Link href="/citizen/profile" className="flex items-center">
                                     <Avatar className="w-6 h-6 mr-2">
-                                        <AvatarFallback>
+                                        <AvatarFallback className="bg-white text-orange-500 text-xs font-bold">
                                             {String(displayName).substring(0, 2).toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
-                                    {displayName}
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-64">
-                                <DropdownMenuLabel>
-                                    <div className="flex items-center gap-3">
-                                        <Avatar className="w-9 h-9">
-                                            <AvatarFallback>
-                                                {String(displayName).substring(0, 2).toUpperCase()}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="min-w-0">
-                                            <div className="font-medium truncate">{displayName}</div>
-                                            <div className="text-xs text-muted-foreground truncate">
-                                                {user?.email ?? ""}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <Link href="/citizen/profile">
-                                        <User className="w-4 h-4 mr-2" />
-                                        Profile
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <Link href="/citizen/my-issues">
-                                        <FileText className="w-4 h-4 mr-2" />
-                                        My Issues
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <Link href="/citizen/notifications">
-                                        <Bell className="w-4 h-4 mr-2" />
-                                        Notifications
-                                    </Link>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                    <span>{displayName}</span>
+                                </Link>
+                            </Button>
+                        </div>
+                        
+
                         <Button 
                             variant="ghost" 
                             size="sm" 
@@ -240,7 +212,26 @@ export default function CitizenNav() {
 
                     {/* Mobile Navigation */}
                     <div className="flex lg:hidden items-center space-x-2">
-                        <RealTimeNotifications />
+                        {/* Combined Profile Button with Notifications - Mobile */}
+                        <div className="flex items-center space-x-2">
+                            <RealTimeNotifications />
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="h-9 bg-orange-500 hover:bg-orange-600 text-white px-3"
+                                asChild
+                            >
+                                <Link href="/citizen/profile" className="flex items-center">
+                                    <Avatar className="w-5 h-5 mr-1">
+                                        <AvatarFallback className="bg-white text-orange-500 text-xs font-bold">
+                                            {String(displayName).substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm">{displayName}</span>
+                                </Link>
+                            </Button>
+                        </div>
+                        
                         <Button 
                             variant="ghost" 
                             size="sm" 
