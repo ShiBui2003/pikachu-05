@@ -46,7 +46,7 @@ export default function UnifiedAuthPage() {
   const [error, setError] = useState<string | null>(null)
   
   const { toast } = useToast()
-  const { user, signIn, signUp, signInWithGoogle, signUpWithGoogle } = useAuth()
+  const { user, signIn, signUp, signInWithGoogle } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -89,25 +89,22 @@ export default function UnifiedAuthPage() {
 
     try {
       if (authMode === "signin") {
-        const { error } = await signIn(formData.email, formData.password, selectedRole)
+        const { error } = await signIn(formData.email, formData.password)
         if (error) throw error
         
         toast({
           title: "Login Successful",
-          description: `Welcome back! Redirecting to your ${selectedRole} dashboard...`,
+          description: `Welcome back! Redirecting to your dashboard...`,
         })
       } else {
-        const { error } = await signUp(formData.email, formData.password, {
-          full_name: formData.fullName,
-          role: selectedRole
-        })
+        const { error } = await signUp(formData.email, formData.password, formData.fullName)
         if (error) throw error
         
         toast({
           title: "Account Created Successfully!",
           description: `Welcome! Please check your email to verify your account.`,
         })
-        router.push(`/${selectedRole}/signup-success`)
+        router.push("/login")
         return
       }
 
@@ -132,9 +129,7 @@ export default function UnifiedAuthPage() {
 
   const handleGoogleAuth = async () => {
     try {
-      const { error } = authMode === "signin" 
-        ? await signInWithGoogle(selectedRole)
-        : await signUpWithGoogle({ role: selectedRole })
+      const { error } = await signInWithGoogle(selectedRole)
       
       if (error) throw error
       
