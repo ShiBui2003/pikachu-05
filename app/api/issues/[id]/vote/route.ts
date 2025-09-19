@@ -188,11 +188,11 @@ export async function GET(
                 .eq("issue_id", issueId);
             votes = result.data;
             error = result.error;
-        } catch (selectError) {
+        } catch (selectError: any) {
             // If vote_type column doesn't exist, fall back to basic count
             if (
-                selectError.code === "42703" ||
-                selectError.message?.includes("vote_type")
+                selectError?.code === "42703" ||
+                selectError?.message?.includes("vote_type")
             ) {
                 const result = await supabase
                     .from("issue_votes")

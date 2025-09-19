@@ -29,8 +29,8 @@ const MapComponent: React.FC<MapProps> = ({
     userLocation,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
-    const [map, setMap] = useState<google.maps.Map>();
-    const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+    const [map, setMap] = useState<any>();
+    const [markers, setMarkers] = useState<any[]>([]);
 
     useEffect(() => {
         if (ref.current && !map) {
@@ -61,7 +61,7 @@ const MapComponent: React.FC<MapProps> = ({
         markers.forEach((marker) => marker.setMap(null));
         setMarkers([]);
 
-        const newMarkers: google.maps.Marker[] = [];
+        const newMarkers: any[] = [];
 
         issues.forEach((issue) => {
             if (!issue.location_lat || !issue.location_lng) return;
@@ -89,7 +89,7 @@ const MapComponent: React.FC<MapProps> = ({
 
             // Create custom marker icon
             const markerIcon = {
-                path: google.maps.SymbolPath.CIRCLE,
+                path: window.google.maps.SymbolPath.CIRCLE,
                 scale: 8,
                 fillColor: getMarkerColor(issue.status),
                 fillOpacity: 1,
@@ -97,7 +97,7 @@ const MapComponent: React.FC<MapProps> = ({
                 strokeWeight: 2,
             };
 
-            const marker = new google.maps.Marker({
+            const marker = new window.google.maps.Marker({
                 position,
                 map,
                 title: issue.title,
@@ -124,12 +124,12 @@ const MapComponent: React.FC<MapProps> = ({
 
         // Add user location marker if available
         if (userLocation) {
-            const userMarker = new google.maps.Marker({
+            const userMarker = new window.google.maps.Marker({
                 position: userLocation,
                 map,
                 title: "Your Location",
                 icon: {
-                    path: google.maps.SymbolPath.CIRCLE,
+                    path: window.google.maps.SymbolPath.CIRCLE,
                     scale: 10,
                     fillColor: "#4285F4",
                     fillOpacity: 1,
@@ -149,7 +149,7 @@ const MapComponent: React.FC<MapProps> = ({
 const render = (status: Status) => {
     if (status === Status.LOADING) return <div>Loading...</div>;
     if (status === Status.FAILURE) return <div>Error loading map</div>;
-    return null;
+    return <div></div>;
 };
 
 interface GoogleMapProps extends MapProps {
