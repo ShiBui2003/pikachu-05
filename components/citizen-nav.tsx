@@ -20,7 +20,7 @@ import NotificationSystem from "@/components/notification-system";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { signOut } from "@/lib/auth-utils";
+import { useAuth } from "@/contexts/auth-context";
 
 const navItems = [
     {
@@ -55,6 +55,7 @@ export default function CitizenNav() {
     const pathname = usePathname();
     const isMobile = useIsMobile();
     const [isOpen, setIsOpen] = useState(false);
+    const { signOut } = useAuth();
 
     const NavItems = ({
         mobile = false,
@@ -105,7 +106,7 @@ export default function CitizenNav() {
 
     // Add Supabase logout logic
     const handleLogout = async () => {
-        await signOut('/citizen/login');
+        await signOut();
     };
 
     return (

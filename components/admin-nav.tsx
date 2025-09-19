@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
-import { signOut } from "@/lib/auth-utils";
+import { useAuth } from "@/contexts/auth-context";
 import {
     BarChart3,
     Bell,
@@ -49,8 +49,9 @@ const navItems = [
 export default function AdminNav() {
     const pathname = usePathname();
     const router = useRouter();
+    const { signOut } = useAuth();
     const handleLogout = async () => {
-        await signOut('/admin/login');
+        await signOut();
     };
 
     return (
