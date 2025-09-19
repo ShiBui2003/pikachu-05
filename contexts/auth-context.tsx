@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { cookieFix } from '@/lib/cookie-fix'
 import type { User } from '@supabase/supabase-js'
 
 type AuthContextType = {
@@ -32,12 +33,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Handle auth state changes
       if (event === 'SIGNED_IN' && session?.user) {
-        const role = session.user.user_metadata?.role || session.user.role;
+        const role = session.user.user_metadata?.role || session.user.role || 'citizen';
         
-        // Only redirect if not already on a valid route
-        if (role === 'admin' && !currentPath.startsWith('/admin')) {
+        // Determine redirect based on current path and role
+        if (currentPath.startsWith('/admin/login') || currentPath.startsWith('/admin/signup')) {
+          // If logging in from admin pages, go to admin dashboard regardless of role
           router.push('/admin/dashboard');
-        } else if (role === 'citizen' && !currentPath.startsWith('/citizen')) {
+        } else if (currentPath.startsWith('/citizen/login') || currentPath.startsWith('/citizen/signup')) {
+          // If logging in from citizen pages, go to citizen dashboard
+          router.push('/citizen/dashboard');
+        } else if (role === 'admin' && !currentPath.startsWith('/admin')) {
+          router.push('/admin/dashboard');
+        } else if ((role === 'citizen' || !role) && !currentPath.startsWith('/citizen')) {
           router.push('/citizen/dashboard');
         }
       } else if (event === 'SIGNED_OUT') {
@@ -59,12 +66,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Handle initial redirect based on session and role
         if (session?.user) {
-          const role = session.user.user_metadata?.role || session.user.role;
+          const role = session.user.user_metadata?.role || session.user.role || 'citizen';
           const currentPath = window.location.pathname;
           
-          if (role === 'admin' && !currentPath.startsWith('/admin')) {
+          // Don't redirect if already on a valid route for the user's role
+          if (currentPath.startsWith('/admin/login') || currentPath.startsWith('/admin/signup')) {
+            // If on admin login/signup pages, go to admin dashboard
             router.push('/admin/dashboard');
-          } else if (role === 'citizen' && !currentPath.startsWith('/citizen')) {
+          } else if (currentPath.startsWith('/citizen/login') || currentPath.startsWith('/citizen/signup')) {
+            // If on citizen login/signup pages, go to citizen dashboard
+            router.push('/citizen/dashboard');
+          } else if (role === 'admin' && !currentPath.startsWith('/admin')) {
+            router.push('/admin/dashboard');
+          } else if ((role === 'citizen' || !role) && !currentPath.startsWith('/citizen')) {
             router.push('/citizen/dashboard');
           }
         }
@@ -115,12 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Clear all auth-related cookies first
-      if (typeof document !== 'undefined') {
-        document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'sb-provider-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      }
+      // Use cookie fix utility for comprehensive cleanup
+      cookieFix.clearSupabaseCookies();
+      cookieFix.clearAuthStorage();
       
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
@@ -135,10 +146,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: error ? new Error(error.message) : undefined };
     } catch (error) {
       console.error('Error during sign out:', error);
-      // Even if there's an error, try to redirect
-      if (typeof window !== 'undefined') {
-        window.location.href = '/';
-      }
+      // Even if there's an error, try to reset auth completely
+      await cookieFix.resetAuth();
       return { error: error as Error };
     }
   }

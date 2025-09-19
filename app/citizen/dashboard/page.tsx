@@ -23,6 +23,7 @@ import {
   MessageCircle,
 } from "lucide-react"
 import InteractiveMap from "@/components/interactive-map"
+import ResolvedIssuesSection from "@/components/resolved-issues-section"
 
 type Issue = {
   id: string
@@ -157,6 +158,12 @@ export default function CitizenDashboard() {
               </Button>
               <Button variant="outline" asChild className="w-full sm:w-auto bg-transparent">
                 <Link href="/citizen/my-issues">My Issues</Link>
+              </Button>
+              <Button variant="outline" asChild className="w-full sm:w-auto bg-transparent">
+                <Link href="/citizen/resolved">
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Resolved Issues
+                </Link>
               </Button>
             </div>
           </div>
@@ -381,6 +388,11 @@ export default function CitizenDashboard() {
             <InteractiveMap />
           </div>
         )}
+
+        {/* Recently Resolved Issues Section */}
+        <div className="mt-8 pt-8 border-t">
+          <ResolvedIssuesSection limit={6} />
+        </div>
       </div>
     </div>
   )

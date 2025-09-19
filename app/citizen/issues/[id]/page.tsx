@@ -24,8 +24,11 @@ import {
   Send,
   Heart,
   Flag,
+  Building2,
 } from "lucide-react"
 import MapPicker from "@/components/map-picker"
+import GoogleMapsEmbed from "@/components/google-maps-embed"
+import InteractiveGoogleMap from "@/components/interactive-google-map"
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -82,6 +85,8 @@ export default function IssueDetailPage() {
   const [newComment, setNewComment] = useState("")
   const [comments, setComments] = useState<any[]>([])
   const [timeline, setTimeline] = useState<any[]>([])
+  const [editingComment, setEditingComment] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState("")
 
   useEffect(() => {
     const id = Array.isArray(params?.id) ? params?.id[0] : (params as any)?.id
@@ -90,17 +95,21 @@ export default function IssueDetailPage() {
       try {
         setLoading(true)
         setError(null)
-        const [issueRes, voteRes, commentsRes] = await Promise.all([
+        const [issueRes, voteRes, commentsRes, timelineRes] = await Promise.all([
           fetch(`/api/issues?id=${id}`, { credentials: 'include' }),
           fetch(`/api/issues/${id}/vote`, { credentials: 'include' }),
-          fetch(`/api/issues/${id}/comments`, { credentials: 'include' })
+          fetch(`/api/issues/${id}/comments`, { credentials: 'include' }),
+          fetch(`/api/issues/${id}/timeline`, { credentials: 'include' })
         ])
         const issueJson = await issueRes.json()
         const voteJson = await voteRes.json()
         const commentsJson = await commentsRes.json()
+        const timelineJson = await timelineRes.json()
+        
         if (!issueRes.ok) throw new Error(issueJson.error || 'Failed to load issue')
+        
         setIssue(issueJson.issue)
-        setTimeline((issueJson.meta && issueJson.meta.timeline) || [])
+        setTimeline(timelineJson.timeline || [])
         setUpvotes((voteJson && typeof voteJson.votesCount === 'number') ? voteJson.votesCount : (issueJson.issue.upvotes || 0))
         setHasUpvoted(!!(voteJson && voteJson.hasVoted))
         setComments(commentsJson.comments || [])
@@ -152,7 +161,7 @@ export default function IssueDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ content, is_admin: false })
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Failed to add comment')
@@ -161,6 +170,51 @@ export default function IssueDetailPage() {
     } catch (e) {
       console.error(e)
     }
+  }
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!issue?.id) return
+    if (!confirm('Are you sure you want to delete this comment?')) return
+    try {
+      const res = await fetch(`/api/issues/${issue.id}/comments/${commentId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || 'Failed to delete comment')
+      }
+      setComments(prev => prev.filter(c => c.id !== commentId))
+    } catch (e) {
+      console.error(e)
+      alert('Failed to delete comment: ' + (e as Error).message)
+    }
+  }
+
+  const handleEditComment = async (commentId: string) => {
+    if (!issue?.id) return
+    const content = editContent.trim()
+    if (!content) return
+    try {
+      const res = await fetch(`/api/issues/${issue.id}/comments/${commentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ content })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed to update comment')
+      setComments(prev => prev.map(c => c.id === commentId ? json.comment : c))
+      setEditingComment(null)
+      setEditContent('')
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const startEditing = (comment: any) => {
+    setEditingComment(comment.id)
+    setEditContent(comment.content)
   }
 
   return (
@@ -250,34 +304,128 @@ export default function IssueDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Timeline */}
+            {/* Enhanced Progress Timeline */}
             <Card>
               <CardHeader>
-                <CardTitle>Progress Timeline</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Progress Timeline</span>
+                  {issue && (
+                    <Badge className={getStatusColor(String(issue.status).replace('_','-'))}>
+                      {getStatusIcon(issue.status)}
+                      <span className="ml-1 capitalize">{String(issue.status).replace(/[_-]/g, ' ')}</span>
+                    </Badge>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {timeline.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">No updates yet.</div>
+                  <div className="text-center py-8">
+                    <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-sm text-muted-foreground">No updates yet.</p>
+                    <p className="text-xs text-muted-foreground mt-1">You'll receive notifications when there are updates on your issue.</p>
+                  </div>
                 ) : (
-                  <div className="space-y-4">
-                    {timeline.map((ev: any, idx: number) => (
-                      <div key={ev.id || idx} className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getStatusColor(ev.status || 'submitted')}`}>
-                            {getStatusIcon(ev.status || 'submitted')}
+                  <div className="space-y-6">
+                    {timeline.map((ev: any, idx: number) => {
+                      const isLatest = idx === 0;
+                      const getTimelineIcon = (type: string, status?: string) => {
+                        switch (type) {
+                          case 'created': return <Clock className="w-4 h-4" />;
+                          case 'status_update':
+                            switch (status) {
+                              case 'assigned': return <User className="w-4 h-4" />;
+                              case 'in_progress': return <AlertTriangle className="w-4 h-4" />;
+                              case 'resolved': return <CheckCircle className="w-4 h-4" />;
+                              case 'closed': return <Flag className="w-4 h-4" />;
+                              default: return <Clock className="w-4 h-4" />;
+                            }
+                          case 'admin_action': return <Building2 className="w-4 h-4" />;
+                          case 'workflow_update': return <MessageCircle className="w-4 h-4" />;
+                          case 'current_status': return <Eye className="w-4 h-4" />;
+                          default: return <Clock className="w-4 h-4" />;
+                        }
+                      };
+
+                      const getTimelineColor = (type: string, status?: string) => {
+                        switch (type) {
+                          case 'created': return 'bg-blue-500 text-white';
+                          case 'status_update':
+                            switch (status) {
+                              case 'assigned': return 'bg-yellow-500 text-white';
+                              case 'in_progress': return 'bg-orange-500 text-white';
+                              case 'resolved': return 'bg-green-500 text-white';
+                              case 'closed': return 'bg-gray-500 text-white';
+                              default: return 'bg-blue-400 text-white';
+                            }
+                          case 'admin_action': return 'bg-purple-500 text-white';
+                          case 'workflow_update': return 'bg-indigo-500 text-white';
+                          case 'current_status': return 'bg-emerald-500 text-white';
+                          default: return 'bg-gray-400 text-white';
+                        }
+                      };
+
+                      return (
+                        <div key={ev.id || idx} className={`flex gap-4 ${isLatest ? 'bg-blue-50 -mx-4 px-4 py-3 rounded-lg border-l-4 border-blue-400' : ''}`}>
+                          <div className="flex flex-col items-center">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getTimelineColor(ev.type, ev.status)} ${isLatest ? 'ring-2 ring-blue-200 shadow-lg' : ''}`}>
+                              {getTimelineIcon(ev.type, ev.status)}
+                            </div>
+                            {idx < timeline.length - 1 && <div className="w-px h-12 bg-border mt-3" />}
                           </div>
-                          {idx < timeline.length - 1 && <div className="w-px h-8 bg-border mt-2" />}
-                        </div>
-                        <div className="flex-1 pb-4">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                            <h4 className="font-medium capitalize">{String(ev.status || '').replace(/[_-]/g,' ') || 'update'}</h4>
-                            <span className="text-sm text-muted-foreground">{ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}</span>
+                          <div className="flex-1 pb-4">
+                            <div className="flex flex-col gap-2">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                <h4 className="font-semibold text-base">
+                                  {ev.title}
+                                  {isLatest && <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-1 rounded-full">Latest</span>}
+                                </h4>
+                                <span className="text-sm text-muted-foreground">
+                                  {ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}
+                                </span>
+                              </div>
+                              
+                              <p className="text-sm text-gray-600">{ev.description}</p>
+                              
+                              {ev.comment && (
+                                <div className="bg-white border border-gray-200 rounded-lg p-3 mt-2">
+                                  <p className="text-sm font-medium text-gray-900 mb-1">📝 Admin Note:</p>
+                                  <p className="text-sm text-gray-700">{ev.comment}</p>
+                                </div>
+                              )}
+
+                              {ev.metadata?.estimated_completion && (
+                                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2">
+                                  <p className="text-sm font-medium text-orange-900 mb-1">⏰ Estimated Completion:</p>
+                                  <p className="text-sm text-orange-800">
+                                    {new Date(ev.metadata.estimated_completion).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              )}
+
+                              {ev.metadata?.department && (
+                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mt-2">
+                                  <p className="text-sm font-medium text-purple-900 mb-1">🏢 Department:</p>
+                                  <p className="text-sm text-purple-800">{ev.metadata.department.name}</p>
+                                </div>
+                              )}
+                              
+                              {ev.user && (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <User className="w-3 h-3" />
+                                  <span>by {ev.user.full_name || 'User'}</span>
+                                  {ev.user.email && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{ev.user.email}</span>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          {ev.comment && (<p className="text-sm text-muted-foreground mt-1">{ev.comment}</p>)}
-                          <p className="text-xs text-muted-foreground mt-1">by {ev.profiles?.full_name || 'User'}{ev.profiles?.email ? ` • ${ev.profiles.email}` : ''}</p>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -323,14 +471,71 @@ export default function IssueDetailPage() {
                           <div className="bg-muted rounded-lg p-3">
                             <div className="flex items-center justify-between mb-1">
                               <span className="font-medium text-sm">{c.profiles?.full_name || 'User'}</span>
-                              <Badge variant={c.is_admin ? 'default' : 'secondary'} className="text-xs">
-                                {c.is_admin ? 'admin' : 'citizen'}
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge variant={c.is_admin ? 'default' : 'secondary'} className="text-xs">
+                                  {c.is_admin ? 'admin' : 'citizen'}
+                                </Badge>
+                                {/* Only show edit/delete for own comments */}
+                                {c.user_id === issue?.profiles?.id && (
+                                  <div className="flex gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2 text-xs"
+                                      onClick={() => startEditing(c)}
+                                    >
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                                      onClick={() => handleDeleteComment(c.id)}
+                                    >
+                                      Delete
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <p className="text-sm">{c.content}</p>
+                            {editingComment === c.id ? (
+                              <div className="space-y-2">
+                                <Textarea
+                                  value={editContent}
+                                  onChange={(e) => setEditContent(e.target.value)}
+                                  className="min-h-[60px]"
+                                />
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleEditComment(c.id)}
+                                    disabled={!editContent.trim()}
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingComment(null)
+                                      setEditContent('')
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm">{c.content}</p>
+                            )}
                           </div>
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{new Date(c.created_at).toLocaleString()}</span>
+                            <span>
+                              {new Date(c.created_at).toLocaleString()}
+                              {c.updated_at && c.updated_at !== c.created_at && (
+                                <span className="ml-2 italic">(edited)</span>
+                              )}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -357,20 +562,94 @@ export default function IssueDetailPage() {
                   <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
                   <span>Reported {issue ? new Date(issue.created_at).toLocaleDateString() : '-'}</span>
                 </div>
-                {issue?.assigned_profile && (
+                {issue?.category && (
                   <div className="flex items-center text-sm">
-                    <User className="w-4 h-4 mr-2 text-muted-foreground" />
-                    <span>POC: {issue.assigned_profile.full_name}{issue.assigned_profile.email ? ` • ${issue.assigned_profile.email}` : ''}</span>
+                    <AlertTriangle className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <span>Category: {issue.category.replace(/[_-]/g, ' ')}</span>
+                  </div>
+                )}
+                {issue?.priority && (
+                  <div className="flex items-center text-sm">
+                    <Flag className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <Badge className={getPriorityColor(issue.priority)} variant="outline">
+                      {issue.priority} Priority
+                    </Badge>
                   </div>
                 )}
                 {issue?.landmark && (
                   <div className="flex items-center text-sm">
-                    <User className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
                     <span>Landmark: {issue.landmark}</span>
                   </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Department & Assignment Info */}
+            {(issue?.department || issue?.assigned_profile) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <User className="w-5 h-5 mr-2" />
+                    Assignment Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {issue?.department && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="flex items-center text-sm font-medium text-blue-900 mb-1">
+                        <User className="w-4 h-4 mr-2" />
+                        Assigned Department
+                      </div>
+                      <p className="text-sm text-blue-800">{issue.department.name}</p>
+                      {issue.department.email && (
+                        <p className="text-xs text-blue-700 mt-1">{issue.department.email}</p>
+                      )}
+                      {issue.department.description && (
+                        <p className="text-xs text-blue-700 mt-1">{issue.department.description}</p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {issue?.assigned_profile && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center text-sm font-medium text-green-900 mb-1">
+                        <User className="w-4 h-4 mr-2" />
+                        Point of Contact
+                      </div>
+                      <p className="text-sm text-green-800">{issue.assigned_profile.full_name}</p>
+                      {issue.assigned_profile.email && (
+                        <p className="text-xs text-green-700 mt-1">{issue.assigned_profile.email}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {issue?.estimated_completion && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                      <div className="flex items-center text-sm font-medium text-orange-900 mb-1">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Estimated Completion
+                      </div>
+                      <p className="text-sm text-orange-800">
+                        {new Date(issue.estimated_completion).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
+
+                  {issue?.completed_at && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center text-sm font-medium text-green-900 mb-1">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Completed On
+                      </div>
+                      <p className="text-sm text-green-800">
+                        {new Date(issue.completed_at).toLocaleDateString()} at {new Date(issue.completed_at).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Reporter Info */}
             <Card>
@@ -398,16 +677,22 @@ export default function IssueDetailPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="p-3">
-                  <MapPicker
-                    value={{
-                      address: issue?.location_address || '',
-                      lat: issue?.location_lat ?? null,
-                      lng: issue?.location_lng ?? null,
-                    }}
-                    onChange={() => { /* read-only map on detail page */ }}
-                    height={320}
-                    showSearch={false}
-                  />
+                  {issue?.location_lat && issue?.location_lng ? (
+                    <InteractiveGoogleMap
+                      lat={issue.location_lat}
+                      lng={issue.location_lng}
+                      address={issue.location_address}
+                      height={320}
+                      zoom={16}
+                    />
+                  ) : (
+                    <div className="h-80 bg-gray-100 flex items-center justify-center">
+                      <div className="text-center text-gray-500">
+                        <MapPin className="w-8 h-8 mx-auto mb-2" />
+                        <p className="text-sm">Location not available</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
