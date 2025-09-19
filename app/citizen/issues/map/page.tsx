@@ -29,6 +29,10 @@ import {
     Eye,
     Calendar,
     User,
+    Plus,
+    ThumbsUp,
+    MessageCircle,
+    Loader2,
 } from "lucide-react";
 
 type Issue = {
@@ -44,14 +48,8 @@ type Issue = {
     created_at: string;
     updated_at?: string;
     user_id?: string;
-    assigned_to?: string;
-    estimated_completion?: string;
     image_url?: string;
     profiles?: {
-        full_name: string;
-        email: string;
-    };
-    assigned_profile?: {
         full_name: string;
         email: string;
     };
@@ -104,7 +102,7 @@ const getCategoryLabel = (category: string) => {
     }
 };
 
-export default function IssuesMapPage() {
+export default function CitizenIssuesMapPage() {
     const [allIssues, setAllIssues] = useState<Issue[]>([]);
     const [statusFilter, setStatusFilter] = useState("all");
     const [priorityFilter, setPriorityFilter] = useState("all");
@@ -118,8 +116,8 @@ export default function IssuesMapPage() {
     } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
 
-    // Default map center - you should update this to your city's coordinates
-    const defaultCenter = { lat: 37.7749, lng: -122.4194 }; // San Francisco (change this to your city)
+    // Default map center
+    const defaultCenter = { lat: 37.7749, lng: -122.4194 }; // San Francisco
     const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
     // Get user's current location
@@ -160,10 +158,6 @@ export default function IssuesMapPage() {
           profiles:user_id (
             full_name,
             email
-          ),
-          assigned_profile:assigned_to (
-            full_name,
-            email
           )
         `
                 )
@@ -175,7 +169,30 @@ export default function IssuesMapPage() {
                 throw fetchError;
             }
 
-            setAllIssues((data as Issue[]) || []);
+            // Get vote and comment counts for each issue
+            const issuesWithCounts = await Promise.all(
+                (data || []).map(async (issue) => {
+                    const [{ count: votesCount }, { count: commentsCount }] =
+                        await Promise.all([
+                            supabase
+                                .from("issue_votes")
+                                .select("*", { count: "exact", head: true })
+                                .eq("issue_id", issue.id),
+                            supabase
+                                .from("comments")
+                                .select("*", { count: "exact", head: true })
+                                .eq("issue_id", issue.id),
+                        ]);
+
+                    return {
+                        ...issue,
+                        votes_count: votesCount || 0,
+                        comments_count: commentsCount || 0,
+                    };
+                })
+            );
+
+            setAllIssues(issuesWithCounts as Issue[]);
         } catch (err: any) {
             console.error("Error fetching issues:", err);
             setError(err.message || "Failed to load issues");
@@ -188,21 +205,6 @@ export default function IssuesMapPage() {
         fetchIssues();
         getCurrentLocation();
     }, []);
-
-    const filteredIssues = allIssues.filter((issue) => {
-        const matchesStatus =
-            statusFilter === "all" || issue.status === statusFilter;
-        const matchesPriority =
-            priorityFilter === "all" ||
-            (issue.priority || "medium") === priorityFilter;
-        const matchesCategory =
-            categoryFilter === "all" || issue.category === categoryFilter;
-        return matchesStatus && matchesPriority && matchesCategory;
-    });
-
-    const selectedIssueData = allIssues.find(
-        (issue) => issue.id === selectedIssue
-    );
 
     // Calculate distance between two points using Haversine formula
     const calculateDistance = (
@@ -224,7 +226,18 @@ export default function IssuesMapPage() {
         return R * c;
     };
 
-    // Get nearby issues (within 10km of user location)
+    const filteredIssues = allIssues.filter((issue) => {
+        const matchesStatus =
+            statusFilter === "all" || issue.status === statusFilter;
+        const matchesPriority =
+            priorityFilter === "all" ||
+            (issue.priority || "medium") === priorityFilter;
+        const matchesCategory =
+            categoryFilter === "all" || issue.category === categoryFilter;
+        return matchesStatus && matchesPriority && matchesCategory;
+    });
+
+    // Get nearby issues (within 5km of user location for citizens)
     const nearbyIssues = userLocation
         ? filteredIssues.filter((issue) => {
               if (!issue.location_lat || !issue.location_lng) return false;
@@ -234,19 +247,16 @@ export default function IssuesMapPage() {
                   issue.location_lat,
                   issue.location_lng
               );
-              return distance <= 10; // 10km radius
+              return distance <= 5; // 5km radius for citizens
           })
         : filteredIssues;
 
     // Calculate map center - prioritize user location, then nearby issues, then all issues
     const mapCenter = (() => {
-        // Priority 1: User location
         if (userLocation) {
-            console.log("Using user location:", userLocation);
             return userLocation;
         }
 
-        // Priority 2: Nearby issues center
         if (nearbyIssues.length > 0) {
             const center = {
                 lat:
@@ -260,17 +270,9 @@ export default function IssuesMapPage() {
                         0
                     ) / nearbyIssues.length,
             };
-            console.log(
-                "Using nearby issues center:",
-                center,
-                "from",
-                nearbyIssues.length,
-                "issues"
-            );
             return center;
         }
 
-        // Priority 3: All issues center
         if (filteredIssues.length > 0) {
             const center = {
                 lat:
@@ -284,32 +286,23 @@ export default function IssuesMapPage() {
                         0
                     ) / filteredIssues.length,
             };
-            console.log(
-                "Using all issues center:",
-                center,
-                "from",
-                filteredIssues.length,
-                "issues"
-            );
             return center;
         }
 
-        // Fallback: Default center
-        console.log(
-            "Using default center:",
-            defaultCenter,
-            "- no issues found"
-        );
         return defaultCenter;
     })();
 
     // Determine zoom level based on context
     const mapZoom = (() => {
-        if (userLocation) return 14; // Street level for user location
-        if (nearbyIssues.length > 0) return 12; // Neighborhood level for nearby issues
-        if (filteredIssues.length > 0) return 10; // City level for all issues
-        return 4; // Country level for no issues (default fallback)
+        if (userLocation) return 15; // Street level for user location
+        if (nearbyIssues.length > 0) return 13; // Neighborhood level for nearby issues
+        if (filteredIssues.length > 0) return 11; // City level for all issues
+        return 4; // Country level for no issues
     })();
+
+    const selectedIssueData = allIssues.find(
+        (issue) => issue.id === selectedIssue
+    );
 
     // Prepare issues for map component
     const mapIssues = filteredIssues
@@ -326,13 +319,10 @@ export default function IssuesMapPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background">
-                <div className="container mx-auto px-4 py-8">
-                    <Card>
-                        <CardContent className="p-8">
-                            <div className="text-center">Loading map...</div>
-                        </CardContent>
-                    </Card>
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                    <p className="text-muted-foreground">Loading map...</p>
                 </div>
             </div>
         );
@@ -340,15 +330,11 @@ export default function IssuesMapPage() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-background">
-                <div className="container mx-auto px-4 py-8">
-                    <Card>
-                        <CardContent className="p-8">
-                            <div className="text-center text-red-600">
-                                {error}
-                            </div>
-                        </CardContent>
-                    </Card>
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="text-center">
+                    <MapPin className="w-8 h-8 text-red-500 mx-auto mb-4" />
+                    <p className="text-red-600 mb-4">{error}</p>
+                    <Button onClick={fetchIssues}>Retry</Button>
                 </div>
             </div>
         );
@@ -362,20 +348,23 @@ export default function IssuesMapPage() {
                     <Card>
                         <CardContent className="p-8 text-center">
                             <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">No Issues Found</h3>
+                                <h3 className="text-lg font-semibold">
+                                    No Issues Found
+                                </h3>
                                 <p className="text-muted-foreground">
-                                    There are no issues in the database yet. The map is showing the default location.
+                                    There are no issues reported in your area
+                                    yet.
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                    Issues need to be reported through the citizen portal first, or you can visit{" "}
-                                    <a href="/admin/issues/debug" className="text-blue-600 hover:underline">
-                                        the debug page
-                                    </a>{" "}
-                                    to see the raw data.
+                                    Be the first to report an issue and help
+                                    improve your community!
                                 </p>
                                 <div className="mt-4">
-                                    <Button variant="outline" asChild>
-                                        <Link href="/admin/issues">Back to Issues List</Link>
+                                    <Button asChild>
+                                        <Link href="/citizen/report">
+                                            <Plus className="w-4 h-4 mr-2" />
+                                            Report an Issue
+                                        </Link>
                                     </Button>
                                 </div>
                             </div>
@@ -394,17 +383,17 @@ export default function IssuesMapPage() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                             <Button variant="ghost" size="sm" asChild>
-                                <Link href="/admin/issues">
+                                <Link href="/citizen/dashboard">
                                     <ArrowLeft className="w-4 h-4 mr-2" />
-                                    Back to Issues
+                                    Back to Dashboard
                                 </Link>
                             </Button>
                             <div>
                                 <h1 className="text-2xl font-bold">
-                                    Issues Map View
+                                    Community Issues Map
                                 </h1>
                                 <p className="text-muted-foreground">
-                                    Geographic visualization of all civic issues
+                                    Explore and track civic issues in your area
                                 </p>
                             </div>
                         </div>
@@ -418,10 +407,16 @@ export default function IssuesMapPage() {
                                 <MapPin className="w-4 h-4 mr-2" />
                                 {userLocation
                                     ? "Update Location"
-                                    : "Get My Location"}
+                                    : "Find My Location"}
+                            </Button>
+                            <Button size="sm" asChild>
+                                <Link href="/citizen/report">
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Report Issue
+                                </Link>
                             </Button>
                             <Button variant="outline" size="sm" asChild>
-                                <Link href="/admin/issues">
+                                <Link href="/citizen/dashboard">
                                     <List className="w-4 h-4 mr-2" />
                                     List View
                                 </Link>
@@ -440,7 +435,7 @@ export default function IssuesMapPage() {
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="flex items-center">
                                         <Map className="w-5 h-5 mr-2 text-accent" />
-                                        Interactive Map
+                                        Community Issues Map
                                     </CardTitle>
                                     <div className="flex items-center space-x-2">
                                         <Select
@@ -524,7 +519,7 @@ export default function IssuesMapPage() {
                                     {userLocation ? (
                                         <>
                                             Showing {nearbyIssues.length} nearby
-                                            issues (within 10km) of{" "}
+                                            issues (within 5km) of{" "}
                                             {filteredIssues.length} total.
                                         </>
                                     ) : (
@@ -539,10 +534,6 @@ export default function IssuesMapPage() {
                                         </>
                                     )}
                                 </CardDescription>
-                                <div className="text-xs text-muted-foreground">
-                                    Map center: {mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)} | Zoom: {mapZoom}
-                                    {userLocation && <> | Your location: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}</>}
-                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="h-96 rounded-lg overflow-hidden">
@@ -586,6 +577,12 @@ export default function IssuesMapPage() {
                                         <div className="w-3 h-3 rounded-full bg-green-500 mr-2" />
                                         <span>Resolved</span>
                                     </div>
+                                    {userLocation && (
+                                        <div className="flex items-center">
+                                            <div className="w-3 h-3 rounded-full bg-blue-400 mr-2 animate-pulse" />
+                                            <span>Your Location</span>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -642,19 +639,6 @@ export default function IssuesMapPage() {
                                                     "N/A"}
                                             </span>
                                         </div>
-                                        {selectedIssueData.location_lat &&
-                                            selectedIssueData.location_lng && (
-                                                <div className="text-muted-foreground">
-                                                    Coordinates:{" "}
-                                                    {selectedIssueData.location_lat.toFixed(
-                                                        6
-                                                    )}
-                                                    ,{" "}
-                                                    {selectedIssueData.location_lng.toFixed(
-                                                        6
-                                                    )}
-                                                </div>
-                                            )}
                                         <div className="flex items-center">
                                             <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
                                             <span>
@@ -683,13 +667,30 @@ export default function IssuesMapPage() {
                                         </div>
                                     )}
 
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                        <div className="flex items-center">
+                                            <ThumbsUp className="w-4 h-4 mr-1" />
+                                            <span>
+                                                {selectedIssueData.votes_count ||
+                                                    0}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <MessageCircle className="w-4 h-4 mr-1" />
+                                            <span>
+                                                {selectedIssueData.comments_count ||
+                                                    0}
+                                            </span>
+                                        </div>
+                                    </div>
+
                                     <Button
                                         size="sm"
                                         className="w-full"
                                         asChild
                                     >
                                         <Link
-                                            href={`/admin/issues/${selectedIssueData.id}`}
+                                            href={`/citizen/issues/${selectedIssueData.id}`}
                                         >
                                             <Eye className="w-4 h-4 mr-2" />
                                             View Full Details
@@ -781,25 +782,41 @@ export default function IssuesMapPage() {
                                                     <span className="text-xs text-muted-foreground">
                                                         {issue.id}
                                                     </span>
-                                                    <Badge
-                                                        className={getPriorityColor(
-                                                            issue.priority ||
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge
+                                                            className={getPriorityColor(
+                                                                issue.priority ||
+                                                                    "medium"
+                                                            )}
+                                                            variant="outline"
+                                                        >
+                                                            {(
+                                                                issue.priority ||
                                                                 "medium"
-                                                        )}
-                                                        variant="outline"
-                                                    >
-                                                        {(
-                                                            issue.priority ||
-                                                            "medium"
-                                                        ).toUpperCase()}
-                                                    </Badge>
+                                                            ).toUpperCase()}
+                                                        </Badge>
+                                                        <Badge variant="outline">
+                                                            {getCategoryLabel(
+                                                                issue.category
+                                                            )}
+                                                        </Badge>
+                                                    </div>
                                                 </div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    <Badge variant="outline">
-                                                        {getCategoryLabel(
-                                                            issue.category
-                                                        )}
-                                                    </Badge>
+                                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                                    <div className="flex items-center">
+                                                        <ThumbsUp className="w-3 h-3 mr-1" />
+                                                        <span>
+                                                            {issue.votes_count ||
+                                                                0}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                        <MessageCircle className="w-3 h-3 mr-1" />
+                                                        <span>
+                                                            {issue.comments_count ||
+                                                                0}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
