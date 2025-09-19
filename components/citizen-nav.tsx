@@ -15,6 +15,7 @@ import {
     User,
     LogOut,
     Menu,
+    CheckCircle,
 } from "lucide-react";
 import RealTimeNotifications from "@/components/real-time-notifications";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -47,6 +48,11 @@ const navItems = [
         href: "/citizen/my-issues",
         label: "My Issues",
         icon: FileText,
+    },
+    {
+        href: "/citizen/resolved",
+        label: "Resolved Issues",
+        icon: CheckCircle,
     },
     {
         href: "/citizen/notifications",

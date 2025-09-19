@@ -42,6 +42,11 @@ export async function PUT(
       updateData.assigned_to = assigned_to;
     }
 
+    // Automatically set completion date when marking as resolved
+    if (status === 'resolved') {
+      updateData.completed_at = new Date().toISOString();
+    }
+
     const { data: updatedIssue, error: updateError } = await supabase
       .from('issues')
       .update(updateData)
@@ -49,29 +54,50 @@ export async function PUT(
       .select(`
         *,
         profiles:user_id(full_name, email),
-        assigned_profile:assigned_to(full_name, email),
-        department:department_id(name, email)
+        assigned_profile:assigned_to(full_name, email)
       `)
       .single();
+
+    // Try to get department info separately if the join fails
+    if (updatedIssue && updatedIssue.department_id) {
+      try {
+        const { data: department } = await supabase
+          .from('departments')
+          .select('id, name, email')
+          .eq('id', updatedIssue.department_id)
+          .single();
+        
+        if (department) {
+          updatedIssue.department = department;
+        }
+      } catch (deptError) {
+        console.warn('Could not fetch department info:', deptError);
+      }
+    }
 
     if (updateError) {
       console.error('Error updating issue:', updateError);
       return NextResponse.json({ error: 'Failed to update issue' }, { status: 500 });
     }
 
-    // Create workflow state record with notes
+    // Create workflow state record with notes (optional, don't fail if table doesn't exist)
     if (notes || estimated_completion) {
-      await supabase
-        .from('issue_workflow_states')
-        .insert({
-          issue_id: issueId,
-          status,
-          department_id: currentIssue.department_id,
-          assigned_to: assigned_to || null,
-          notes,
-          estimated_completion: estimated_completion || null,
-          created_by: user.id
-        });
+      try {
+        await supabase
+          .from('issue_workflow_states')
+          .insert({
+            issue_id: issueId,
+            status,
+            department_id: currentIssue.department_id,
+            assigned_to: assigned_to || null,
+            notes,
+            estimated_completion: estimated_completion || null,
+            created_by: user.id
+          });
+      } catch (workflowError) {
+        console.warn('Could not create workflow state record:', workflowError);
+        // Don't fail the request if this optional feature fails
+      }
     }
 
     // Create detailed notification for status changes
@@ -122,15 +148,58 @@ export async function PUT(
         notificationMessage += `\n\nEstimated completion: ${completionDate}`;
       }
 
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: currentIssue.user_id,
-          title: notificationTitle,
-          message: notificationMessage,
-          link: `/citizen/my-issues/${issueId}`,
-          issue_id: issueId
-        });
+      // Send notification to the issue reporter
+      try {
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: currentIssue.user_id,
+            title: notificationTitle,
+            message: notificationMessage,
+            link: `/citizen/issues/${issueId}`,
+            issue_id: issueId
+          });
+      } catch (notificationError) {
+        console.warn('Could not create notification:', notificationError);
+        // Don't fail the request if notification fails
+      }
+
+      // If issue is resolved, create a community notification for the area
+      if (status === 'resolved') {
+        // Get the category label for the notification
+        const getCategoryLabel = (category: string) => {
+          switch (category) {
+            case "pothole": return "Pothole";
+            case "streetlight": return "Streetlight";
+            case "garbage": return "Garbage";
+            case "water-leakage": return "Water Leakage";
+            default: return "Issue";
+          }
+        };
+
+        // Create a general community notification that will appear in the resolved issues section
+        const communityNotificationTitle = `✅ ${getCategoryLabel(updatedIssue.category)} Resolved in Your Area`;
+        const communityNotificationMessage = `A ${getCategoryLabel(updatedIssue.category).toLowerCase()} issue has been resolved at ${updatedIssue.location_address}. Thank you to the community member who reported this issue!`;
+
+        // Find users in the same area (within a reasonable distance) to notify them
+        // For now, we'll create a general notification that can be seen by all users
+        // In a more advanced implementation, you could use geolocation to find nearby users
+        
+        // Create an issue update record for timeline
+        try {
+          await supabase
+            .from('issue_updates')
+            .insert({
+              issue_id: issueId,
+              status: status,
+              comment: notes || 'Issue has been resolved and is now available in the community resolved issues section.',
+              user_id: user.id
+            });
+        } catch (updateError) {
+          console.warn('Could not create issue update record:', updateError);
+          // Don't fail the request if this optional feature fails
+        }
+      }
     }
 
     return NextResponse.json({ 

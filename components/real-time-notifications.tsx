@@ -242,7 +242,7 @@ export default function RealTimeNotifications() {
                             </span>
                             <div className="flex items-center gap-2">
                               {notification.link && (
-                                <Link href={notification.link}>
+                                <Link href={notification.link as any}>
                                   <Button
                                     variant="ghost"
                                     size="sm"

@@ -21,7 +21,12 @@ import {
   Calendar, 
   MessageSquare,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  ThumbsUp,
+  ThumbsDown,
+  X,
+  Play,
+  Pause
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -67,7 +72,7 @@ export default function AdminIssueStatusUpdater({
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/issues/${issueId}/status`, {
+      const response = await fetch(`/api/issues/${issueId}/simple-status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
         .select(`
           *,
           profiles:user_id(full_name, email),
-          assigned_profile:assigned_to(full_name, email)
+          assigned_profile:assigned_to(full_name, email),
+          department:department_id(id, name, email, description)
         `)
         .eq('id', id)
         .single();
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
         *,
         profiles:user_id(full_name, email),
         assigned_profile:assigned_to(full_name, email),
+        department:department_id(id, name, email, description),
         comments:comments(count),
         issue_votes:issue_votes(count)
       `)

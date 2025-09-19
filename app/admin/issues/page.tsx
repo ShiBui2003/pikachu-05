@@ -1,205 +1,136 @@
-"use client";
+"use client"
 
-import React, { useEffect, useRef, useState, useEffect } from "react";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import {
-    ArrowLeft,
-    Search,
-    Eye,
-    Edit,
-    MapPin,
-    Calendar,
-    User,
-    Clock,
-    AlertTriangle,
-    CheckCircle,
-    MoreHorizontal,
-} from "lucide-react";
+  ArrowLeft,
+  Search,
+  Eye,
+  Edit,
+  MapPin,
+  Calendar,
+  User,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  MoreHorizontal,
+  Building2,
+} from "lucide-react"
+import SimpleAdminActions from "@/components/simple-admin-actions"
 
-type Issue = {
-    id: string;
-    title: string;
-    description?: string;
-    category: string;
-    status: string;
-    priority: string | null;
-    location_address: string | null;
-    created_at: string;
-    updated_at?: string;
-    user_id?: string;
-    assigned_to?: string;
-    estimated_completion?: string;
-    image_url?: string;
-    coordinates?: { lat: number; lng: number };
-    profiles?: {
-        full_name: string;
-        email: string;
-    };
-    assigned_profile?: {
-        full_name: string;
-        email: string;
-    };
-    votes_count?: number;
-    comments_count?: number;
-};
-
-const supabase = createClient();
+interface Issue {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: string;
+  status: string;
+  location_address: string;
+  location_lat: number;
+  location_lng: number;
+  landmark?: string;
+  image_url?: string;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    full_name: string;
+    email: string;
+  };
+  department?: {
+    name: string;
+    email: string;
+  };
+  assigned_profile?: {
+    full_name: string;
+    email: string;
+  };
+  comments_count?: number;
+  votes_count?: number;
+}
 
 const getStatusColor = (status: string) => {
-    switch (status) {
-        case "submitted":
-            return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-        case "in-review":
-            return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-        case "in-progress":
-            return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300";
-        case "resolved":
-            return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-        default:
-            return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
-};
+  switch (status) {
+    case "submitted":
+      return "bg-blue-500 text-white"
+    case "assigned":
+      return "bg-yellow-500 text-white"
+    case "in_progress":
+      return "bg-orange-500 text-white"
+    case "resolved":
+      return "bg-green-500 text-white"
+    case "closed":
+      return "bg-gray-500 text-white"
+    default:
+      return "bg-muted text-muted-foreground"
+  }
+}
 
 const getPriorityColor = (priority: string) => {
-    switch (priority) {
-        case "high":
-            return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-        case "medium":
-            return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-        case "low":
-            return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-        default:
-            return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
-};
+  switch (priority) {
+    case "high":
+      return "bg-destructive text-destructive-foreground"
+    case "medium":
+      return "bg-yellow-100 text-yellow-800"
+    case "low":
+      return "bg-green-100 text-green-800"
+    default:
+      return "bg-muted text-muted-foreground"
+  }
+}
 
 const getStatusIcon = (status: string) => {
-    switch (status) {
-        case "submitted":
-            return <Clock className="w-4 h-4" />;
-        case "in-review":
-            return <Eye className="w-4 h-4" />;
-        case "in-progress":
-            return <AlertTriangle className="w-4 h-4" />;
-        case "resolved":
-            return <CheckCircle className="w-4 h-4" />;
-        default:
-            return <Clock className="w-4 h-4" />;
-    }
-};
+  switch (status) {
+    case "submitted":
+      return <Clock className="w-4 h-4" />
+    case "assigned":
+      return <User className="w-4 h-4" />
+    case "in_progress":
+      return <AlertTriangle className="w-4 h-4" />
+    case "resolved":
+      return <CheckCircle className="w-4 h-4" />
+    case "closed":
+      return <CheckCircle className="w-4 h-4" />
+    default:
+      return <Clock className="w-4 h-4" />
+  }
+}
 
 const getCategoryLabel = (category: string) => {
-    switch (category) {
-        case "pothole":
-            return "Pothole";
-        case "streetlight":
-            return "Streetlight";
-        case "garbage":
-            return "Garbage";
-        case "water-leakage":
-            return "Water Leakage";
-        default:
-            return category.charAt(0).toUpperCase() + category.slice(1);
-    }
-};
+  switch (category) {
+    case "roads":
+      return "Roads"
+    case "potholes":
+      return "Potholes"
+    case "streetlights":
+      return "Streetlights"
+    case "garbage":
+      return "Garbage"
+    case "water":
+      return "Water"
+    case "drainage":
+      return "Drainage"
+    case "parks":
+      return "Parks"
+    case "traffic":
+      return "Traffic"
+    default:
+      return "Other"
+  }
+}
 
 export default function AdminIssuesPage() {
-    const [allIssues, setAllIssues] = useState<Issue[]>([]);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [priorityFilter, setPriorityFilter] = useState("all");
-    const [categoryFilter, setCategoryFilter] = useState("all");
-    const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    // menu state - only need one state variable
-    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
-    // Single useEffect for handling outside clicks
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            const target = event.target as HTMLElement;
-            // Close menu if click is outside any action-menu
-            if (!target.closest(".action-menu")) {
-                setOpenMenuId(null);
-            }
-        }
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
-
-    const fetchIssues = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const { data, error: fetchError } = await supabase
-                .from("issues")
-                .select(`
-                    *,
-                    profiles:user_id (
-                        full_name,
-                        email
-                    ),
-                    assigned_profile:assigned_to (
-                        full_name,
-                        email
-                    )
-                `)
-                .order("created_at", { ascending: false });
-
-            if (fetchError) {
-                throw fetchError;
-            }
-
-            setAllIssues((data as Issue[]) || []);
-        } catch (err: any) {
-            console.error("Error fetching issues:", err);
-            setError(err.message || "Failed to load issues");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchIssues();
-    }, []);
-
-    const toggleMenu = (e: React.MouseEvent, id: string) => {
-        e.stopPropagation(); // Prevent event bubbling
-        setOpenMenuId((prev) => (prev === id ? null : id));
-    };
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [priorityFilter, setPriorityFilter] = useState("all")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [selectedIssues, setSelectedIssues] = useState<string[]>([])
   const [allIssues, setAllIssues] = useState<Issue[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -210,7 +141,7 @@ export default function AdminIssuesPage() {
     const fetchIssues = async () => {
       try {
         setLoading(true)
-        const response = await fetch('/api/issues?limit=100') // Get more issues for admin
+        const response = await fetch('/api/issues?limit=100')
         if (response.ok) {
           const data = await response.json()
           setAllIssues(data.issues || [])
@@ -228,124 +159,36 @@ export default function AdminIssuesPage() {
     fetchIssues()
   }, [])
 
-    const filteredIssues = allIssues.filter((issue) => {
-        const matchesSearch =
-            (issue.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (issue.location_address_address || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-            issue.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (issue.profiles?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (issue.description || "").toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredIssues = allIssues.filter((issue) => {
+    const matchesSearch =
+      issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      issue.location_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      issue.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (issue.profiles?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === "all" || issue.status === statusFilter
+    const matchesPriority = priorityFilter === "all" || issue.priority === priorityFilter
+    const matchesCategory = categoryFilter === "all" || issue.category === categoryFilter
 
-        const matchesStatus = statusFilter === "all" || issue.status === statusFilter;
-        const matchesPriority = priorityFilter === "all" || (issue.priority || "medium") === priorityFilter;
-        const matchesCategory = categoryFilter === "all" || issue.category === categoryFilter;
+    return matchesSearch && matchesStatus && matchesPriority && matchesCategory
+  })
 
-        return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
-    });
-
-    const statusCounts = {
-        all: allIssues.length,
-        submitted: allIssues.filter((i) => i.status === "submitted").length,
-        assigned: allIssues.filter((i) => i.status === "assigned").length,
-        in_progress: allIssues.filter((i) => i.status === "in_progress").length,
-        resolved: allIssues.filter((i) => i.status === "resolved").length,
+  const statusCounts = {
+    all: allIssues.length,
+    submitted: allIssues.filter((i) => i.status === "submitted").length,
+    assigned: allIssues.filter((i) => i.status === "assigned").length,
+    in_progress: allIssues.filter((i) => i.status === "in_progress").length,
+    resolved: allIssues.filter((i) => i.status === "resolved").length,
     closed: allIssues.filter((i) => i.status === "closed").length,
-    };
+  }
 
-    const handleBulkAction = (action: string) => {
-        console.log(`Performing ${action} on issues:`, selectedIssues);
-        // TODO: Implement bulk actions on backend
-        setSelectedIssues([]);
-    };
-
-    // Action helpers (simple prompts for prototype)
-    const assignToDepartment = async (issueId: string) => {
-        const dept: string | null = prompt("Enter department to assign (e.g., road, sanitation):");
-        if (!dept) return;
-        try {
-            setLoading(true);
-            const { error: upErr } = await supabase
-                .from("issues")
-                .update({ assigned_to: dept } )
-                .eq("id", issueId);
-            if (upErr) throw upErr;
-            await fetchIssues();
-            setOpenMenuId(null);
-        } catch (err: any) {
-            console.error("Assign error:", err);
-            alert("Failed to assign department: " + (err.message || err));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const changePriority = async (issueId: string) => {
-        const p = prompt("Enter priority (high / medium / low):", "medium");
-        if (!p) return;
-        const priority = p.toLowerCase();
-        if (!["high", "medium", "low"].includes(priority)) {
-            alert("Invalid priority. Use: high, medium or low.");
-            return;
-        }
-        try {
-            setLoading(true);
-            const { error: upErr } = await supabase
-                .from("issues")
-                .update({ priority })
-                .eq("id", issueId);
-            if (upErr) throw upErr;
-            await fetchIssues();
-            setOpenMenuId(null);
-        } catch (err: any) {
-            console.error("Priority update error:", err);
-            alert("Failed to update priority: " + (err.message || err));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const updateStatus = async (issueId: string) => {
-        const s = prompt("Enter status (submitted / in-review / in-progress / resolved):", "in-progress");
-        if (!s) return;
-        const status = s.toLowerCase();
-        if (!["submitted", "in-review", "in-progress", "resolved"].includes(status)) {
-            alert("Invalid status. Use: submitted, in-review, in-progress or resolved.");
-            return;
-        }
-        try {
-            setLoading(true);
-            const { error: upErr } = await supabase
-                .from("issues")
-                .update({ status })
-                .eq("id", issueId);
-            if (upErr) throw upErr;
-            await fetchIssues();
-            setOpenMenuId(null);
-        } catch (err: any) {
-            console.error("Status update error:", err);
-            alert("Failed to update status: " + (err.message || err));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-background">
-                <div className="container mx-auto px-4 py-8">
-                    <Card>
-                        <CardContent className="p-8">
-                            <div className="text-center">Loading issues...</div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-        );
-    }
+  const handleBulkAction = (action: string) => {
+    console.log(`Performing ${action} on issues:`, selectedIssues)
+    setSelectedIssues([])
+  }
 
   const handleStatusUpdate = async (issueId: string, newStatus: string, notes?: string) => {
     try {
-      const response = await fetch(`/api/issues/${issueId}/status`, {
+      const response = await fetch(`/api/issues/${issueId}/simple-status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -376,31 +219,32 @@ export default function AdminIssuesPage() {
         
         const message = statusMessages[newStatus as keyof typeof statusMessages] || `Status updated to ${newStatus}`;
         
-        // Import and use toast utility
-        import('@/lib/toast-utils').then(({ showSuccessToast }) => {
-          showSuccessToast(message);
-        });
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50';
+        toast.textContent = `✅ ${message}`;
+        document.body.appendChild(toast);
+        setTimeout(() => document.body.removeChild(toast), 3000);
         
       } else {
         const errorData = await response.json();
-        
-        // Show error message
-        import('@/lib/toast-utils').then(({ showErrorToast }) => {
-          showErrorToast(errorData.error || 'Failed to update status');
-        });
+        const errorToast = document.createElement('div');
+        errorToast.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50';
+        errorToast.textContent = `❌ ${errorData.error || 'Failed to update status'}`;
+        document.body.appendChild(errorToast);
+        setTimeout(() => document.body.removeChild(errorToast), 3000);
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      
-      // Show error message
-      import('@/lib/toast-utils').then(({ showErrorToast }) => {
-        showErrorToast('Failed to update issue status');
-      });
+      const errorToast = document.createElement('div');
+      errorToast.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50';
+      errorToast.textContent = '❌ Failed to update issue status';
+      document.body.appendChild(errorToast);
+      setTimeout(() => document.body.removeChild(errorToast), 3000);
     }
   };
 
   const handleIssueAction = async (action: string, issueId: string, currentStatus: string) => {
-    // Prevent multiple rapid clicks
     if (processingIssue) return;
     
     try {
@@ -423,32 +267,37 @@ export default function AdminIssuesPage() {
           await handleStatusUpdate(issueId, 'closed', 'Issue closed by admin');
           break;
         case 'view':
-          setProcessingIssue(null); // Clear processing state before navigation
+          setProcessingIssue(null);
           window.location.href = `/admin/issues/${issueId}`;
-          return; // Don't set processing to null again
+          return;
         case 'edit':
-          setProcessingIssue(null); // Clear processing state before navigation
+          setProcessingIssue(null);
           window.location.href = `/admin/issues/${issueId}`;
-          return; // Don't set processing to null again
+          return;
+        case 'assign':
+          setProcessingIssue(null);
+          window.location.href = `/admin/issues/${issueId}`;
+          return;
+        case 'priority':
+          setProcessingIssue(null);
+          window.location.href = `/admin/issues/${issueId}`;
+          return;
         default:
           console.log('Unknown action:', action);
       }
       
-      // Add a small delay to show the success message before clearing processing state
       await new Promise(resolve => setTimeout(resolve, 500));
       
     } catch (error) {
       console.error('Error performing action:', error);
-      import('@/lib/toast-utils').then(({ showErrorToast }) => {
-        showErrorToast('Failed to perform action');
-      });
+      const errorToast = document.createElement('div');
+      errorToast.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50';
+      errorToast.textContent = '❌ Failed to perform action';
+      document.body.appendChild(errorToast);
+      setTimeout(() => document.body.removeChild(errorToast), 3000);
     } finally {
       setProcessingIssue(null);
     }
-  };
-
-  const refreshIssues = () => {
-    window.location.reload();
   };
 
   return (
@@ -489,20 +338,20 @@ export default function AdminIssuesPage() {
         </div>
       </div>
 
-            <div className="container mx-auto px-4 py-6">
-                {/* Filters */}
-                <Card className="mb-6">
-                    <CardContent className="p-4">
-                        <div className="flex flex-col lg:flex-row gap-4 items-center">
-                            <div className="relative flex-1 max-w-md">
-                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search issues, locations, or IDs..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-10"
-                                />
-                            </div>
+      <div className="container mx-auto px-4 py-6">
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-col lg:flex-row gap-4 items-center">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search issues, locations, or IDs..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
               <div className="flex flex-wrap gap-2">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -519,39 +368,39 @@ export default function AdminIssuesPage() {
                   </SelectContent>
                 </Select>
 
-                                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                                    <SelectTrigger className="w-40">
-                                        <SelectValue placeholder="Priority" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Priority</SelectItem>
-                                        <SelectItem value="high">High</SelectItem>
-                                        <SelectItem value="medium">Medium</SelectItem>
-                                        <SelectItem value="low">Low</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Priority</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
 
-                                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                                    <SelectTrigger className="w-40">
-                                        <SelectValue placeholder="Category" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Categories</SelectItem>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="roads">Roads</SelectItem>
-                                        <SelectItem value="potholes">Potholes</SelectItem>
-                                        <SelectItem value="streetlights">Streetlights</SelectItem>
-                                        <SelectItem value="garbage">Garbage</SelectItem>
-                                        <SelectItem value="water">Water</SelectItem>
+                    <SelectItem value="potholes">Potholes</SelectItem>
+                    <SelectItem value="streetlights">Streetlights</SelectItem>
+                    <SelectItem value="garbage">Garbage</SelectItem>
+                    <SelectItem value="water">Water</SelectItem>
                     <SelectItem value="drainage">Drainage</SelectItem>
                     <SelectItem value="parks">Parks</SelectItem>
                     <SelectItem value="traffic">Traffic</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Loading State */}
         {loading && (
@@ -580,24 +429,24 @@ export default function AdminIssuesPage() {
           </Card>
         )}
 
-                {/* Status Tabs */}
+        {/* Status Tabs */}
         {!loading && !error && (
-                  <Tabs value={statusFilter} onValueChange={setStatusFilter} className="space-y-4">
-                      <TabsList className="grid w-full grid-cols-6">
-                          <TabsTrigger value="all">All ({statusCounts.all})</TabsTrigger>
-                          <TabsTrigger value="submitted">Submitted ({statusCounts.submitted})</TabsTrigger>
-                          <TabsTrigger value="assigned">Assigned ({statusCounts.assigned})</TabsTrigger>
-                          <TabsTrigger value="in_progress">In Progress ({statusCounts.in_progress})</TabsTrigger>
-                          <TabsTrigger value="resolved">Resolved ({statusCounts.resolved})</TabsTrigger>
+          <Tabs value={statusFilter} onValueChange={setStatusFilter} className="space-y-4">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="all">All ({statusCounts.all})</TabsTrigger>
+              <TabsTrigger value="submitted">Submitted ({statusCounts.submitted})</TabsTrigger>
+              <TabsTrigger value="assigned">Assigned ({statusCounts.assigned})</TabsTrigger>
+              <TabsTrigger value="in_progress">In Progress ({statusCounts.in_progress})</TabsTrigger>
+              <TabsTrigger value="resolved">Resolved ({statusCounts.resolved})</TabsTrigger>
               <TabsTrigger value="closed">Closed ({statusCounts.closed})</TabsTrigger>
-                      </TabsList>
+            </TabsList>
 
           <TabsContent value={statusFilter} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Issues ({filteredIssues.length})</CardTitle>
                 <CardDescription>
-                  {statusFilter === "all" ? "All issues" : `Issues with status: ${statusFilter.replace("-", " ")}`}
+                  {statusFilter === "all" ? "All issues" : `Issues with status: ${statusFilter.replace("_", " ")}`}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -715,22 +564,21 @@ export default function AdminIssuesPage() {
                   </Table>
                 </div>
 
-                                {filteredIssues.length === 0 && !error && (
-                                    <div className="text-center py-8">
-                                        <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                        <h3 className="text-lg font-semibold mb-2">No Issues Found</h3>
-                                        <p className="text-muted-foreground">
-                                            No issues match your current filters. Try adjusting your search
-                                            criteria.
-                                        </p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
+                {filteredIssues.length === 0 && (
+                  <div className="text-center py-8">
+                    <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Issues Found</h3>
+                    <p className="text-muted-foreground">
+                      No issues match your current filters. Try adjusting your search criteria.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
         )}
-            </div>
-        </div>
-    );
+      </div>
+    </div>
+  )
 }

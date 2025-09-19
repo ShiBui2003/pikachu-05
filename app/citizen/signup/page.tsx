@@ -282,15 +282,23 @@ export default function CitizenSignupPage() {
                                 <Label htmlFor="terms" className="text-sm">
                                     I agree to the{" "}
                                     <Link
-                                        href="/terms"
+                                        href="#"
                                         className="text-accent hover:underline"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            alert('Terms of Service page coming soon!');
+                                        }}
                                     >
                                         Terms of Service
                                     </Link>{" "}
                                     and{" "}
                                     <Link
-                                        href="/privacy"
+                                        href="#"
                                         className="text-accent hover:underline"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            alert('Privacy Policy page coming soon!');
+                                        }}
                                     >
                                         Privacy Policy
                                     </Link>

@@ -326,7 +326,6 @@ export default function IssueDetailPage() {
           isOwner={true}
         />
       </div>
-      </div>
     </div>
   );
 }
