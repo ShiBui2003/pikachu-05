@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MapPin, Upload, Camera, AlertCircle } from "lucide-react"
+import MapPicker, { MapPickerValue } from "@/components/map-picker"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
@@ -53,27 +54,20 @@ export default function ReportIssuePage() {
     }
 
     setIsUploading(true)
-    
     try {
-      // Generate a unique filename
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`
-      const filePath = `issue-images/${fileName}`
+      const form = new FormData()
+      form.append('file', file)
 
-      // Upload file to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('public')
-        .upload(filePath, file)
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: form,
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to upload file')
 
-      if (uploadError) throw uploadError
+      setFormData(prev => ({ ...prev, image_url: data.url }))
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('public')
-        .getPublicUrl(filePath)
-
-      setFormData(prev => ({ ...prev, image_url: publicUrl }))
-      
       toast({
         title: "Success",
         description: "Image uploaded successfully",
@@ -230,82 +224,43 @@ export default function ReportIssuePage() {
                   </div>
                 </div>
 
-                {/* Location */}
+                {/* Location (Required) with Google Maps */}
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location *</Label>
-                  <div className="flex gap-2">
+                  <Label>Location *</Label>
+                  <MapPicker
+                    value={{
+                      address: formData.location_address,
+                      lat: formData.location_lat ? parseFloat(formData.location_lat) : null,
+                      lng: formData.location_lng ? parseFloat(formData.location_lng) : null,
+                    }}
+                    onChange={(val: MapPickerValue) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        location_address: val.address,
+                        location_lat: val.lat !== null ? String(val.lat) : '',
+                        location_lng: val.lng !== null ? String(val.lng) : '',
+                      }))
+                    }}
+                    height={260}
+                  />
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Selected address</Label>
+                    <Input value={formData.location_address} readOnly className="text-xs" />
+                  </div>
+
+                  {/* Optional Landmark */}
+                  <div className="space-y-2">
+                    <Label htmlFor="landmark">Landmark (optional)</Label>
                     <Input
-                      id="location"
-                      placeholder="Enter the address or location"
-                      value={formData.location_address}
-                      onChange={(e) => handleInputChange('location_address', e.target.value)}
-                      required
+                      id="landmark"
+                      placeholder="Nearby landmark (optional)"
+                      value={(formData as any).landmark || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, landmark: e.target.value }))}
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={getCurrentLocation}
-                      className="shrink-0"
-                    >
-                      <MapPin className="h-4 w-4" />
-                    </Button>
                   </div>
-                  
-                  {/* Coordinates Display */}
-                  {(formData.location_lat || formData.location_lng) && (
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <div className="text-sm font-medium text-gray-700 mb-2">Coordinates:</div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="font-medium">Latitude:</span>
-                          <span className="ml-2 font-mono">{formData.location_lat || 'Not set'}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium">Longitude:</span>
-                          <span className="ml-2 font-mono">{formData.location_lng || 'Not set'}</span>
-                        </div>
-                      </div>
-                      <div className="mt-2 text-xs text-gray-500">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, location_lat: '', location_lng: '' }))
-                          }}
-                          className="text-blue-600 hover:text-blue-800 underline"
-                        >
-                          Clear coordinates
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Manual Coordinate Input */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="lat" className="text-xs">Latitude (optional)</Label>
-                      <Input
-                        id="lat"
-                        type="number"
-                        step="any"
-                        placeholder="e.g., 40.7128"
-                        value={formData.location_lat}
-                        onChange={(e) => handleInputChange('location_lat', e.target.value)}
-                        className="text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="lng" className="text-xs">Longitude (optional)</Label>
-                      <Input
-                        id="lng"
-                        type="number"
-                        step="any"
-                        placeholder="e.g., -74.0060"
-                        value={formData.location_lng}
-                        onChange={(e) => handleInputChange('location_lng', e.target.value)}
-                        className="text-xs"
-                      />
-                    </div>
-                  </div>
+
+                  <div className="text-xs text-muted-foreground">Use the search box or click on the map to set the exact location.</div>
                 </div>
 
                 {/* Image Upload */}
@@ -350,7 +305,13 @@ export default function ReportIssuePage() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting || !formData.title || !formData.description || !formData.category || !formData.location_address}
+                    disabled={
+                      isSubmitting ||
+                      !formData.title ||
+                      !formData.description ||
+                      !formData.category ||
+                      !(formData.location_lat && formData.location_lng)
+                    }
                     className="flex-1"
                   >
                     {isSubmitting ? "Submitting..." : "Submit Issue"}

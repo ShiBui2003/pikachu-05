@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -25,85 +25,7 @@ import {
   Heart,
   Flag,
 } from "lucide-react"
-
-// Mock data - in real app this would come from API
-const mockIssue = {
-  id: "ISS-001",
-  title: "Large pothole on Main Street",
-  category: "pothole",
-  status: "in-progress",
-  priority: "high",
-  location: "Main Street & 5th Ave",
-  coordinates: { lat: 40.7128, lng: -74.006 },
-  reportedDate: "2024-01-15",
-  image: "/street-pothole.png",
-  description:
-    "There's a large pothole on Main Street that's been causing damage to vehicles. It's approximately 3 feet wide and 8 inches deep. Multiple cars have reported tire damage from hitting this pothole. The issue has been getting worse with recent rain, and it's becoming a safety hazard for both cars and pedestrians who have to walk around it.",
-  reporter: {
-    name: "John Doe",
-    avatar: "/placeholder.svg?height=40&width=40",
-    joinDate: "2023-06-15",
-  },
-  assignedTo: "Public Works Department",
-  estimatedCompletion: "2024-01-25",
-  upvotes: 47,
-  hasUpvoted: false,
-  followers: 23,
-  isFollowing: false,
-  timeline: [
-    {
-      status: "submitted",
-      date: "2024-01-15T10:30:00Z",
-      description: "Issue reported by citizen",
-      user: "John Doe",
-      userType: "citizen",
-    },
-    {
-      status: "in-review",
-      date: "2024-01-16T09:15:00Z",
-      description: "Issue reviewed and assigned to Public Works Department",
-      user: "Admin Sarah",
-      userType: "admin",
-    },
-    {
-      status: "in-progress",
-      date: "2024-01-17T14:20:00Z",
-      description: "Work crew dispatched to assess the damage",
-      user: "Public Works Team",
-      userType: "admin",
-    },
-  ],
-  comments: [
-    {
-      id: "1",
-      user: "Jane Smith",
-      userType: "citizen",
-      avatar: "/placeholder.svg?height=32&width=32",
-      message: "I hit this pothole yesterday and it damaged my tire. This needs urgent attention!",
-      timestamp: "2024-01-16T08:30:00Z",
-      upvotes: 12,
-    },
-    {
-      id: "2",
-      user: "Mike Johnson",
-      userType: "citizen",
-      avatar: "/placeholder.svg?height=32&width=32",
-      message: "Same here! My car's alignment is now off because of this pothole.",
-      timestamp: "2024-01-16T15:45:00Z",
-      upvotes: 8,
-    },
-    {
-      id: "3",
-      user: "Public Works Team",
-      userType: "admin",
-      avatar: "/placeholder.svg?height=32&width=32",
-      message:
-        "We've scheduled this for repair next week. Materials have been ordered and crew will be dispatched on Monday.",
-      timestamp: "2024-01-17T16:00:00Z",
-      upvotes: 15,
-    },
-  ],
-}
+import MapPicker from "@/components/map-picker"
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -150,12 +72,36 @@ const getStatusIcon = (status: string) => {
 
 export default function IssueDetailPage() {
   const params = useParams()
-  const [hasUpvoted, setHasUpvoted] = useState(mockIssue.hasUpvoted)
-  const [upvotes, setUpvotes] = useState(mockIssue.upvotes)
-  const [isFollowing, setIsFollowing] = useState(mockIssue.isFollowing)
-  const [followers, setFollowers] = useState(mockIssue.followers)
+  const [issue, setIssue] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [hasUpvoted, setHasUpvoted] = useState(false)
+  const [upvotes, setUpvotes] = useState(0)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followers, setFollowers] = useState(0)
   const [newComment, setNewComment] = useState("")
-  const [comments, setComments] = useState(mockIssue.comments)
+  const [comments, setComments] = useState<any[]>([])
+
+  useEffect(() => {
+    const id = Array.isArray(params?.id) ? params?.id[0] : (params as any)?.id
+    if (!id) return
+    const fetchIssue = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const res = await fetch(`/api/issues?id=${id}`, { credentials: 'include' })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || 'Failed to load issue')
+        setIssue(json.issue)
+        setUpvotes(json.issue.upvotes || 0)
+      } catch (e: any) {
+        setError(e.message || 'Failed to load issue')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchIssue()
+  }, [params])
 
   const handleUpvote = () => {
     if (hasUpvoted) {
@@ -222,16 +168,14 @@ export default function IssueDetailPage() {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
             <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-balance">{mockIssue.title}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-balance">{issue?.title || (loading ? 'Loading…' : 'Issue')}</h1>
               <div className="flex flex-wrap gap-2 mb-3">
-                <Badge className={getStatusColor(mockIssue.status)}>
-                  {getStatusIcon(mockIssue.status)}
-                  <span className="ml-1 capitalize">{mockIssue.status.replace("-", " ")}</span>
-                </Badge>
-                <Badge variant="outline" className={getPriorityColor(mockIssue.priority)}>
-                  {mockIssue.priority.toUpperCase()} PRIORITY
-                </Badge>
-                <Badge variant="outline">{mockIssue.category.toUpperCase()}</Badge>
+                {issue && (
+                  <Badge className={getStatusColor(String(issue.status).replace('_','-'))}>
+                    {getStatusIcon(issue.status)}
+                    <span className="ml-1 capitalize">{String(issue.status).replace(/[_-]/g, ' ')}</span>
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -261,8 +205,8 @@ export default function IssueDetailPage() {
               <CardContent className="p-0">
                 <div className="aspect-video bg-muted rounded-lg overflow-hidden">
                   <img
-                    src={mockIssue.image || "/placeholder.svg"}
-                    alt={mockIssue.title}
+                    src={issue?.image_url || "/placeholder.svg"}
+                    alt={issue?.title || 'Issue image'}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -278,7 +222,7 @@ export default function IssueDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground leading-relaxed">{mockIssue.description}</p>
+                <p className="text-muted-foreground leading-relaxed">{issue?.description || 'No description'}</p>
               </CardContent>
             </Card>
 
@@ -288,30 +232,7 @@ export default function IssueDetailPage() {
                 <CardTitle>Progress Timeline</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {mockIssue.timeline.map((event, index) => (
-                    <div key={index} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${getStatusColor(event.status)}`}
-                        >
-                          {getStatusIcon(event.status)}
-                        </div>
-                        {index < mockIssue.timeline.length - 1 && <div className="w-px h-8 bg-border mt-2" />}
-                      </div>
-                      <div className="flex-1 pb-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                          <h4 className="font-medium capitalize">{event.status.replace("-", " ")}</h4>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(event.date).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
-                        <p className="text-xs text-muted-foreground mt-1">by {event.user}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <div className="text-sm text-muted-foreground">Timeline coming soon.</div>
               </CardContent>
             </Card>
 
@@ -340,35 +261,7 @@ export default function IssueDetailPage() {
 
                 <Separator />
 
-                {/* Comments List */}
-                <div className="space-y-4">
-                  {comments.map((comment) => (
-                    <div key={comment.id} className="flex gap-3">
-                      <Avatar className="w-8 h-8">
-                        <AvatarImage src={comment.avatar || "/placeholder.svg"} />
-                        <AvatarFallback>{comment.user[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 space-y-2">
-                        <div className="bg-muted rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium text-sm">{comment.user}</span>
-                            <Badge variant={comment.userType === "admin" ? "default" : "secondary"} className="text-xs">
-                              {comment.userType}
-                            </Badge>
-                          </div>
-                          <p className="text-sm">{comment.message}</p>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{new Date(comment.timestamp).toLocaleString()}</span>
-                          <Button variant="ghost" size="sm" className="h-auto p-1">
-                            <ThumbsUp className="w-3 h-3 mr-1" />
-                            {comment.upvotes}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <div className="text-sm text-muted-foreground">Comments coming soon.</div>
               </CardContent>
             </Card>
           </div>
@@ -383,20 +276,16 @@ export default function IssueDetailPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center text-sm">
                   <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-                  <span>{mockIssue.location}</span>
+                  <span>{issue?.location_address || 'N/A'}</span>
                 </div>
                 <div className="flex items-center text-sm">
                   <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
-                  <span>Reported {new Date(mockIssue.reportedDate).toLocaleDateString()}</span>
+                  <span>Reported {issue ? new Date(issue.created_at).toLocaleDateString() : '-'}</span>
                 </div>
-                <div className="flex items-center text-sm">
-                  <User className="w-4 h-4 mr-2 text-muted-foreground" />
-                  <span>Assigned to {mockIssue.assignedTo}</span>
-                </div>
-                {mockIssue.estimatedCompletion && (
+                {issue?.landmark && (
                   <div className="flex items-center text-sm">
-                    <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                    <span>Est. completion {new Date(mockIssue.estimatedCompletion).toLocaleDateString()}</span>
+                    <User className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <span>Landmark: {issue.landmark}</span>
                   </div>
                 )}
               </CardContent>
@@ -410,14 +299,12 @@ export default function IssueDetailPage() {
               <CardContent>
                 <div className="flex items-center space-x-3">
                   <Avatar>
-                    <AvatarImage src={mockIssue.reporter.avatar || "/placeholder.svg"} />
-                    <AvatarFallback>{mockIssue.reporter.name[0]}</AvatarFallback>
+                    <AvatarImage src={"/placeholder.svg"} />
+                    <AvatarFallback>{(issue?.profiles?.full_name || 'U')[0]}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{mockIssue.reporter.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Member since {new Date(mockIssue.reporter.joinDate).toLocaleDateString()}
-                    </p>
+                    <p className="font-medium">{issue?.profiles?.full_name || 'User'}</p>
+                    <p className="text-sm text-muted-foreground">{issue?.profiles?.email || ''}</p>
                   </div>
                 </div>
               </CardContent>
@@ -429,14 +316,17 @@ export default function IssueDetailPage() {
                 <CardTitle>Location</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="aspect-square bg-muted rounded-b-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Interactive map</p>
-                    <p className="text-xs text-muted-foreground">
-                      {mockIssue.coordinates.lat}, {mockIssue.coordinates.lng}
-                    </p>
-                  </div>
+                <div className="p-3">
+                  <MapPicker
+                    value={{
+                      address: issue?.location_address || '',
+                      lat: issue?.location_lat ?? null,
+                      lng: issue?.location_lng ?? null,
+                    }}
+                    onChange={() => { /* read-only map on detail page */ }}
+                    height={320}
+                    showSearch={false}
+                  />
                 </div>
               </CardContent>
             </Card>

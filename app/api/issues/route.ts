@@ -8,9 +8,36 @@ export async function GET(request: NextRequest) {
     
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
+    const id = searchParams.get('id');
     const category = searchParams.get('category');
     const status = searchParams.get('status');
     const search = searchParams.get('search');
+    
+    // If id is provided, return a single issue with relations
+    if (id) {
+      const { data: issue, error } = await supabase
+        .from('issues')
+        .select(`
+          *,
+          profiles:user_id(full_name, email),
+          assigned_profile:assigned_to(full_name, email)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching issue by id:', error);
+        return NextResponse.json({ error: 'Issue not found' }, { status: 404 });
+      }
+
+      // Optionally, fetch counts for comments and votes
+      const [{ count: commentsCount }, { count: votesCount }] = await Promise.all([
+        supabase.from('comments').select('*', { count: 'exact', head: true }).eq('issue_id', id),
+        supabase.from('issue_votes').select('*', { count: 'exact', head: true }).eq('issue_id', id),
+      ]);
+
+      return NextResponse.json({ issue, meta: { commentsCount: commentsCount || 0, votesCount: votesCount || 0 } });
+    }
     
     let query = supabase
       .from('issues')
@@ -76,10 +103,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, category, priority, location_address, location_lat, location_lng, image_url } = body;
+    const { title, description, category, priority, location_address, location_lat, location_lng, landmark, image_url } = body;
 
     if (!title || !description || !category) {
       return NextResponse.json({ error: 'Title, description, and category are required' }, { status: 400 });
+    }
+
+    // Enforce location required: address and coordinates must be present and valid
+    const latNum = typeof location_lat === 'string' ? parseFloat(location_lat) : Number(location_lat);
+    const lngNum = typeof location_lng === 'string' ? parseFloat(location_lng) : Number(location_lng);
+    const addressStr = (location_address || '').toString().trim();
+    if (!addressStr || !Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+      return NextResponse.json({ error: 'Location is required. Please use the map to set a valid location.' }, { status: 400 });
     }
 
     // Insert the issue and return with related profile info (requires FKs between issues.user_id and profiles.id)
@@ -90,9 +125,10 @@ export async function POST(request: NextRequest) {
         description,
         category,
         priority: priority || 'medium',
-        location_address,
-        location_lat: location_lat ? parseFloat(location_lat) : null,
-        location_lng: location_lng ? parseFloat(location_lng) : null,
+        location_address: addressStr,
+        location_lat: latNum,
+        location_lng: lngNum,
+        landmark,
         image_url,
         user_id: user.id
       })
