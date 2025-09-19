@@ -13,14 +13,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ 
         error: 'Authentication failed', 
         details: authError.message,
-        cookies: Object.fromEntries(request.cookies.entries())
+        cookies: Object.fromEntries(request.cookies)
       }, { status: 401 });
     }
 
     if (!user) {
       return NextResponse.json({ 
         error: 'No user found',
-        cookies: Object.fromEntries(request.cookies.entries())
+        cookies: Object.fromEntries(request.cookies)
       }, { status: 401 });
     }
 
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         email: user.email,
         role: user.user_metadata?.role || 'citizen'
       },
-      cookies: Object.fromEntries(request.cookies.entries())
+      cookies: Object.fromEntries(request.cookies)
     });
   } catch (error) {
     console.error('Error in debug auth:', error);

@@ -12,7 +12,7 @@ export interface User {
     role: "citizen" | "admin";
 }
 
-export interface JWTPayload {
+export interface CustomJWTPayload {
     userId: string;
     email: string;
     name: string;
@@ -56,7 +56,7 @@ export async function verifyPassword(
 }
 
 export async function signToken(
-    payload: Omit<JWTPayload, "exp">
+    payload: Omit<CustomJWTPayload, "exp">
 ): Promise<string> {
     return new SignJWT(payload)
         .setProtectedHeader({ alg: "HS256" })
@@ -65,10 +65,10 @@ export async function signToken(
         .sign(secret);
 }
 
-export async function verifyToken(token: string): Promise<JWTPayload | null> {
+export async function verifyToken(token: string): Promise<CustomJWTPayload | null> {
     try {
         const { payload } = await jwtVerify(token, secret);
-        return payload as JWTPayload;
+        return payload as unknown as CustomJWTPayload;
     } catch (error) {
         return null;
     }
