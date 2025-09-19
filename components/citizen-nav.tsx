@@ -21,7 +21,6 @@ import RealTimeNotifications from "@/components/real-time-notifications";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { signOut } from "@/lib/auth-utils";
 import { useAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -71,7 +70,8 @@ export default function CitizenNav() {
     const pathname = usePathname();
     const isMobile = useIsMobile();
     const [isOpen, setIsOpen] = useState(false);
-    const { user } = useAuth();
+    const { user, signOut } = useAuth();
+    
     const displayName =
         (user?.user_metadata as any)?.full_name ||
         (user?.user_metadata as any)?.name ||
@@ -125,35 +125,9 @@ export default function CitizenNav() {
         </nav>
     );
 
-    // Add Supabase logout logic
+    // Use the unified auth context logout
     const handleLogout = async () => {
-        try {
-            // Clear any cached data first
-            const supabase = createClient();
-            await supabase.auth.signOut();
-            
-            // Clear local storage and session storage
-            if (typeof window !== 'undefined') {
-                localStorage.clear();
-                sessionStorage.clear();
-                
-                // Clear all cookies
-                document.cookie.split(";").forEach((c) => {
-                    const eqPos = c.indexOf("=");
-                    const name = eqPos > -1 ? c.substr(0, eqPos) : c;
-                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-                });
-                
-                // Force redirect to citizen login
-                window.location.href = '/citizen/login';
-            }
-        } catch (error) {
-            console.error('Logout error:', error);
-            // Force redirect even if there's an error
-            if (typeof window !== 'undefined') {
-                window.location.href = '/citizen/login';
-            }
-        }
+        await signOut();
     };
 
     return (
