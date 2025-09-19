@@ -104,10 +104,6 @@ export default function AdminNav() {
                     <div className="flex items-center space-x-4">
                         <NotificationSystem />
 
-                        <Button variant="ghost" size="sm">
-                            <Shield className="w-4 h-4 mr-2" />
-                            Admin Panel
-                        </Button>
                         <Button
                             variant="ghost"
                             size="sm"

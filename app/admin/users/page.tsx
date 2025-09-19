@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,61 +8,21 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Users, Search, Mail, Phone, MapPin, Calendar, Ban, CheckCircle } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
-const mockUsers = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john.doe@email.com",
-    phone: "+1 (555) 123-4567",
-    location: "Downtown District",
-    joinDate: "2023-06-15",
-    status: "active",
-    issuesReported: 12,
-    issuesResolved: 8,
-    reputation: 85,
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane.smith@email.com",
-    phone: "+1 (555) 987-6543",
-    location: "Riverside Area",
-    joinDate: "2023-08-22",
-    status: "active",
-    issuesReported: 8,
-    issuesResolved: 6,
-    reputation: 72,
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "3",
-    name: "Mike Johnson",
-    email: "mike.johnson@email.com",
-    phone: "+1 (555) 456-7890",
-    location: "Industrial Zone",
-    joinDate: "2023-04-10",
-    status: "suspended",
-    issuesReported: 15,
-    issuesResolved: 3,
-    reputation: 45,
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "4",
-    name: "Sarah Wilson",
-    email: "sarah.wilson@email.com",
-    phone: "+1 (555) 321-0987",
-    location: "Suburban District",
-    joinDate: "2023-09-05",
-    status: "active",
-    issuesReported: 6,
-    issuesResolved: 5,
-    reputation: 78,
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-]
+type User = {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  location?: string
+  joinDate?: string
+  status?: string
+  issuesReported?: number
+  issuesResolved?: number
+  reputation?: number
+  avatar?: string
+}
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -84,29 +44,51 @@ const getReputationColor = (reputation: number) => {
 }
 
 export default function UsersPage() {
+  const supabase = createClient()
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [sortBy, setSortBy] = useState("name")
 
-  const filteredUsers = mockUsers
+  // Fetch users from Supabase
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true)
+      const { data, error } = await supabase.from("profiles").select("*")
+
+      if (error) {
+        console.error("Error fetching users:", error)
+      } else {
+        setUsers(data as User[])
+      }
+
+      setLoading(false)
+    }
+
+    fetchUsers()
+  }, [supabase])
+
+  // Filtering + sorting
+  const filteredUsers = users
     .filter((user) => {
       const matchesSearch =
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.location.toLowerCase().includes(searchTerm.toLowerCase())
+        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.location?.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesStatus = statusFilter === "all" || user.status === statusFilter
       return matchesSearch && matchesStatus
     })
     .sort((a, b) => {
       switch (sortBy) {
         case "name":
-          return a.name.localeCompare(b.name)
+          return a.name?.localeCompare(b.name || "") || 0
         case "joinDate":
-          return new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime()
+          return new Date(b.joinDate || "").getTime() - new Date(a.joinDate || "").getTime()
         case "reputation":
-          return b.reputation - a.reputation
+          return (b.reputation || 0) - (a.reputation || 0)
         case "issues":
-          return b.issuesReported - a.issuesReported
+          return (b.issuesReported || 0) - (a.issuesReported || 0)
         default:
           return 0
       }
@@ -114,6 +96,7 @@ export default function UsersPage() {
 
   return (
     <div className="container mx-auto px-4 py-6">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
           <Users className="w-8 h-8 text-accent" />
@@ -124,10 +107,10 @@ export default function UsersPage() {
         </div>
         <div className="flex items-center space-x-2">
           <Badge variant="outline" className="px-3 py-1">
-            Total Users: {mockUsers.length}
+            Total Users: {users.length}
           </Badge>
           <Badge variant="outline" className="px-3 py-1">
-            Active: {mockUsers.filter((u) => u.status === "active").length}
+            Active: {users.filter((u) => u.status === "active").length}
           </Badge>
         </div>
       </div>
@@ -172,91 +155,113 @@ export default function UsersPage() {
       </Card>
 
       {/* Users Grid */}
-      <div className="grid gap-4">
-        {filteredUsers.map((user) => (
-          <Card key={user.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-                    <AvatarFallback>
-                      {user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
+      {loading ? (
+        <p>Loading users...</p>
+      ) : filteredUsers.length > 0 ? (
+        <div className="grid gap-4">
+          {filteredUsers.map((user) => (
+            <Card key={user.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  {/* User Info */}
+                  <div className="flex items-center space-x-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+                      <AvatarFallback>
+                        {user.name
+                          ?.split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
 
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-semibold">{user.name}</h3>
-                      <Badge className={getStatusColor(user.status)}>{user.status}</Badge>
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-semibold">{user.name}</h3>
+                        <Badge className={getStatusColor(user.status || "pending")}>
+                          {user.status || "pending"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                        {user.email && (
+                          <span className="flex items-center">
+                            <Mail className="w-4 h-4 mr-1" />
+                            {user.email}
+                          </span>
+                        )}
+                        {user.phone && (
+                          <span className="flex items-center">
+                            <Phone className="w-4 h-4 mr-1" />
+                            {user.phone}
+                          </span>
+                        )}
+                        {user.location && (
+                          <span className="flex items-center">
+                            <MapPin className="w-4 h-4 mr-1" />
+                            {user.location}
+                          </span>
+                        )}
+                        {user.joinDate && (
+                          <span className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            Joined {new Date(user.joinDate).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                      <span className="flex items-center">
-                        <Mail className="w-4 h-4 mr-1" />
-                        {user.email}
-                      </span>
-                      <span className="flex items-center">
-                        <Phone className="w-4 h-4 mr-1" />
-                        {user.phone}
-                      </span>
-                      <span className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        {user.location}
-                      </span>
-                      <span className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        Joined {new Date(user.joinDate).toLocaleDateString()}
-                      </span>
+                  </div>
+
+                  {/* Stats + Actions */}
+                  <div className="flex items-center space-x-6">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold">{user.issuesReported || 0}</p>
+                      <p className="text-xs text-muted-foreground">Reported</p>
                     </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-6">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{user.issuesReported}</p>
-                    <p className="text-xs text-muted-foreground">Reported</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{user.issuesResolved}</p>
-                    <p className="text-xs text-muted-foreground">Resolved</p>
-                  </div>
-                  <div className="text-center">
-                    <p className={`text-2xl font-bold ${getReputationColor(user.reputation)}`}>{user.reputation}</p>
-                    <p className="text-xs text-muted-foreground">Reputation</p>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Mail className="w-4 h-4 mr-1" />
-                      Contact
-                    </Button>
-                    {user.status === "active" ? (
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 bg-transparent">
-                        <Ban className="w-4 h-4 mr-1" />
-                        Suspend
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-green-600 hover:text-green-700 bg-transparent"
+                    <div className="text-center">
+                      <p className="text-2xl font-bold">{user.issuesResolved || 0}</p>
+                      <p className="text-xs text-muted-foreground">Resolved</p>
+                    </div>
+                    <div className="text-center">
+                      <p
+                        className={`text-2xl font-bold ${getReputationColor(user.reputation || 0)}`}
                       >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Activate
+                        {user.reputation || 0}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Reputation</p>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Button variant="outline" size="sm">
+                        <Mail className="w-4 h-4 mr-1" />
+                        Contact
                       </Button>
-                    )}
+                      {user.status === "active" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 bg-transparent"
+                        >
+                          <Ban className="w-4 h-4 mr-1" />
+                          Suspend
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-green-600 hover:text-green-700 bg-transparent"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Activate
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredUsers.length === 0 && (
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
         <Card>
           <CardContent className="p-12 text-center">
             <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
