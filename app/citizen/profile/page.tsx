@@ -30,7 +30,8 @@ import {
   Shield,
   Eye,
   EyeOff,
-  Trash2
+  Trash2,
+  RefreshCw
 } from "lucide-react";
 
 interface ProfileData {
@@ -67,8 +68,12 @@ export default function ProfilePage() {
     const [issueStats, setIssueStats] = useState({
         reported: 0,
         resolved: 0,
-        in_progress: 0
+        in_progress: 0,
+        submitted: 0,
+        assigned: 0,
+        closed: 0
     });
+    const [statsLoading, setStatsLoading] = useState(true);
 
     useEffect(() => {
         if (user) {
@@ -104,15 +109,28 @@ export default function ProfilePage() {
 
     const fetchIssueStats = async () => {
         try {
+            setStatsLoading(true);
             const response = await fetch('/api/profile/stats', {
                 credentials: 'include'
             });
             if (response.ok) {
                 const data = await response.json();
-                setIssueStats(data.stats);
+                console.log('Stats data received:', data.stats); // Debug log
+                setIssueStats(data.stats || {
+                    reported: 0,
+                    resolved: 0,
+                    in_progress: 0,
+                    submitted: 0,
+                    assigned: 0,
+                    closed: 0
+                });
+            } else {
+                console.error('Stats API error:', response.status, response.statusText);
             }
         } catch (error) {
             console.error('Error fetching stats:', error);
+        } finally {
+            setStatsLoading(false);
         }
     };
 
@@ -263,26 +281,115 @@ export default function ProfilePage() {
                         </CardContent>
                     </Card>
 
-                    {/* Quick Stats */}
+                    {/* Enhanced Activity Summary */}
                     <Card className="mt-6">
                         <CardHeader>
-                            <CardTitle className="text-lg">Activity Summary</CardTitle>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    📊 Activity Summary
+                                    {statsLoading && (
+                                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                    )}
+                                </CardTitle>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={fetchIssueStats}
+                                    disabled={statsLoading}
+                                    className="h-8 w-8 p-0"
+                                    title="Refresh stats"
+                                >
+                                    <RefreshCw className={`w-4 h-4 ${statsLoading ? 'animate-spin' : ''}`} />
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-muted-foreground">Issues Reported</span>
-                                    <Badge variant="outline">{issueStats.reported}</Badge>
+                            {statsLoading ? (
+                                <div className="space-y-3">
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <div key={i} className="flex justify-between items-center">
+                                            <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                                            <div className="h-6 bg-gray-200 rounded w-8 animate-pulse"></div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-muted-foreground">In Progress</span>
-                                    <Badge variant="secondary">{issueStats.in_progress}</Badge>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center p-2 rounded-lg bg-blue-50 border border-blue-200">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                            <span className="text-sm font-medium text-blue-900">Total Reported</span>
+                                        </div>
+                                        <Badge className="bg-blue-500 text-white">{issueStats.reported}</Badge>
+                                    </div>
+                                    
+                                    <div className="flex justify-between items-center p-2 rounded-lg bg-yellow-50 border border-yellow-200">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                            <span className="text-sm font-medium text-yellow-900">Submitted</span>
+                                        </div>
+                                        <Badge className="bg-yellow-500 text-white">{issueStats.submitted}</Badge>
+                                    </div>
+                                    
+                                    <div className="flex justify-between items-center p-2 rounded-lg bg-orange-50 border border-orange-200">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                                            <span className="text-sm font-medium text-orange-900">In Progress</span>
+                                        </div>
+                                        <Badge className="bg-orange-500 text-white">{issueStats.in_progress}</Badge>
+                                    </div>
+                                    
+                                    <div className="flex justify-between items-center p-2 rounded-lg bg-purple-50 border border-purple-200">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                                            <span className="text-sm font-medium text-purple-900">Assigned</span>
+                                        </div>
+                                        <Badge className="bg-purple-500 text-white">{issueStats.assigned}</Badge>
+                                    </div>
+                                    
+                                    <div className="flex justify-between items-center p-2 rounded-lg bg-green-50 border border-green-200">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                            <span className="text-sm font-medium text-green-900">Resolved</span>
+                                        </div>
+                                        <Badge className="bg-green-500 text-white">{issueStats.resolved}</Badge>
+                                    </div>
+                                    
+                                    {issueStats.closed > 0 && (
+                                        <div className="flex justify-between items-center p-2 rounded-lg bg-gray-50 border border-gray-200">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                                                <span className="text-sm font-medium text-gray-900">Closed</span>
+                                            </div>
+                                            <Badge className="bg-gray-500 text-white">{issueStats.closed}</Badge>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-muted-foreground">Resolved</span>
-                                    <Badge variant="default">{issueStats.resolved}</Badge>
+                            )}
+                            
+                            {!statsLoading && issueStats.reported === 0 && (
+                                <div className="text-center py-6 text-muted-foreground">
+                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                        📝
+                                    </div>
+                                    <p className="text-sm font-medium">No issues reported yet</p>
+                                    <p className="text-xs mt-1">Start by reporting your first civic issue!</p>
                                 </div>
-                            </div>
+                            )}
+                            
+                            {!statsLoading && issueStats.reported > 0 && (
+                                <div className="mt-4 pt-4 border-t">
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>Success Rate:</span>
+                                        <span className="font-medium">
+                                            {issueStats.reported > 0 
+                                                ? Math.round((issueStats.resolved / issueStats.reported) * 100)
+                                                : 0
+                                            }%
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
