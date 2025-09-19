@@ -200,7 +200,12 @@ export default function AdminLoginPage() {
               Continue with Google
             </Button>
 
-            <div className="text-center">
+            <div className="text-center text-sm">
+              <span className="text-muted-foreground">Don't have an admin account? </span>
+              <Link href="/admin/signup" className="text-accent hover:underline">Admin Sign up</Link>
+            </div>
+
+            <div className="text-center mt-2">
               <Link
                 href={{ pathname: "/admin/forgot-password" }}
                 className="text-sm text-muted-foreground hover:text-accent"

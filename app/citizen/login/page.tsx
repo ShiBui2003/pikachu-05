@@ -213,7 +213,14 @@ export default function CitizenLoginPage() {
                             </Link>
                         </div>
 
-                        <div className="text-center">
+                        <div className="text-center mt-2 text-sm">
+                            <span className="text-muted-foreground">Are you an admin? </span>
+                            <Link href="/admin/login" className="text-accent hover:underline mr-2">Admin Login</Link>
+                            <span className="text-muted-foreground">or</span>
+                            <Link href="/admin/signup" className="text-accent hover:underline ml-2">Admin Sign up</Link>
+                        </div>
+
+                        <div className="text-center mt-2">
                             <Link
                                 href={{ pathname: "/citizen/forgot-password" }}
                                 className="text-sm text-muted-foreground hover:text-accent"

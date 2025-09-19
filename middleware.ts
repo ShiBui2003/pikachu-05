@@ -4,7 +4,9 @@ import { createServerClient } from '@/lib/supabase/server';
 const publicRoutes = [
   '/',
   '/admin/login',
+  '/admin/signup',
   '/citizen/login',
+  '/citizen/signup',
   '/auth/callback',
   '/api/auth',
   '/_next',
@@ -30,10 +32,10 @@ export async function middleware(request: NextRequest) {
 
   try {
     const supabase = createServerClient();
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { user }, error } = await supabase.auth.getUser();
     
     // If no session and trying to access protected routes
-    if (!session || error) {
+    if (!user || error) {
       const loginUrl = pathname.startsWith('/admin') 
         ? '/admin/login' 
         : '/citizen/login';
@@ -48,7 +50,7 @@ export async function middleware(request: NextRequest) {
     }
     
     // Check user role
-    const role = session.user?.user_metadata?.role || 'citizen'; // Default to citizen
+    const role = user?.user_metadata?.role || 'citizen'; // Default to citizen
     
     // Redirect to appropriate dashboard if already logged in and trying to access login pages
     if (pathname === '/admin/login' || pathname === '/citizen/login') {

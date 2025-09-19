@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title, description, and category are required' }, { status: 400 });
     }
 
+    // Insert the issue and return with related profile info (requires FKs between issues.user_id and profiles.id)
     const { data: issue, error } = await supabase
       .from('issues')
       .insert({
@@ -100,6 +101,10 @@ export async function POST(request: NextRequest) {
         profiles:user_id(full_name, email)
       `)
       .single();
+    
+    if (issue && !error) {
+      return NextResponse.json({ issue }, { status: 201 });
+    }
 
     if (error) {
       console.error('Error creating issue:', error);
