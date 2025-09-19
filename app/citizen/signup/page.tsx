@@ -65,6 +65,12 @@ export default function CitizenSignupPage() {
             const { error } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
+                options: {
+                    data: {
+                        full_name: formData.name,
+                        role: 'citizen',
+                    },
+                },
             });
             if (error) throw error;
             toast({
@@ -93,6 +99,13 @@ export default function CitizenSignupPage() {
         supabase.auth
             .signInWithOAuth({
                 provider: "google",
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback?user_type=citizen`,
+                    queryParams: {
+                        access_type: 'offline',
+                        prompt: 'consent',
+                    },
+                },
             })
             .catch((error: any) => {
                 toast({

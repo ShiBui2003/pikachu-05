@@ -49,22 +49,24 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
     
-    // Check user role
-    const role = user?.user_metadata?.role || 'citizen'; // Default to citizen
+    // Check user role - be more specific about admin detection
+    const role = user?.user_metadata?.role || user?.role || 'citizen';
+    const isAdmin = role === 'admin' || user?.email?.includes('@admin.') || user?.email?.includes('@city.gov');
+    const actualRole = isAdmin ? 'admin' : 'citizen';
     
     // Redirect to appropriate dashboard if already logged in and trying to access login pages
     if (pathname === '/admin/login' || pathname === '/citizen/login') {
-      const dashboardPath = role === 'admin' ? '/admin/dashboard' : '/citizen/dashboard';
+      const dashboardPath = actualRole === 'admin' ? '/admin/dashboard' : '/citizen/dashboard';
       return NextResponse.redirect(new URL(dashboardPath, request.url));
     }
     
     // Role-based access control
-    if (pathname.startsWith('/admin') && role !== 'admin') {
+    if (pathname.startsWith('/admin') && actualRole !== 'admin') {
       return NextResponse.redirect(new URL('/citizen/dashboard', request.url));
     }
     
     // Allow admins to access citizen routes, but redirect citizens trying to access admin routes
-    if (pathname.startsWith('/citizen') && role !== 'citizen' && role !== 'admin') {
+    if (pathname.startsWith('/citizen') && actualRole !== 'citizen' && actualRole !== 'admin') {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     }
     

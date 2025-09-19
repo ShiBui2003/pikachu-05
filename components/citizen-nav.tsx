@@ -16,7 +16,7 @@ import {
     LogOut,
     Menu,
 } from "lucide-react";
-import NotificationSystem from "@/components/notification-system";
+import RealTimeNotifications from "@/components/real-time-notifications";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -121,7 +121,33 @@ export default function CitizenNav() {
 
     // Add Supabase logout logic
     const handleLogout = async () => {
-        await signOut('/citizen/login');
+        try {
+            // Clear any cached data first
+            const supabase = createClient();
+            await supabase.auth.signOut();
+            
+            // Clear local storage and session storage
+            if (typeof window !== 'undefined') {
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Clear all cookies
+                document.cookie.split(";").forEach((c) => {
+                    const eqPos = c.indexOf("=");
+                    const name = eqPos > -1 ? c.substr(0, eqPos) : c;
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                });
+                
+                // Force redirect to citizen login
+                window.location.href = '/citizen/login';
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Force redirect even if there's an error
+            if (typeof window !== 'undefined') {
+                window.location.href = '/citizen/login';
+            }
+        }
     };
 
     return (
@@ -146,7 +172,7 @@ export default function CitizenNav() {
 
                     {/* Desktop User Actions */}
                     <div className="hidden lg:flex lg:items-center lg:space-x-2">
-                        <NotificationSystem />
+                        <RealTimeNotifications />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm" className="h-9">
@@ -208,7 +234,7 @@ export default function CitizenNav() {
 
                     {/* Mobile Navigation */}
                     <div className="flex lg:hidden items-center space-x-2">
-                        <NotificationSystem />
+                        <RealTimeNotifications />
                         <Button 
                             variant="ghost" 
                             size="sm" 
