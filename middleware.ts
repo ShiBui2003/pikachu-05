@@ -3,7 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 
 const publicRoutes = [
   '/',
-  '/auth', // Added unified auth page
+  '/auth', // Unified auth page
   '/login', // Keep for backward compatibility
   '/signup', // Keep for backward compatibility
   '/admin/login',
@@ -28,7 +28,7 @@ const isPublicRoute = (pathname: string) => {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip middleware for truly public routes
+  // Skip middleware for truly public routes and static assets
   if (pathname === '/' || pathname.startsWith('/_next/') || 
       pathname.startsWith('/api/auth/') || pathname === '/favicon.ico' ||
       pathname.startsWith('/auth/callback')) {
@@ -41,22 +41,30 @@ export async function middleware(request: NextRequest) {
     
     // If user is authenticated
     if (user && !error) {
-      const role = user?.user_metadata?.role || 'citizen';
+      // Get user role with fallback logic
+      const role = user?.user_metadata?.role || user?.role || 'citizen';
       
-      // Redirect authenticated users away from auth pages
+      // Enhanced admin detection - check role first, then email patterns as fallback
+      const isAdmin = role === 'admin' || 
+                     user?.email?.includes('@admin.') || 
+                     user?.email?.includes('@city.gov');
+      const actualRole = isAdmin ? 'admin' : 'citizen';
+      
+      // Redirect authenticated users away from auth pages to their appropriate dashboard
       if (pathname === '/auth' || pathname === '/login' || pathname === '/signup' || 
           pathname === '/admin/login' || pathname === '/admin/signup' || 
           pathname === '/citizen/login' || pathname === '/citizen/signup') {
-        const dashboardPath = role === 'admin' ? '/admin/dashboard' : '/citizen/dashboard';
+        const dashboardPath = actualRole === 'admin' ? '/admin/dashboard' : '/citizen/dashboard';
         return NextResponse.redirect(new URL(dashboardPath, request.url));
       }
       
       // Role-based access control for protected routes
-      if (pathname.startsWith('/admin') && role !== 'admin') {
+      if (pathname.startsWith('/admin') && actualRole !== 'admin') {
         return NextResponse.redirect(new URL('/citizen/dashboard', request.url));
       }
       
-      if (pathname.startsWith('/citizen') && role !== 'citizen' && role !== 'admin') {
+      // Allow admins to access citizen routes, but redirect non-citizens/non-admins
+      if (pathname.startsWith('/citizen') && actualRole !== 'citizen' && actualRole !== 'admin') {
         return NextResponse.redirect(new URL('/admin/dashboard', request.url));
       }
       
@@ -64,7 +72,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
     
-    // If no session, redirect to auth page for protected routes
+    // If no session or error, handle unauthenticated users
     if (!user || error) {
       // Allow access to auth pages for unauthenticated users
       if (pathname === '/auth' || pathname === '/login' || pathname === '/signup' || 
@@ -73,7 +81,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
       }
       
-      // Redirect unauthenticated users to auth page
+      // Redirect unauthenticated users to unified auth page for protected routes
       const redirectUrl = new URL('/auth', request.url);
       if (pathname !== '/') {
         redirectUrl.searchParams.set('redirectedFrom', pathname);
@@ -85,10 +93,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   } catch (error) {
     console.error('Middleware error:', error);
-    // On error, allow access to auth page
-    if (pathname === '/auth') {
-      return NextResponse.next();
-    }
+    // On error, redirect to home with error parameter
     const redirectUrl = new URL('/', request.url);
     redirectUrl.searchParams.set('error', 'authentication_error');
     return NextResponse.redirect(redirectUrl);

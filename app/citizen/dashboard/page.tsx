@@ -1,387 +1,1059 @@
+"use client";
 
-"use client"
-
-import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
-  MapPin,
-  Plus,
-  Search,
-  Map,
-  List,
-  Calendar,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Eye,
-  ThumbsUp,
-  MessageCircle,
-} from "lucide-react"
-import InteractiveMap from "@/components/interactive-map"
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    MapPin,
+    Plus,
+    Search,
+    Map,
+    List,
+    Calendar,
+    AlertTriangle,
+    CheckCircle,
+    Clock,
+    Eye,
+    ThumbsUp,
+    MessageCircle,
+} from "lucide-react";
+import { GoogleMap } from "@/components/ui/google-map";
+import { FallbackMap } from "@/components/ui/fallback-map";
+import { createClient } from "@/lib/supabase/client";
 
 type Issue = {
-  id: string
-  title: string
-  description: string
-  category: string
-  status: string
-  location_address: string | null
-  location_lat: number | null
-  location_lng: number | null
-  image_url: string | null
-  created_at: string
-  upvotes?: number | null
-}
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    status: string;
+    location_address: string | null;
+    location_lat: number | null;
+    location_lng: number | null;
+    image_url: string | null;
+    created_at: string;
+    upvotes?: number | null;
+};
 
 const getStatusColor = (status: string) => {
-  switch (status) {
-    case "submitted":
-      return "bg-status-submitted text-white"
-    case "in-review":
-      return "bg-status-review text-white"
-    case "in-progress":
-      return "bg-status-progress text-white"
-    case "resolved":
-      return "bg-status-resolved text-white"
-    default:
-      return "bg-muted text-muted-foreground"
-  }
-}
+    switch (status) {
+        case "submitted":
+            return "bg-status-submitted text-white";
+        case "in-review":
+            return "bg-status-review text-white";
+        case "in-progress":
+            return "bg-status-progress text-white";
+        case "resolved":
+            return "bg-status-resolved text-white";
+        default:
+            return "bg-muted text-muted-foreground";
+    }
+};
 
 const getStatusIcon = (status: string) => {
-  switch (status) {
-    case "submitted":
-      return <Clock className="w-4 h-4" />
-    case "in-review":
-      return <Eye className="w-4 h-4" />
-    case "in-progress":
-      return <AlertTriangle className="w-4 h-4" />
-    case "resolved":
-      return <CheckCircle className="w-4 h-4" />
-    default:
-      return <Clock className="w-4 h-4" />
-  }
-}
+    switch (status) {
+        case "submitted":
+            return <Clock className="w-4 h-4" />;
+        case "in-review":
+            return <Eye className="w-4 h-4" />;
+        case "in-progress":
+            return <AlertTriangle className="w-4 h-4" />;
+        case "resolved":
+            return <CheckCircle className="w-4 h-4" />;
+        default:
+            return <Clock className="w-4 h-4" />;
+    }
+};
 
 const getCategoryLabel = (category: string) => {
-  switch (category) {
-    case "pothole":
-      return "Pothole"
-    case "streetlight":
-      return "Streetlight"
-    case "garbage":
-      return "Garbage"
-    case "water-leakage":
-      return "Water Leakage"
-    default:
-      return "Other"
-  }
-}
+    switch (category) {
+        case "pothole":
+            return "Pothole";
+        case "streetlight":
+            return "Streetlight";
+        case "garbage":
+            return "Garbage";
+        case "water-leakage":
+            return "Water Leakage";
+        default:
+            return "Other";
+    }
+};
 
 export default function CitizenDashboard() {
-  const [viewMode, setViewMode] = useState<"list" | "map">("list")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [issues, setIssues] = useState<Issue[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+    const [viewMode, setViewMode] = useState<"list" | "map">("list");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [categoryFilter, setCategoryFilter] = useState("all");
+    const [issues, setIssues] = useState<Issue[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchIssues = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const params = new URLSearchParams({ page: "1", limit: "50" })
-        const res = await fetch(`/api/issues?${params.toString()}`, { credentials: 'include' })
-        const json = await res.json()
-        if (!res.ok) throw new Error(json.error || 'Failed to fetch issues')
-        setIssues(json.issues || [])
-      } catch (e: any) {
-        setError(e.message || 'Failed to fetch issues')
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchIssues()
-  }, [])
+    // Map-related state
+    const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
+    const [userLocation, setUserLocation] = useState<{
+        lat: number;
+        lng: number;
+    } | null>(null);
+    const [locationError, setLocationError] = useState<string | null>(null);
 
-  const filteredIssues = useMemo(() => {
-    return issues.filter((issue) => {
-      const loc = (issue.location_address || '').toLowerCase()
-      const matchesSearch =
-        issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        loc.includes(searchTerm.toLowerCase())
-      const matchesStatus = statusFilter === "all" || issue.status === statusFilter
-      const matchesCategory = categoryFilter === "all" || issue.category === categoryFilter
-      return matchesSearch && matchesStatus && matchesCategory
-    })
-  }, [issues, searchTerm, statusFilter, categoryFilter])
+    const supabase = createClient();
+    const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+    const defaultCenter = { lat: 37.7749, lng: -122.4194 }; // San Francisco
 
-  const stats = useMemo(() => {
-    const total = issues.length
-    const inProgress = issues.filter(i => i.status === 'in_progress' || i.status === 'in-progress').length
-    const resolved = issues.filter(i => i.status === 'resolved').length
-    const createdThisMonth = issues.filter(i => {
-      const d = new Date(i.created_at)
-      const now = new Date()
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    }).length
-    return { total, inProgress, resolved, createdThisMonth }
-  }, [issues])
+    // Get user's current location
+    const getCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            setLocationError("Geolocation is not supported by this browser");
+            return;
+        }
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-accent flex-shrink-0" />
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold">Civic Issues Dashboard</h1>
-                <p className="text-sm sm:text-base text-muted-foreground">Track and report community issues</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <Button asChild className="w-full sm:w-auto">
-                <Link href="/citizen/report">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Report Issue
-                </Link>
-              </Button>
-              <Button variant="outline" asChild className="w-full sm:w-auto bg-transparent">
-                <Link href="/citizen/my-issues">My Issues</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setUserLocation({ lat: latitude, lng: longitude });
+                setLocationError(null);
+            },
+            (error) => {
+                console.error("Error getting location:", error);
+                setLocationError("Unable to get your location");
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000, // 5 minutes
+            }
+        );
+    };
 
-      <div className="container mx-auto px-4 py-4 sm:py-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total Issues</p>
-                  <p className="text-lg sm:text-2xl font-bold">{stats.total}</p>
-                </div>
-                <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
+    useEffect(() => {
+        const fetchIssues = async () => {
+            try {
+                setLoading(true);
+                setError(null);
 
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">In Progress</p>
-                  <p className="text-lg sm:text-2xl font-bold status-progress">{stats.inProgress}</p>
-                </div>
-                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-status-progress" />
-              </div>
-            </CardContent>
-          </Card>
+                // Fetch issues with profiles
+                const { data, error: fetchError } = await supabase
+                    .from("issues")
+                    .select(
+                        `
+                        *,
+                        profiles:user_id (
+                            full_name,
+                            email
+                        )
+                    `
+                    )
+                    .order("created_at", { ascending: false })
+                    .limit(50);
 
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Resolved</p>
-                  <p className="text-lg sm:text-2xl font-bold status-resolved">{stats.resolved}</p>
-                </div>
-                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-status-resolved" />
-              </div>
-            </CardContent>
-          </Card>
+                if (fetchError) {
+                    throw fetchError;
+                }
 
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">This Month</p>
-                  <p className="text-lg sm:text-2xl font-bold">{stats.createdThisMonth}</p>
-                </div>
-                <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                // Type assertion for issues data
+                type IssueWithProfile = Issue & {
+                    profiles?: {
+                        full_name: string;
+                        email: string;
+                    };
+                };
+                const typedIssues = (data || []) as IssueWithProfile[];
 
-        {/* Filters and Search */}
-        <Card className="mb-4 sm:mb-6">
-          <CardContent className="p-3 sm:p-4">
-            <div className="space-y-3 sm:space-y-4">
-              {/* Search - Full width on mobile */}
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search issues or locations..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-11 sm:h-10"
-                />
-              </div>
+                // Get vote and comment counts for each issue
+                const issuesWithCounts = await Promise.all(
+                    typedIssues.map(async (issue) => {
+                        const [
+                            { count: votesCount },
+                            { count: commentsCount },
+                        ] = await Promise.all([
+                            supabase
+                                .from("issue_votes")
+                                .select("*", { count: "exact", head: true })
+                                .eq("issue_id", issue.id),
+                            supabase
+                                .from("comments")
+                                .select("*", { count: "exact", head: true })
+                                .eq("issue_id", issue.id),
+                        ]);
 
-              {/* Filters - Stacked on mobile, row on desktop */}
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-11 sm:h-10 sm:w-40">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="submitted">Submitted</SelectItem>
-                    <SelectItem value="in-review">In Review</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                  </SelectContent>
-                </Select>
+                        return {
+                            ...issue,
+                            votes_count: votesCount || 0,
+                            comments_count: commentsCount || 0,
+                            upvotes: votesCount || 0, // For backward compatibility
+                        };
+                    })
+                );
 
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="h-11 sm:h-10 sm:w-40">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="pothole">Pothole</SelectItem>
-                    <SelectItem value="streetlight">Streetlight</SelectItem>
-                    <SelectItem value="garbage">Garbage</SelectItem>
-                    <SelectItem value="water-leakage">Water Leakage</SelectItem>
-                  </SelectContent>
-                </Select>
+                setIssues(issuesWithCounts);
+            } catch (e: any) {
+                setError(e.message || "Failed to fetch issues");
+            } finally {
+                setLoading(false);
+            }
+        };
 
-                {/* View toggle - Right aligned on desktop, full width on mobile */}
-                <div className="flex sm:ml-auto">
-                  <div className="flex items-center space-x-1 bg-muted p-1 rounded-lg">
-                    <Button
-                      variant={viewMode === "list" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setViewMode("list")}
-                      className="h-9 px-3"
-                    >
-                      <List className="w-4 h-4 mr-1 sm:mr-0" />
-                      <span className="sm:hidden">List</span>
-                    </Button>
-                    <Button
-                      variant={viewMode === "map" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setViewMode("map")}
-                      className="h-9 px-3"
-                    >
-                      <Map className="w-4 h-4 mr-1 sm:mr-0" />
-                      <span className="sm:hidden">Map</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        fetchIssues();
+        getCurrentLocation();
+    }, []);
 
-        {/* Content */}
-        {viewMode === "list" ? (
-          <div className="grid gap-3 sm:gap-4">
-            {loading && (
-              <div className="text-sm text-muted-foreground">Loading issues...</div>
-            )}
-            {error && (
-              <div className="text-sm text-red-600">{error}</div>
-            )}
-            {!loading && !error && filteredIssues.map((issue) => (
-              <Card key={issue.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex flex-col gap-4">
-                    <div className="flex gap-3 sm:gap-4">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                        <img
-                          src={issue.image_url || "/placeholder.svg"}
-                          alt={issue.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+    const filteredIssues = useMemo(() => {
+        return issues.filter((issue) => {
+            const loc = (issue.location_address || "").toLowerCase();
+            const matchesSearch =
+                issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                loc.includes(searchTerm.toLowerCase());
+            const matchesStatus =
+                statusFilter === "all" || issue.status === statusFilter;
+            const matchesCategory =
+                categoryFilter === "all" || issue.category === categoryFilter;
+            return matchesSearch && matchesStatus && matchesCategory;
+        });
+    }, [issues, searchTerm, statusFilter, categoryFilter]);
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <Link
-                            href={`/citizen/issues/${issue.id}`}
-                            className="hover:underline min-h-[44px] flex items-start"
-                          >
-                            <h3 className="font-semibold text-sm sm:text-base line-clamp-2 text-balance leading-tight">
-                              {issue.title}
-                            </h3>
-                          </Link>
-                          <Badge className={`${getStatusColor(issue.status)} flex-shrink-0 text-xs h-6`}>
-                            {getStatusIcon(issue.status)}
-                            <span className="ml-1 hidden sm:inline capitalize">{issue.status.replace("-", " ")}</span>
-                          </Badge>
-                        </div>
+    const stats = useMemo(() => {
+        const total = issues.length;
+        const inProgress = issues.filter(
+            (i) => i.status === "in_progress" || i.status === "in-progress"
+        ).length;
+        const resolved = issues.filter((i) => i.status === "resolved").length;
+        const createdThisMonth = issues.filter((i) => {
+            const d = new Date(i.created_at);
+            const now = new Date();
+            return (
+                d.getMonth() === now.getMonth() &&
+                d.getFullYear() === now.getFullYear()
+            );
+        }).length;
+        return { total, inProgress, resolved, createdThisMonth };
+    }, [issues]);
 
-                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
-                          {issue.description}
-                        </p>
+    // Map-related calculations
+    const calculateDistance = (
+        lat1: number,
+        lng1: number,
+        lat2: number,
+        lng2: number
+    ) => {
+        const R = 6371; // Earth's radius in kilometers
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLng = ((lng2 - lng1) * Math.PI) / 180;
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos((lat1 * Math.PI) / 180) *
+                Math.cos((lat2 * Math.PI) / 180) *
+                Math.sin(dLng / 2) *
+                Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <div className="flex items-center">
-                              <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
-                              <span className="truncate max-w-[140px] sm:max-w-none">{issue.location_address || 'N/A'}</span>
+    // Get nearby issues (within 5km of user location for citizens)
+    const nearbyIssues = useMemo(() => {
+        if (!userLocation) return filteredIssues;
+
+        return filteredIssues.filter((issue) => {
+            if (!issue.location_lat || !issue.location_lng) return false;
+            const distance = calculateDistance(
+                userLocation.lat,
+                userLocation.lng,
+                issue.location_lat,
+                issue.location_lng
+            );
+            return distance <= 5; // 5km radius for citizens
+        });
+    }, [filteredIssues, userLocation]);
+
+    // Calculate map center - prioritize user location, then nearby issues, then all issues
+    const mapCenter = useMemo(() => {
+        if (userLocation) {
+            return userLocation;
+        }
+
+        if (nearbyIssues.length > 0) {
+            return {
+                lat:
+                    nearbyIssues.reduce(
+                        (sum, issue) => sum + (issue.location_lat || 0),
+                        0
+                    ) / nearbyIssues.length,
+                lng:
+                    nearbyIssues.reduce(
+                        (sum, issue) => sum + (issue.location_lng || 0),
+                        0
+                    ) / nearbyIssues.length,
+            };
+        }
+
+        if (filteredIssues.length > 0) {
+            return {
+                lat:
+                    filteredIssues.reduce(
+                        (sum, issue) => sum + (issue.location_lat || 0),
+                        0
+                    ) / filteredIssues.length,
+                lng:
+                    filteredIssues.reduce(
+                        (sum, issue) => sum + (issue.location_lng || 0),
+                        0
+                    ) / filteredIssues.length,
+            };
+        }
+
+        return defaultCenter;
+    }, [userLocation, nearbyIssues, filteredIssues, defaultCenter]);
+
+    // Determine zoom level based on context
+    const mapZoom = useMemo(() => {
+        if (userLocation) return 15; // Street level for user location
+        if (nearbyIssues.length > 0) return 13; // Neighborhood level for nearby issues
+        if (filteredIssues.length > 0) return 11; // City level for all issues
+        return 4; // Country level for no issues
+    }, [userLocation, nearbyIssues, filteredIssues]);
+
+    // Prepare issues for map component
+    const mapIssues = useMemo(() => {
+        return filteredIssues
+            .filter((issue) => issue.location_lat && issue.location_lng)
+            .map((issue) => ({
+                id: issue.id,
+                title: issue.title,
+                status: issue.status,
+                priority: "medium", // Default priority since it's not in the Issue type
+                location_lat: issue.location_lat!,
+                location_lng: issue.location_lng!,
+                category: issue.category,
+            }));
+    }, [filteredIssues]);
+
+    const selectedIssueData = useMemo(() => {
+        return issues.find((issue) => issue.id === selectedIssue);
+    }, [issues, selectedIssue]);
+
+    return (
+        <div className="min-h-screen bg-background">
+            {/* Header */}
+            <div className="border-b bg-card">
+                <div className="container mx-auto px-4 py-4 sm:py-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex items-center space-x-3 sm:space-x-4">
+                            <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-accent flex-shrink-0" />
+                            <div>
+                                <h1 className="text-xl sm:text-2xl font-bold">
+                                    Civic Issues Dashboard
+                                </h1>
+                                <p className="text-sm sm:text-base text-muted-foreground">
+                                    Track and report community issues
+                                </p>
                             </div>
-                            <Badge variant="outline" className="text-xs">
-                              {getCategoryLabel(issue.category)}
-                            </Badge>
-                          </div>
                         </div>
-                      </div>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                            <Button asChild className="w-full sm:w-auto">
+                                <Link href="/citizen/report">
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Report Issue
+                                </Link>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                asChild
+                                className="w-full sm:w-auto bg-transparent"
+                            >
+                                <Link href="/citizen/issues/map">
+                                    <Map className="w-4 h-4 mr-2" />
+                                    Map View
+                                </Link>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                asChild
+                                className="w-full sm:w-auto bg-transparent"
+                            >
+                                <Link href="/citizen/my-issues">My Issues</Link>
+                            </Button>
+                        </div>
                     </div>
+                </div>
+            </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t">
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          <span className="hidden sm:inline">{new Date(issue.created_at).toLocaleDateString()}</span>
-                          <span className="sm:hidden">
-                            {new Date(issue.created_at).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </span>
-                        </div>
-                        <div className="flex items-center">
-                          <ThumbsUp className="w-3 h-3 mr-1" />
-                          {(issue as any).votes_count ?? issue.upvotes ?? 0}
-                        </div>
-                        <div className="flex items-center">
-                          <MessageCircle className="w-3 h-3 mr-1" />
-                          {(issue as any).comments_count ?? 0}
-                        </div>
-                      </div>
+            <div className="container mx-auto px-4 py-4 sm:py-6">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <Card>
+                        <CardContent className="p-3 sm:p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
+                                        Total Issues
+                                    </p>
+                                    <p className="text-lg sm:text-2xl font-bold">
+                                        {stats.total}
+                                    </p>
+                                </div>
+                                <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                      <Button variant="ghost" size="sm" asChild className="h-9 px-3">
-                        <Link href={`/citizen/issues/${issue.id}`}>
-                          <span className="hidden sm:inline">View Details</span>
-                          <span className="sm:hidden">View</span>
-                        </Link>
-                      </Button>
+                    <Card>
+                        <CardContent className="p-3 sm:p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
+                                        In Progress
+                                    </p>
+                                    <p className="text-lg sm:text-2xl font-bold status-progress">
+                                        {stats.inProgress}
+                                    </p>
+                                </div>
+                                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-status-progress" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-3 sm:p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
+                                        Resolved
+                                    </p>
+                                    <p className="text-lg sm:text-2xl font-bold status-resolved">
+                                        {stats.resolved}
+                                    </p>
+                                </div>
+                                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-status-resolved" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-3 sm:p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
+                                        This Month
+                                    </p>
+                                    <p className="text-lg sm:text-2xl font-bold">
+                                        {stats.createdThisMonth}
+                                    </p>
+                                </div>
+                                <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Filters and Search */}
+                <Card className="mb-4 sm:mb-6">
+                    <CardContent className="p-3 sm:p-4">
+                        <div className="space-y-3 sm:space-y-4">
+                            {/* Search - Full width on mobile */}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search issues or locations..."
+                                    value={searchTerm}
+                                    onChange={(e) =>
+                                        setSearchTerm(e.target.value)
+                                    }
+                                    className="pl-10 h-11 sm:h-10"
+                                />
+                            </div>
+
+                            {/* Filters - Stacked on mobile, row on desktop */}
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                                <Select
+                                    value={statusFilter}
+                                    onValueChange={setStatusFilter}
+                                >
+                                    <SelectTrigger className="h-11 sm:h-10 sm:w-40">
+                                        <SelectValue placeholder="Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            All Status
+                                        </SelectItem>
+                                        <SelectItem value="submitted">
+                                            Submitted
+                                        </SelectItem>
+                                        <SelectItem value="in-review">
+                                            In Review
+                                        </SelectItem>
+                                        <SelectItem value="in-progress">
+                                            In Progress
+                                        </SelectItem>
+                                        <SelectItem value="resolved">
+                                            Resolved
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                <Select
+                                    value={categoryFilter}
+                                    onValueChange={setCategoryFilter}
+                                >
+                                    <SelectTrigger className="h-11 sm:h-10 sm:w-40">
+                                        <SelectValue placeholder="Category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            All Categories
+                                        </SelectItem>
+                                        <SelectItem value="pothole">
+                                            Pothole
+                                        </SelectItem>
+                                        <SelectItem value="streetlight">
+                                            Streetlight
+                                        </SelectItem>
+                                        <SelectItem value="garbage">
+                                            Garbage
+                                        </SelectItem>
+                                        <SelectItem value="water-leakage">
+                                            Water Leakage
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                {/* View toggle - Right aligned on desktop, full width on mobile */}
+                                <div className="flex sm:ml-auto">
+                                    <div className="flex items-center space-x-1 bg-muted p-1 rounded-lg">
+                                        <Button
+                                            variant={
+                                                viewMode === "list"
+                                                    ? "default"
+                                                    : "ghost"
+                                            }
+                                            size="sm"
+                                            onClick={() => setViewMode("list")}
+                                            className="h-9 px-3"
+                                        >
+                                            <List className="w-4 h-4 mr-1 sm:mr-0" />
+                                            <span className="sm:hidden">
+                                                List
+                                            </span>
+                                        </Button>
+                                        <Button
+                                            variant={
+                                                viewMode === "map"
+                                                    ? "default"
+                                                    : "ghost"
+                                            }
+                                            size="sm"
+                                            onClick={() => setViewMode("map")}
+                                            className="h-9 px-3"
+                                        >
+                                            <Map className="w-4 h-4 mr-1 sm:mr-0" />
+                                            <span className="sm:hidden">
+                                                Map
+                                            </span>
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Content */}
+                {viewMode === "list" ? (
+                    <div className="grid gap-3 sm:gap-4">
+                        {loading && (
+                            <div className="text-sm text-muted-foreground">
+                                Loading issues...
+                            </div>
+                        )}
+                        {error && (
+                            <div className="text-sm text-red-600">{error}</div>
+                        )}
+                        {!loading &&
+                            !error &&
+                            filteredIssues.map((issue) => (
+                                <Card
+                                    key={issue.id}
+                                    className="hover:shadow-md transition-shadow"
+                                >
+                                    <CardContent className="p-4 sm:p-6">
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex gap-3 sm:gap-4">
+                                                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                                                    <img
+                                                        src={
+                                                            issue.image_url ||
+                                                            "/placeholder.svg"
+                                                        }
+                                                        alt={issue.title}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                                        <Link
+                                                            href={`/citizen/issues/${issue.id}`}
+                                                            className="hover:underline min-h-[44px] flex items-start"
+                                                        >
+                                                            <h3 className="font-semibold text-sm sm:text-base line-clamp-2 text-balance leading-tight">
+                                                                {issue.title}
+                                                            </h3>
+                                                        </Link>
+                                                        <Badge
+                                                            className={`${getStatusColor(
+                                                                issue.status
+                                                            )} flex-shrink-0 text-xs h-6`}
+                                                        >
+                                                            {getStatusIcon(
+                                                                issue.status
+                                                            )}
+                                                            <span className="ml-1 hidden sm:inline capitalize">
+                                                                {issue.status.replace(
+                                                                    "-",
+                                                                    " "
+                                                                )}
+                                                            </span>
+                                                        </Badge>
+                                                    </div>
+
+                                                    <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
+                                                        {issue.description}
+                                                    </p>
+
+                                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                                            <div className="flex items-center">
+                                                                <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                                                                <span className="truncate max-w-[140px] sm:max-w-none">
+                                                                    {issue.location_address ||
+                                                                        "N/A"}
+                                                                </span>
+                                                            </div>
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="text-xs"
+                                                            >
+                                                                {getCategoryLabel(
+                                                                    issue.category
+                                                                )}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-between pt-3 border-t">
+                                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                                    <div className="flex items-center">
+                                                        <Calendar className="w-3 h-3 mr-1" />
+                                                        <span className="hidden sm:inline">
+                                                            {new Date(
+                                                                issue.created_at
+                                                            ).toLocaleDateString()}
+                                                        </span>
+                                                        <span className="sm:hidden">
+                                                            {new Date(
+                                                                issue.created_at
+                                                            ).toLocaleDateString(
+                                                                "en-US",
+                                                                {
+                                                                    month: "short",
+                                                                    day: "numeric",
+                                                                }
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                        <ThumbsUp className="w-3 h-3 mr-1" />
+                                                        {(issue as any)
+                                                            .votes_count ??
+                                                            issue.upvotes ??
+                                                            0}
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                        <MessageCircle className="w-3 h-3 mr-1" />
+                                                        {(issue as any)
+                                                            .comments_count ??
+                                                            0}
+                                                    </div>
+                                                </div>
+
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    asChild
+                                                    className="h-9 px-3"
+                                                >
+                                                    <Link
+                                                        href={`/citizen/issues/${issue.id}`}
+                                                    >
+                                                        <span className="hidden sm:inline">
+                                                            View Details
+                                                        </span>
+                                                        <span className="sm:hidden">
+                                                            View
+                                                        </span>
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="h-[60vh] sm:h-[70vh]">
-            <InteractiveMap />
-          </div>
-        )}
-      </div>
-    </div>
-  )
+                ) : (
+                    <div className="space-y-4">
+                        {/* Map Controls */}
+                        <Card>
+                            <CardContent className="p-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div className="flex items-center space-x-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={getCurrentLocation}
+                                            disabled={loading}
+                                        >
+                                            <MapPin className="w-4 h-4 mr-2" />
+                                            {userLocation
+                                                ? "Update Location"
+                                                : "Find My Location"}
+                                        </Button>
+                                        <Button size="sm" asChild>
+                                            <Link href="/citizen/report">
+                                                <Plus className="w-4 h-4 mr-2" />
+                                                Report Issue
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                        {userLocation ? (
+                                            <>
+                                                Showing {nearbyIssues.length}{" "}
+                                                nearby issues (within 5km) of{" "}
+                                                {filteredIssues.length} total
+                                            </>
+                                        ) : (
+                                            <>
+                                                Showing {filteredIssues.length}{" "}
+                                                issues on map{" "}
+                                                {locationError && (
+                                                    <span className="text-red-500">
+                                                        ({locationError})
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <div className="grid lg:grid-cols-4 gap-6">
+                            {/* Map */}
+                            <div className="lg:col-span-3">
+                                <Card>
+                                    <CardContent className="p-4">
+                                        <div className="h-[50vh] sm:h-[60vh] rounded-lg overflow-hidden">
+                                            {googleMapsApiKey ? (
+                                                <GoogleMap
+                                                    apiKey={googleMapsApiKey}
+                                                    center={mapCenter}
+                                                    zoom={mapZoom}
+                                                    issues={mapIssues}
+                                                    onMarkerClick={
+                                                        setSelectedIssue
+                                                    }
+                                                    selectedIssueId={
+                                                        selectedIssue
+                                                    }
+                                                    userLocation={userLocation}
+                                                />
+                                            ) : (
+                                                <FallbackMap
+                                                    center={mapCenter}
+                                                    zoom={mapZoom}
+                                                    issues={mapIssues}
+                                                    onMarkerClick={
+                                                        setSelectedIssue
+                                                    }
+                                                    selectedIssueId={
+                                                        selectedIssue
+                                                    }
+                                                    userLocation={userLocation}
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* Map Legend */}
+                                        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+                                            <div className="flex items-center">
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 mr-2" />
+                                                <span>Submitted</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2" />
+                                                <span>In Review</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <div className="w-3 h-3 rounded-full bg-orange-500 mr-2" />
+                                                <span>In Progress</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <div className="w-3 h-3 rounded-full bg-green-500 mr-2" />
+                                                <span>Resolved</span>
+                                            </div>
+                                            {userLocation && (
+                                                <div className="flex items-center">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-400 mr-2 animate-pulse" />
+                                                    <span>Your Location</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Sidebar */}
+                            <div className="space-y-4">
+                                {/* Selected Issue Details */}
+                                {selectedIssueData ? (
+                                    <Card>
+                                        <CardContent className="p-4">
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <h4 className="font-semibold text-sm">
+                                                        {
+                                                            selectedIssueData.title
+                                                        }
+                                                    </h4>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {selectedIssueData.id}
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    <Badge
+                                                        className={getStatusColor(
+                                                            selectedIssueData.status
+                                                        )}
+                                                        variant="secondary"
+                                                    >
+                                                        {selectedIssueData.status.replace(
+                                                            "-",
+                                                            " "
+                                                        )}
+                                                    </Badge>
+                                                    <Badge variant="outline">
+                                                        {getCategoryLabel(
+                                                            selectedIssueData.category
+                                                        )}
+                                                    </Badge>
+                                                </div>
+
+                                                <div className="space-y-2 text-xs">
+                                                    <div className="flex items-center">
+                                                        <MapPin className="w-3 h-3 mr-2 text-muted-foreground" />
+                                                        <span>
+                                                            {selectedIssueData.location_address ||
+                                                                "N/A"}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                        <Calendar className="w-3 h-3 mr-2 text-muted-foreground" />
+                                                        <span>
+                                                            {new Date(
+                                                                selectedIssueData.created_at
+                                                            ).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {selectedIssueData.description && (
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground line-clamp-3">
+                                                            {
+                                                                selectedIssueData.description
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                                    <div className="flex items-center">
+                                                        <ThumbsUp className="w-3 h-3 mr-1" />
+                                                        <span>
+                                                            {(
+                                                                selectedIssueData as any
+                                                            ).votes_count || 0}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                        <MessageCircle className="w-3 h-3 mr-1" />
+                                                        <span>
+                                                            {(
+                                                                selectedIssueData as any
+                                                            ).comments_count ||
+                                                                0}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <Button
+                                                    size="sm"
+                                                    className="w-full"
+                                                    asChild
+                                                >
+                                                    <Link
+                                                        href={`/citizen/issues/${selectedIssueData.id}`}
+                                                    >
+                                                        <Eye className="w-3 h-3 mr-2" />
+                                                        View Details
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ) : (
+                                    <Card>
+                                        <CardContent className="p-6 text-center">
+                                            <MapPin className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                                            <h3 className="font-semibold mb-1">
+                                                Select an Issue
+                                            </h3>
+                                            <p className="text-xs text-muted-foreground">
+                                                Click on a marker to view
+                                                details.
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Issues List */}
+                                <Card>
+                                    <CardContent className="p-4">
+                                        <h3 className="font-semibold mb-3 text-sm">
+                                            Issues on Map (
+                                            {filteredIssues.length})
+                                            {userLocation &&
+                                                nearbyIssues.length !==
+                                                    filteredIssues.length && (
+                                                    <span className="text-xs font-normal text-muted-foreground ml-2">
+                                                        ({nearbyIssues.length}{" "}
+                                                        nearby)
+                                                    </span>
+                                                )}
+                                        </h3>
+                                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                                            {filteredIssues.length === 0 ? (
+                                                <div className="text-center py-4">
+                                                    <p className="text-xs text-muted-foreground">
+                                                        No issues found with
+                                                        current filters.
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                // Show nearby issues first, then others
+                                                [
+                                                    ...nearbyIssues,
+                                                    ...filteredIssues.filter(
+                                                        (issue) =>
+                                                            !nearbyIssues.includes(
+                                                                issue
+                                                            )
+                                                    ),
+                                                ].map((issue) => (
+                                                    <div
+                                                        key={issue.id}
+                                                        className={`p-2 border rounded cursor-pointer transition-colors hover:bg-muted/50 ${
+                                                            selectedIssue ===
+                                                            issue.id
+                                                                ? "ring-2 ring-accent"
+                                                                : ""
+                                                        }`}
+                                                        onClick={() =>
+                                                            setSelectedIssue(
+                                                                issue.id
+                                                            )
+                                                        }
+                                                    >
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-start justify-between">
+                                                                <h4 className="font-medium text-xs line-clamp-1">
+                                                                    {
+                                                                        issue.title
+                                                                    }
+                                                                </h4>
+                                                                <Badge
+                                                                    className={getStatusColor(
+                                                                        issue.status
+                                                                    )}
+                                                                    variant="secondary"
+                                                                >
+                                                                    {issue.status.replace(
+                                                                        "-",
+                                                                        " "
+                                                                    )}
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="flex items-center text-xs text-muted-foreground">
+                                                                <MapPin className="w-3 h-3 mr-1" />
+                                                                <span className="line-clamp-1">
+                                                                    {issue.location_address ||
+                                                                        "N/A"}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                                                <div className="flex items-center">
+                                                                    <ThumbsUp className="w-3 h-3 mr-1" />
+                                                                    <span>
+                                                                        {(
+                                                                            issue as any
+                                                                        )
+                                                                            .votes_count ||
+                                                                            0}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center">
+                                                                    <MessageCircle className="w-3 h-3 mr-1" />
+                                                                    <span>
+                                                                        {(
+                                                                            issue as any
+                                                                        )
+                                                                            .comments_count ||
+                                                                            0}
+                                                                    </span>
+                                                                </div>
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="text-xs"
+                                                                >
+                                                                    {getCategoryLabel(
+                                                                        issue.category
+                                                                    )}
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 }

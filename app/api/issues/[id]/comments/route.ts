@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const supabase = createServerClient();
-    const { id } = params;
+    const issueId = params.id;
 
     const { data: comments, error } = await supabase
       .from('comments')
@@ -12,7 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         *,
         profiles:user_id(full_name, email)
       `)
-      .eq('issue_id', id)
+      .eq('issue_id', issueId)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -27,7 +30,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const supabase = createServerClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -36,34 +42,33 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
     const body = await request.json();
-    const { content } = body;
+    const { content, is_admin = false } = body;
+    const issueId = params.id;
 
     if (!content || content.trim().length === 0) {
       return NextResponse.json({ error: 'Comment content is required' }, { status: 400 });
     }
 
-    // Check if issue exists
+    // Get issue details for notifications
     const { data: issue, error: issueError } = await supabase
       .from('issues')
-      .select('id')
-      .eq('id', id)
+      .select('title, user_id')
+      .eq('id', issueId)
       .single();
 
     if (issueError || !issue) {
       return NextResponse.json({ error: 'Issue not found' }, { status: 404 });
     }
 
-    const isAdmin = user.user_metadata?.role === 'admin';
-
-    const { data: comment, error } = await supabase
+    // Create the comment
+    const { data: comment, error: commentError } = await supabase
       .from('comments')
       .insert({
-        issue_id: id,
+        issue_id: issueId,
         user_id: user.id,
         content: content.trim(),
-        is_admin: isAdmin
+        is_admin
       })
       .select(`
         *,
@@ -71,9 +76,26 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       `)
       .single();
 
-    if (error) {
-      console.error('Error creating comment:', error);
+    if (commentError) {
+      console.error('Error creating comment:', commentError);
       return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
+    }
+
+    // Create notification for the issue owner (if not commenting on their own issue)
+    if (issue.user_id !== user.id) {
+      const commenterName = comment.profiles?.full_name || 'Someone';
+      const notificationTitle = is_admin ? 'Admin Response' : 'New Comment';
+      const notificationMessage = `${commenterName} commented on your issue "${issue.title}": "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`;
+
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: issue.user_id,
+          title: notificationTitle,
+          message: notificationMessage,
+          link: `/citizen/my-issues/${issueId}`,
+          issue_id: issueId
+        });
     }
 
     return NextResponse.json({ comment }, { status: 201 });

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,98 +21,52 @@ import {
   AlertTriangle,
   CheckCircle,
   MoreHorizontal,
+  Building2,
 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import SimpleAdminActions from "@/components/simple-admin-actions"
 
-// Mock issues data
-const allIssues = [
-  {
-    id: "ISS-1248",
-    title: "Large pothole on Main Street",
-    category: "pothole",
-    status: "submitted",
-    priority: "high",
-    location: "Main Street & 5th Ave",
-    reportedDate: "2024-01-20T14:30:00Z",
-    reporter: "John Doe",
-    reporterEmail: "john.doe@email.com",
-    assignedTo: null,
-    department: null,
-    estimatedCompletion: null,
-    description: "Deep pothole causing damage to vehicles. Multiple citizens have reported this issue.",
-    image: "/street-pothole.png",
-    coordinates: { lat: 40.7128, lng: -74.006 },
-  },
-  {
-    id: "ISS-1249",
-    title: "Broken streetlight near school",
-    category: "streetlight",
-    status: "in-review",
-    priority: "medium",
-    location: "School Street",
-    reportedDate: "2024-01-20T12:15:00Z",
-    reporter: "Jane Smith",
-    reporterEmail: "jane.smith@email.com",
-    assignedTo: "Mike Johnson",
-    department: "Electrical Services",
-    estimatedCompletion: "2024-01-25",
-    description: "Streetlight has been out for a week, creating safety concerns for students.",
-    image: "/broken-streetlight.jpg",
-    coordinates: { lat: 40.7589, lng: -73.9851 },
-  },
-  {
-    id: "ISS-1250",
-    title: "Overflowing garbage bin",
-    category: "garbage",
-    status: "in-progress",
-    priority: "medium",
-    location: "Central Park",
-    reportedDate: "2024-01-20T09:45:00Z",
-    reporter: "Mike Johnson",
-    reporterEmail: "mike.johnson@email.com",
-    assignedTo: "Sarah Wilson",
-    department: "Sanitation",
-    estimatedCompletion: "2024-01-22",
-    description: "Garbage bin needs immediate attention and regular maintenance schedule.",
-    image: "/overflowing-garbage-bin.png",
-    coordinates: { lat: 40.7829, lng: -73.9654 },
-  },
-  {
-    id: "ISS-1247",
-    title: "Water leak on sidewalk",
-    category: "water-leakage",
-    status: "resolved",
-    priority: "high",
-    location: "Oak Street",
-    reportedDate: "2024-01-18T16:20:00Z",
-    reporter: "Sarah Wilson",
-    reporterEmail: "sarah.wilson@email.com",
-    assignedTo: "David Kim",
-    department: "Water & Sewage",
-    estimatedCompletion: "2024-01-20",
-    description: "Continuous water leak creating puddles and potential safety hazard.",
-    image: "/water-leak-on-sidewalk.jpg",
-    coordinates: { lat: 40.7505, lng: -73.9934 },
-  },
-]
+interface Issue {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: string;
+  status: string;
+  location_address: string;
+  location_lat: number;
+  location_lng: number;
+  landmark?: string;
+  image_url?: string;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    full_name: string;
+    email: string;
+  };
+  department?: {
+    name: string;
+    email: string;
+  };
+  assigned_profile?: {
+    full_name: string;
+    email: string;
+  };
+  comments_count?: number;
+  votes_count?: number;
+}
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case "submitted":
-      return "bg-status-submitted text-white"
-    case "in-review":
-      return "bg-status-review text-white"
-    case "in-progress":
-      return "bg-status-progress text-white"
+      return "bg-blue-500 text-white"
+    case "assigned":
+      return "bg-yellow-500 text-white"
+    case "in_progress":
+      return "bg-orange-500 text-white"
     case "resolved":
-      return "bg-status-resolved text-white"
+      return "bg-green-500 text-white"
+    case "closed":
+      return "bg-gray-500 text-white"
     default:
       return "bg-muted text-muted-foreground"
   }
@@ -123,9 +77,9 @@ const getPriorityColor = (priority: string) => {
     case "high":
       return "bg-destructive text-destructive-foreground"
     case "medium":
-      return "bg-status-review text-white"
+      return "bg-yellow-100 text-yellow-800"
     case "low":
-      return "bg-muted text-muted-foreground"
+      return "bg-green-100 text-green-800"
     default:
       return "bg-muted text-muted-foreground"
   }
@@ -135,11 +89,13 @@ const getStatusIcon = (status: string) => {
   switch (status) {
     case "submitted":
       return <Clock className="w-4 h-4" />
-    case "in-review":
-      return <Eye className="w-4 h-4" />
-    case "in-progress":
+    case "assigned":
+      return <User className="w-4 h-4" />
+    case "in_progress":
       return <AlertTriangle className="w-4 h-4" />
     case "resolved":
+      return <CheckCircle className="w-4 h-4" />
+    case "closed":
       return <CheckCircle className="w-4 h-4" />
     default:
       return <Clock className="w-4 h-4" />
@@ -148,14 +104,22 @@ const getStatusIcon = (status: string) => {
 
 const getCategoryLabel = (category: string) => {
   switch (category) {
-    case "pothole":
-      return "Pothole"
-    case "streetlight":
-      return "Streetlight"
+    case "roads":
+      return "Roads"
+    case "potholes":
+      return "Potholes"
+    case "streetlights":
+      return "Streetlights"
     case "garbage":
       return "Garbage"
-    case "water-leakage":
-      return "Water Leakage"
+    case "water":
+      return "Water"
+    case "drainage":
+      return "Drainage"
+    case "parks":
+      return "Parks"
+    case "traffic":
+      return "Traffic"
     default:
       return "Other"
   }
@@ -167,12 +131,40 @@ export default function AdminIssuesPage() {
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [selectedIssues, setSelectedIssues] = useState<string[]>([])
+  const [allIssues, setAllIssues] = useState<Issue[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [processingIssue, setProcessingIssue] = useState<string | null>(null)
+
+  // Fetch issues from API
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/issues?limit=100')
+        if (response.ok) {
+          const data = await response.json()
+          setAllIssues(data.issues || [])
+        } else {
+          setError('Failed to fetch issues')
+        }
+      } catch (error) {
+        console.error('Error fetching issues:', error)
+        setError('Error loading issues')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchIssues()
+  }, [])
 
   const filteredIssues = allIssues.filter((issue) => {
     const matchesSearch =
       issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.id.toLowerCase().includes(searchTerm.toLowerCase())
+      issue.location_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      issue.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (issue.profiles?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || issue.status === statusFilter
     const matchesPriority = priorityFilter === "all" || issue.priority === priorityFilter
     const matchesCategory = categoryFilter === "all" || issue.category === categoryFilter
@@ -183,15 +175,130 @@ export default function AdminIssuesPage() {
   const statusCounts = {
     all: allIssues.length,
     submitted: allIssues.filter((i) => i.status === "submitted").length,
-    "in-review": allIssues.filter((i) => i.status === "in-review").length,
-    "in-progress": allIssues.filter((i) => i.status === "in-progress").length,
+    assigned: allIssues.filter((i) => i.status === "assigned").length,
+    in_progress: allIssues.filter((i) => i.status === "in_progress").length,
     resolved: allIssues.filter((i) => i.status === "resolved").length,
+    closed: allIssues.filter((i) => i.status === "closed").length,
   }
 
   const handleBulkAction = (action: string) => {
     console.log(`Performing ${action} on issues:`, selectedIssues)
     setSelectedIssues([])
   }
+
+  const handleStatusUpdate = async (issueId: string, newStatus: string, notes?: string) => {
+    try {
+      const response = await fetch(`/api/issues/${issueId}/simple-status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          notes: notes || `Status changed to ${newStatus} by admin`
+        }),
+      });
+
+      if (response.ok) {
+        // Update the local state instead of full page reload
+        setAllIssues(prevIssues => 
+          prevIssues.map(issue => 
+            issue.id === issueId 
+              ? { ...issue, status: newStatus, updated_at: new Date().toISOString() }
+              : issue
+          )
+        );
+        
+        // Show success message
+        const statusMessages = {
+          'assigned': 'Issue accepted and assigned to department',
+          'in_progress': 'Work started on issue',
+          'resolved': 'Issue marked as resolved',
+          'closed': 'Issue closed'
+        };
+        
+        const message = statusMessages[newStatus as keyof typeof statusMessages] || `Status updated to ${newStatus}`;
+        
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50';
+        toast.textContent = `✅ ${message}`;
+        document.body.appendChild(toast);
+        setTimeout(() => document.body.removeChild(toast), 3000);
+        
+      } else {
+        const errorData = await response.json();
+        const errorToast = document.createElement('div');
+        errorToast.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50';
+        errorToast.textContent = `❌ ${errorData.error || 'Failed to update status'}`;
+        document.body.appendChild(errorToast);
+        setTimeout(() => document.body.removeChild(errorToast), 3000);
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      const errorToast = document.createElement('div');
+      errorToast.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50';
+      errorToast.textContent = '❌ Failed to update issue status';
+      document.body.appendChild(errorToast);
+      setTimeout(() => document.body.removeChild(errorToast), 3000);
+    }
+  };
+
+  const handleIssueAction = async (action: string, issueId: string, currentStatus: string) => {
+    if (processingIssue) return;
+    
+    try {
+      setProcessingIssue(issueId);
+      
+      switch (action) {
+        case 'accept':
+          await handleStatusUpdate(issueId, 'assigned', 'Issue accepted and assigned to department');
+          break;
+        case 'reject':
+          await handleStatusUpdate(issueId, 'closed', 'Issue rejected by admin');
+          break;
+        case 'in_progress':
+          await handleStatusUpdate(issueId, 'in_progress', 'Work started on this issue');
+          break;
+        case 'resolve':
+          await handleStatusUpdate(issueId, 'resolved', 'Issue has been resolved');
+          break;
+        case 'close':
+          await handleStatusUpdate(issueId, 'closed', 'Issue closed by admin');
+          break;
+        case 'view':
+          setProcessingIssue(null);
+          window.location.href = `/admin/issues/${issueId}`;
+          return;
+        case 'edit':
+          setProcessingIssue(null);
+          window.location.href = `/admin/issues/${issueId}`;
+          return;
+        case 'assign':
+          setProcessingIssue(null);
+          window.location.href = `/admin/issues/${issueId}`;
+          return;
+        case 'priority':
+          setProcessingIssue(null);
+          window.location.href = `/admin/issues/${issueId}`;
+          return;
+        default:
+          console.log('Unknown action:', action);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+    } catch (error) {
+      console.error('Error performing action:', error);
+      const errorToast = document.createElement('div');
+      errorToast.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50';
+      errorToast.textContent = '❌ Failed to perform action';
+      document.body.appendChild(errorToast);
+      setTimeout(() => document.body.removeChild(errorToast), 3000);
+    } finally {
+      setProcessingIssue(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -200,12 +307,12 @@ export default function AdminIssuesPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/admin/dashboard">
+              <Link href="/admin/dashboard">
+                <button className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Dashboard
-                </Link>
-              </Button>
+                </button>
+              </Link>
               <div>
                 <h1 className="text-2xl font-bold">Issue Management</h1>
                 <p className="text-muted-foreground">Track, assign, and manage all civic issues</p>
@@ -213,27 +320,19 @@ export default function AdminIssuesPage() {
             </div>
             <div className="flex items-center space-x-2">
               {selectedIssues.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      Bulk Actions ({selectedIssues.length})
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuLabel>Bulk Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleBulkAction("assign")}>Assign to Department</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleBulkAction("priority")}>Change Priority</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleBulkAction("status")}>Update Status</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <button 
+                  onClick={() => handleBulkAction("status")}
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Bulk Actions ({selectedIssues.length})
+                </button>
               )}
-              <Button size="sm" asChild>
-                <Link href="/admin/issues/map">
+              <Link href="/admin/issues/map">
+                <button className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <MapPin className="w-4 h-4 mr-2" />
                   Map View
-                </Link>
-              </Button>
+                </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -262,9 +361,10 @@ export default function AdminIssuesPage() {
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="submitted">Submitted</SelectItem>
-                    <SelectItem value="in-review">In Review</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
+                    <SelectItem value="assigned">Assigned</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="resolved">Resolved</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -286,10 +386,15 @@ export default function AdminIssuesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="pothole">Pothole</SelectItem>
-                    <SelectItem value="streetlight">Streetlight</SelectItem>
+                    <SelectItem value="roads">Roads</SelectItem>
+                    <SelectItem value="potholes">Potholes</SelectItem>
+                    <SelectItem value="streetlights">Streetlights</SelectItem>
                     <SelectItem value="garbage">Garbage</SelectItem>
-                    <SelectItem value="water-leakage">Water Leakage</SelectItem>
+                    <SelectItem value="water">Water</SelectItem>
+                    <SelectItem value="drainage">Drainage</SelectItem>
+                    <SelectItem value="parks">Parks</SelectItem>
+                    <SelectItem value="traffic">Traffic</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -297,22 +402,51 @@ export default function AdminIssuesPage() {
           </CardContent>
         </Card>
 
+        {/* Loading State */}
+        {loading && (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p>Loading issues...</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Error Loading Issues</h3>
+              <p className="text-muted-foreground">{error}</p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="mt-4"
+              >
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Status Tabs */}
-        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="all">All ({statusCounts.all})</TabsTrigger>
-            <TabsTrigger value="submitted">Submitted ({statusCounts.submitted})</TabsTrigger>
-            <TabsTrigger value="in-review">In Review ({statusCounts["in-review"]})</TabsTrigger>
-            <TabsTrigger value="in-progress">In Progress ({statusCounts["in-progress"]})</TabsTrigger>
-            <TabsTrigger value="resolved">Resolved ({statusCounts.resolved})</TabsTrigger>
-          </TabsList>
+        {!loading && !error && (
+          <Tabs value={statusFilter} onValueChange={setStatusFilter} className="space-y-4">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="all">All ({statusCounts.all})</TabsTrigger>
+              <TabsTrigger value="submitted">Submitted ({statusCounts.submitted})</TabsTrigger>
+              <TabsTrigger value="assigned">Assigned ({statusCounts.assigned})</TabsTrigger>
+              <TabsTrigger value="in_progress">In Progress ({statusCounts.in_progress})</TabsTrigger>
+              <TabsTrigger value="resolved">Resolved ({statusCounts.resolved})</TabsTrigger>
+              <TabsTrigger value="closed">Closed ({statusCounts.closed})</TabsTrigger>
+            </TabsList>
 
           <TabsContent value={statusFilter} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Issues ({filteredIssues.length})</CardTitle>
                 <CardDescription>
-                  {statusFilter === "all" ? "All issues" : `Issues with status: ${statusFilter.replace("-", " ")}`}
+                  {statusFilter === "all" ? "All issues" : `Issues with status: ${statusFilter.replace("_", " ")}`}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -365,15 +499,17 @@ export default function AdminIssuesPage() {
                               <div className="font-medium">{issue.title}</div>
                               <div className="text-sm text-muted-foreground flex items-center">
                                 <MapPin className="w-3 h-3 mr-1" />
-                                {issue.location}
+                                {issue.location_address}
                               </div>
-                              <div className="text-xs text-muted-foreground">{issue.id}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {issue.id.slice(0, 8)}...
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(issue.status)}>
                               {getStatusIcon(issue.status)}
-                              <span className="ml-1 capitalize">{issue.status.replace("-", " ")}</span>
+                              <span className="ml-1 capitalize">{issue.status.replace("_", " ")}</span>
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -385,10 +521,15 @@ export default function AdminIssuesPage() {
                             <Badge variant="outline">{getCategoryLabel(issue.category)}</Badge>
                           </TableCell>
                           <TableCell>
-                            {issue.assignedTo ? (
+                            {issue.assigned_profile ? (
                               <div className="space-y-1">
-                                <div className="text-sm font-medium">{issue.assignedTo}</div>
-                                <div className="text-xs text-muted-foreground">{issue.department}</div>
+                                <div className="text-sm font-medium">{issue.assigned_profile.full_name}</div>
+                                <div className="text-xs text-muted-foreground">{issue.department?.name}</div>
+                              </div>
+                            ) : issue.department ? (
+                              <div className="space-y-1">
+                                <div className="text-sm font-medium">Department</div>
+                                <div className="text-xs text-muted-foreground">{issue.department.name}</div>
                               </div>
                             ) : (
                               <span className="text-muted-foreground text-sm">Unassigned</span>
@@ -398,42 +539,24 @@ export default function AdminIssuesPage() {
                             <div className="space-y-1">
                               <div className="text-sm flex items-center">
                                 <Calendar className="w-3 h-3 mr-1" />
-                                {new Date(issue.reportedDate).toLocaleDateString()}
+                                {new Date(issue.created_at).toLocaleDateString()}
                               </div>
                               <div className="text-xs text-muted-foreground flex items-center">
                                 <User className="w-3 h-3 mr-1" />
-                                {issue.reporter}
+                                {issue.profiles?.full_name || 'Unknown'}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/admin/issues/${issue.id}`}>
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    View Details
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/admin/issues/${issue.id}/edit`}>
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    Edit Issue
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>Assign to Department</DropdownMenuItem>
-                                <DropdownMenuItem>Change Priority</DropdownMenuItem>
-                                <DropdownMenuItem>Update Status</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <SimpleAdminActions
+                              issue={{
+                                id: issue.id,
+                                status: issue.status,
+                                title: issue.title
+                              }}
+                              onAction={handleIssueAction}
+                              processing={processingIssue === issue.id}
+                            />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -454,6 +577,7 @@ export default function AdminIssuesPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        )}
       </div>
     </div>
   )

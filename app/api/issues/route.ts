@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
         .select(`
           *,
           profiles:user_id(full_name, email),
-          assigned_profile:assigned_to(full_name, email)
+          assigned_profile:assigned_to(full_name, email),
+          department:department_id(id, name, email, description)
         `)
         .eq('id', id)
         .single();
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
         *,
         profiles:user_id(full_name, email),
         assigned_profile:assigned_to(full_name, email),
+        department:department_id(id, name, email, description),
         comments:comments(count),
         issue_votes:issue_votes(count)
       `)
@@ -156,6 +158,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert the issue and return with related profile info (requires FKs between issues.user_id and profiles.id)
+    // The department assignment will be handled automatically by the database trigger
     const { data: issue, error } = await supabase
       .from('issues')
       .insert({
@@ -172,7 +175,8 @@ export async function POST(request: NextRequest) {
       })
       .select(`
         *,
-        profiles:user_id(full_name, email)
+        profiles:user_id(full_name, email),
+        department:department_id(name, email)
       `)
       .single();
     

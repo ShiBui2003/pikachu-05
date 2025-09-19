@@ -15,7 +15,7 @@ import {
     Users,
     LogOut,
 } from "lucide-react";
-import NotificationSystem from "@/components/notification-system";
+import AdminNotifications from "@/components/admin-notifications";
 
 const navItems = [
     {
@@ -77,14 +77,14 @@ export default function AdminNav() {
                                 const Icon = item.icon;
 
                                 return (
-                                    <Button
-                                        key={item.href}
-                                        variant={isActive ? "default" : "ghost"}
-                                        size="sm"
-                                        asChild
-                                        className="relative"
-                                    >
-                                        <Link href={item.href as any}>
+                                    <Link key={item.href} href={item.href as any}>
+                                        <button
+                                            className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 relative ${
+                                                isActive 
+                                                    ? 'bg-primary text-primary-foreground' 
+                                                    : 'text-gray-700 hover:bg-gray-100'
+                                            }`}
+                                        >
                                             <Icon className="w-4 h-4 mr-2" />
                                             {item.label}
                                             {item.badge && (
@@ -95,20 +95,16 @@ export default function AdminNav() {
                                                     {item.badge}
                                                 </Badge>
                                             )}
-                                        </Link>
-                                    </Button>
+                                        </button>
+                                    </Link>
                                 );
                             })}
                         </nav>
                     </div>
 
                     <div className="flex items-center space-x-4">
-                        <NotificationSystem />
+                        <AdminNotifications />
 
-                        <Button variant="ghost" size="sm">
-                            <Shield className="w-4 h-4 mr-2" />
-                            Admin Panel
-                        </Button>
                         <Button
                             variant="ghost"
                             size="sm"

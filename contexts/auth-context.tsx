@@ -36,7 +36,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Handle auth state changes
       if (event === 'SIGNED_IN' && session?.user) {
-        const role = session.user.user_metadata?.role || session.user.role;
+        const role = session.user.user_metadata?.role || session.user.role || 'citizen';
+        
+        // Only redirect if not already on a valid route or on auth callback
+        if (currentPath === '/auth/callback') {
+          // Let the callback page handle the redirect
+          return;
+        }
         
         // Only redirect if not already on a valid route
         if (role === 'admin' && !currentPath.startsWith('/admin')) {
@@ -61,8 +67,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         setUser(session?.user ?? null);
         
-        // Don't handle redirects here - let the individual pages handle them
-        // This prevents the flash of auth page
+        // Don't handle redirects here for auth callback routes - let the callback page handle them
+        // This prevents conflicts during OAuth flows
+        const currentPath = window.location.pathname;
+        if (currentPath === '/auth/callback') {
+          return;
+        }
+        
+        // Handle initial redirect based on session and role for other routes
+        if (session?.user) {
+          const role = session.user.user_metadata?.role || session.user.role || 'citizen';
+          
+          // Don't redirect if already on a valid route for the user's role
+          if (role === 'admin' && !currentPath.startsWith('/admin')) {
+            router.replace('/admin/dashboard');
+          } else if ((role === 'citizen' || !role) && !currentPath.startsWith('/citizen') && currentPath !== '/auth') {
+            router.replace('/citizen/dashboard');
+          }
+        }
       } catch (error) {
         console.error('Error getting session:', error);
       } finally {
@@ -147,25 +169,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const supabase = createClient()
       
       // Use custom redirect URL if provided, otherwise use default
-      const options = callbackUrl 
-        ? { 
-            redirectTo: callbackUrl,
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent',
-            }
-          }
-        : {
-            redirectTo: `${window.location.origin}/auth/callback`,
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent',
-            }
-          }
-
+      const redirectTo = callbackUrl || `${window.location.origin}/auth/callback`
+      
+      console.log('Google OAuth redirect URL:', redirectTo)
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
       });
       
       if (error) throw error;

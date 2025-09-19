@@ -15,12 +15,22 @@ import {
     User,
     LogOut,
     Menu,
+    CheckCircle,
 } from "lucide-react";
-import NotificationSystem from "@/components/notification-system";
+import RealTimeNotifications from "@/components/real-time-notifications";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 const navItems = [
     {
@@ -39,6 +49,11 @@ const navItems = [
         icon: FileText,
     },
     {
+        href: "/citizen/resolved",
+        label: "Resolved Issues",
+        icon: CheckCircle,
+    },
+    {
         href: "/citizen/notifications",
         label: "Notifications",
         icon: Bell,
@@ -55,7 +70,13 @@ export default function CitizenNav() {
     const pathname = usePathname();
     const isMobile = useIsMobile();
     const [isOpen, setIsOpen] = useState(false);
-    const { signOut } = useAuth();
+    const { user, signOut } = useAuth();
+    
+    const displayName =
+        (user?.user_metadata as any)?.full_name ||
+        (user?.user_metadata as any)?.name ||
+        (user?.email ? String(user.email).split("@")[0] : undefined) ||
+        "Profile";
 
     const NavItems = ({
         mobile = false,
@@ -104,7 +125,7 @@ export default function CitizenNav() {
         </nav>
     );
 
-    // Add Supabase logout logic
+    // Use the unified auth context logout
     const handleLogout = async () => {
         await signOut();
     };
@@ -130,16 +151,32 @@ export default function CitizenNav() {
                     <NavItems />
 
                     {/* Desktop User Actions */}
-                    <div className="hidden lg:flex lg:items-center lg:space-x-4">
-                        <NotificationSystem />
-                        <Button variant="ghost" size="sm" className="h-9">
-                            <User className="w-4 h-4 mr-2" />
-                            Profile
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-9"
+                    <div className="hidden lg:flex lg:items-center lg:space-x-2">
+                        {/* Combined Profile Button with Notifications */}
+                        <div className="flex items-center space-x-2">
+                            <RealTimeNotifications />
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="h-9 bg-orange-500 hover:bg-orange-600 text-white px-4"
+                                asChild
+                            >
+                                <Link href="/citizen/profile" className="flex items-center">
+                                    <Avatar className="w-6 h-6 mr-2">
+                                        <AvatarFallback className="bg-white text-orange-500 text-xs font-bold">
+                                            {String(displayName).substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span>{displayName}</span>
+                                </Link>
+                            </Button>
+                        </div>
+                        
+
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={handleLogout}
                         >
                             <LogOut className="w-4 h-4 mr-2" />
@@ -149,7 +186,34 @@ export default function CitizenNav() {
 
                     {/* Mobile Navigation */}
                     <div className="flex lg:hidden items-center space-x-2">
-                        <NotificationSystem />
+                        {/* Combined Profile Button with Notifications - Mobile */}
+                        <div className="flex items-center space-x-2">
+                            <RealTimeNotifications />
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="h-9 bg-orange-500 hover:bg-orange-600 text-white px-3"
+                                asChild
+                            >
+                                <Link href="/citizen/profile" className="flex items-center">
+                                    <Avatar className="w-5 h-5 mr-1">
+                                        <AvatarFallback className="bg-white text-orange-500 text-xs font-bold">
+                                            {String(displayName).substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm">{displayName}</span>
+                                </Link>
+                            </Button>
+                        </div>
+                        
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-9 w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={handleLogout}
+                        >
+                            <LogOut className="w-4 h-4" />
+                        </Button>
                         <Sheet open={isOpen} onOpenChange={setIsOpen}>
                             <SheetTrigger asChild>
                                 <Button
@@ -157,7 +221,7 @@ export default function CitizenNav() {
                                     size="sm"
                                     className="h-9 w-9 p-0"
                                 >
-                                    <Menu className="w-5 h-5" />
+                                    <User className="w-5 h-5" />
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-80">
@@ -181,20 +245,51 @@ export default function CitizenNav() {
                                     </div>
 
                                     <div className="border-t pt-4 space-y-2">
+                                        <div className="flex items-center gap-3 px-3 py-2 mb-2">
+                                            <Avatar className="w-9 h-9">
+                                                <AvatarFallback>
+                                                    {String(displayName).substring(0, 2).toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="min-w-0">
+                                                <div className="font-medium truncate">{displayName}</div>
+                                                <div className="text-xs text-muted-foreground truncate">
+                                                    {user?.email ?? ""}
+                                                </div>
+                                            </div>
+                                        </div>
                                         <Button
                                             variant="ghost"
                                             className="w-full justify-start h-11"
+                                            asChild
+                                            onClick={() => setIsOpen(false)}
                                         >
-                                            <User className="w-4 h-4 mr-2" />
-                                            Profile
+                                            <Link href="/citizen/profile">
+                                                <User className="w-4 h-4 mr-2" />
+                                                Profile
+                                            </Link>
                                         </Button>
                                         <Button
                                             variant="ghost"
                                             className="w-full justify-start h-11"
-                                            onClick={handleLogout}
+                                            asChild
+                                            onClick={() => setIsOpen(false)}
                                         >
-                                            <LogOut className="w-4 h-4 mr-2" />
-                                            Logout
+                                            <Link href="/citizen/my-issues">
+                                                <FileText className="w-4 h-4 mr-2" />
+                                                My Issues
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-start h-11"
+                                            asChild
+                                            onClick={() => setIsOpen(false)}
+                                        >
+                                            <Link href="/citizen/notifications">
+                                                <Bell className="w-4 h-4 mr-2" />
+                                                Notifications
+                                            </Link>
                                         </Button>
                                     </div>
                                 </div>
