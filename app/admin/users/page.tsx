@@ -86,24 +86,36 @@ export default function UsersPage() {
                 return;
             }
 
+            // Type assertion for profiles data
+            type ProfileData = {
+                id: string;
+                full_name: string | null;
+                email: string;
+                phone: string | null;
+                address: string | null;
+                created_at: string;
+                avatar_url?: string | null;
+                reported_issues?: { count: number }[];
+                resolved_issues?: { count: number }[];
+            };
+            const typedProfiles = (profiles || []) as ProfileData[];
+
             // Transform the data to match our User type
-            const transformedUsers: User[] = (profiles || []).map(
-                (profile) => ({
-                    id: profile.id,
-                    name: profile.full_name || "Unknown",
-                    email: profile.email,
-                    phone: profile.phone,
-                    location: profile.address,
-                    joinDate: new Date(profile.created_at).toLocaleDateString(),
-                    status: "active", // Default status
-                    issuesReported: profile.reported_issues?.[0]?.count || 0,
-                    issuesResolved: profile.resolved_issues?.[0]?.count || 0,
-                    reputation:
-                        (profile.reported_issues?.[0]?.count || 0) * 10 +
-                        (profile.resolved_issues?.[0]?.count || 0) * 20,
-                    avatar: profile.avatar_url,
-                })
-            );
+            const transformedUsers: User[] = typedProfiles.map((profile) => ({
+                id: profile.id,
+                name: profile.full_name || "Unknown",
+                email: profile.email,
+                phone: profile.phone || undefined,
+                location: profile.address || undefined,
+                joinDate: new Date(profile.created_at).toLocaleDateString(),
+                status: "active", // Default status
+                issuesReported: profile.reported_issues?.[0]?.count || 0,
+                issuesResolved: profile.resolved_issues?.[0]?.count || 0,
+                reputation:
+                    (profile.reported_issues?.[0]?.count || 0) * 10 +
+                    (profile.resolved_issues?.[0]?.count || 0) * 20,
+                avatar: profile.avatar_url || undefined,
+            }));
 
             setUsers(transformedUsers);
             setLoading(false);

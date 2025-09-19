@@ -169,9 +169,12 @@ export default function CitizenIssuesMapPage() {
                 throw fetchError;
             }
 
+            // Type assertion for issues data
+            const typedIssues = (data || []) as Issue[];
+
             // Get vote and comment counts for each issue
             const issuesWithCounts = await Promise.all(
-                (data || []).map(async (issue) => {
+                typedIssues.map(async (issue) => {
                     const [{ count: votesCount }, { count: commentsCount }] =
                         await Promise.all([
                             supabase

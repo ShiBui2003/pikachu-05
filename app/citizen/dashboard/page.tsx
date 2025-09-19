@@ -161,9 +161,18 @@ export default function CitizenDashboard() {
                     throw fetchError;
                 }
 
+                // Type assertion for issues data
+                type IssueWithProfile = Issue & {
+                    profiles?: {
+                        full_name: string;
+                        email: string;
+                    };
+                };
+                const typedIssues = (data || []) as IssueWithProfile[];
+
                 // Get vote and comment counts for each issue
                 const issuesWithCounts = await Promise.all(
-                    (data || []).map(async (issue) => {
+                    typedIssues.map(async (issue) => {
                         const [
                             { count: votesCount },
                             { count: commentsCount },

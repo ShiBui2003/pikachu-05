@@ -250,25 +250,34 @@ export default function AdminDashboard() {
 
         if (error) throw error;
 
+        // Type assertion to help TypeScript understand the structure
+        type IssueData = {
+            status: string;
+            created_at: string;
+            updated_at: string | null;
+        };
+
+        const typedIssues = (allIssues || []) as IssueData[];
+
         const now = new Date();
         const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-        const totalIssues = allIssues?.length || 0;
+        const totalIssues = typedIssues.length || 0;
         const pendingIssues =
-            allIssues?.filter((i) => i.status === "submitted").length || 0;
+            typedIssues.filter((i) => i.status === "submitted").length || 0;
         const inProgressIssues =
-            allIssues?.filter((i) =>
+            typedIssues.filter((i) =>
                 ["in-review", "in-progress"].includes(i.status)
             ).length || 0;
         const resolvedIssues =
-            allIssues?.filter((i) => i.status === "resolved").length || 0;
+            typedIssues.filter((i) => i.status === "resolved").length || 0;
 
         const newThisWeek =
-            allIssues?.filter((i) => new Date(i.created_at) >= oneWeekAgo)
+            typedIssues.filter((i) => new Date(i.created_at) >= oneWeekAgo)
                 .length || 0;
 
         const resolvedThisWeek =
-            allIssues?.filter(
+            typedIssues.filter(
                 (i) =>
                     i.status === "resolved" &&
                     i.updated_at &&
@@ -277,8 +286,9 @@ export default function AdminDashboard() {
 
         // Calculate average resolution time
         const resolvedWithTimes =
-            allIssues?.filter((i) => i.status === "resolved" && i.updated_at) ||
-            [];
+            typedIssues.filter(
+                (i) => i.status === "resolved" && i.updated_at
+            ) || [];
 
         const avgResolutionTime =
             resolvedWithTimes.length > 0
@@ -326,12 +336,15 @@ export default function AdminDashboard() {
             other: "#6b7280",
         };
 
-        const categoryCounts =
-            issues?.reduce((acc: { [key: string]: number }, issue) => {
+        const typedIssues = (issues || []) as { category: string }[];
+        const categoryCounts = typedIssues.reduce(
+            (acc: { [key: string]: number }, issue) => {
                 const category = issue.category || "other";
                 acc[category] = (acc[category] || 0) + 1;
                 return acc;
-            }, {}) || {};
+            },
+            {}
+        );
 
         return Object.entries(categoryCounts).map(([category, count]) => ({
             name:
@@ -348,6 +361,14 @@ export default function AdminDashboard() {
             .select("created_at, updated_at, status");
 
         if (error) throw error;
+
+        // Type assertion for the issues data
+        type TrendIssueData = {
+            created_at: string;
+            updated_at: string | null;
+            status: string;
+        };
+        const typedIssues = (issues || []) as TrendIssueData[];
 
         // Get last 7 months
         const months = [];
@@ -368,13 +389,13 @@ export default function AdminDashboard() {
             );
 
             const reported =
-                issues?.filter((issue) => {
+                typedIssues.filter((issue) => {
                     const created = new Date(issue.created_at);
                     return created >= month.date && created < nextMonth;
                 }).length || 0;
 
             const resolved =
-                issues?.filter((issue) => {
+                typedIssues.filter((issue) => {
                     if (issue.status !== "resolved" || !issue.updated_at)
                         return false;
                     const updated = new Date(issue.updated_at);
@@ -400,6 +421,14 @@ export default function AdminDashboard() {
 
         if (error) throw error;
 
+        // Type assertion for department performance data
+        type DeptIssueData = {
+            category: string;
+            status: string;
+            assigned_to: string | null;
+        };
+        const typedIssues = (issues || []) as DeptIssueData[];
+
         const departmentMap: { [key: string]: string } = {
             pothole: "Road Maintenance",
             streetlight: "Electrical Services",
@@ -412,7 +441,7 @@ export default function AdminDashboard() {
             [key: string]: { assigned: number; completed: number };
         } = {};
 
-        issues?.forEach((issue) => {
+        typedIssues.forEach((issue) => {
             const dept = departmentMap[issue.category] || "General Services";
             if (!deptStats[dept]) {
                 deptStats[dept] = { assigned: 0, completed: 0 };
@@ -457,7 +486,7 @@ export default function AdminDashboard() {
 
         if (error) throw error;
 
-        return issues || [];
+        return (issues || []) as Issue[];
     };
 
     const fetchNotificationCount = async (): Promise<number> => {
@@ -483,6 +512,14 @@ export default function AdminDashboard() {
 
         if (error) return [];
 
+        // Type assertion for analytics data
+        type AnalyticsIssueData = {
+            created_at: string;
+            updated_at: string | null;
+            status: string;
+        };
+        const typedIssues = (issues || []) as AnalyticsIssueData[];
+
         // Get last 6 months
         const months = [];
         const now = new Date();
@@ -502,13 +539,13 @@ export default function AdminDashboard() {
             );
 
             const submitted =
-                issues?.filter((issue) => {
+                typedIssues.filter((issue) => {
                     const created = new Date(issue.created_at);
                     return created >= month.date && created < nextMonth;
                 }).length || 0;
 
             const resolved =
-                issues?.filter((issue) => {
+                typedIssues.filter((issue) => {
                     if (issue.status !== "resolved" || !issue.updated_at)
                         return false;
                     const updated = new Date(issue.updated_at);
@@ -530,6 +567,9 @@ export default function AdminDashboard() {
 
         if (error) return [];
 
+        // Type assertion for category data
+        const typedIssues = (issues || []) as { category: string }[];
+
         const categoryColors: { [key: string]: string } = {
             pothole: "#3b82f6",
             streetlight: "#f59e0b",
@@ -539,12 +579,14 @@ export default function AdminDashboard() {
             other: "#6b7280",
         };
 
-        const categoryCounts =
-            issues?.reduce((acc: { [key: string]: number }, issue) => {
+        const categoryCounts = typedIssues.reduce(
+            (acc: { [key: string]: number }, issue) => {
                 const category = issue.category || "other";
                 acc[category] = (acc[category] || 0) + 1;
                 return acc;
-            }, {}) || {};
+            },
+            {}
+        );
 
         return Object.entries(categoryCounts).map(([category, count]) => ({
             category:
@@ -562,6 +604,15 @@ export default function AdminDashboard() {
 
         if (error) return [];
 
+        // Type assertion for response time data
+        type ResponseTimeIssueData = {
+            category: string;
+            status: string;
+            created_at: string;
+            updated_at: string | null;
+        };
+        const typedIssues = (issues || []) as ResponseTimeIssueData[];
+
         const departmentMap: { [key: string]: string } = {
             pothole: "Roads",
             streetlight: "Lighting",
@@ -572,7 +623,7 @@ export default function AdminDashboard() {
 
         const deptResponseTimes: { [key: string]: number[] } = {};
 
-        issues?.forEach((issue) => {
+        typedIssues.forEach((issue) => {
             const dept = departmentMap[issue.category] || "Other";
             if (!deptResponseTimes[dept]) {
                 deptResponseTimes[dept] = [];
@@ -608,6 +659,13 @@ export default function AdminDashboard() {
 
         if (error) return [];
 
+        // Type assertion for resolution trend data
+        type ResolutionTrendData = {
+            updated_at: string | null;
+            status: string;
+        };
+        const typedIssues = (issues || []) as ResolutionTrendData[];
+
         // Get last 6 weeks
         const weeks = [];
         const now = new Date();
@@ -627,7 +685,7 @@ export default function AdminDashboard() {
             );
 
             const resolved =
-                issues?.filter((issue) => {
+                typedIssues.filter((issue) => {
                     if (issue.status !== "resolved" || !issue.updated_at)
                         return false;
                     const updated = new Date(issue.updated_at);
