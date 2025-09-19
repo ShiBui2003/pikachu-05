@@ -28,19 +28,53 @@ const isPublicRoute = (pathname: string) => {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip middleware for public routes
-  if (isPublicRoute(pathname)) {
+  // Skip middleware for truly public routes
+  if (pathname === '/' || pathname.startsWith('/_next/') || 
+      pathname.startsWith('/api/auth/') || pathname === '/favicon.ico' ||
+      pathname.startsWith('/auth/callback')) {
     return NextResponse.next();
   }
-
+  
   try {
     const supabase = createServerClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     
-    // If no session and trying to access protected routes
+    // If user is authenticated
+    if (user && !error) {
+      const role = user?.user_metadata?.role || 'citizen';
+      
+      // Redirect authenticated users away from auth pages
+      if (pathname === '/auth' || pathname === '/login' || pathname === '/signup' || 
+          pathname === '/admin/login' || pathname === '/admin/signup' || 
+          pathname === '/citizen/login' || pathname === '/citizen/signup') {
+        const dashboardPath = role === 'admin' ? '/admin/dashboard' : '/citizen/dashboard';
+        return NextResponse.redirect(new URL(dashboardPath, request.url));
+      }
+      
+      // Role-based access control for protected routes
+      if (pathname.startsWith('/admin') && role !== 'admin') {
+        return NextResponse.redirect(new URL('/citizen/dashboard', request.url));
+      }
+      
+      if (pathname.startsWith('/citizen') && role !== 'citizen' && role !== 'admin') {
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      }
+      
+      // Allow access to other routes
+      return NextResponse.next();
+    }
+    
+    // If no session, redirect to auth page for protected routes
     if (!user || error) {
-      const redirectUrl = new URL('/auth', request.url); // Redirect to unified auth
-      // Add the current path as a query parameter for redirecting back after login
+      // Allow access to auth pages for unauthenticated users
+      if (pathname === '/auth' || pathname === '/login' || pathname === '/signup' || 
+          pathname === '/admin/login' || pathname === '/admin/signup' || 
+          pathname === '/citizen/login' || pathname === '/citizen/signup') {
+        return NextResponse.next();
+      }
+      
+      // Redirect unauthenticated users to auth page
+      const redirectUrl = new URL('/auth', request.url);
       if (pathname !== '/') {
         redirectUrl.searchParams.set('redirectedFrom', pathname);
       }
@@ -48,29 +82,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
     
-    // Check user role
-    const role = user?.user_metadata?.role || 'citizen'; // Default to citizen
-    
-    // Redirect to appropriate dashboard if already logged in and trying to access auth pages
-    if (pathname === '/auth' || pathname === '/login' || pathname === '/signup' || pathname === '/admin/login' || pathname === '/admin/signup' || pathname === '/citizen/login' || pathname === '/citizen/signup') {
-      const dashboardPath = role === 'admin' ? '/admin/dashboard' : '/citizen/dashboard';
-      return NextResponse.redirect(new URL(dashboardPath, request.url));
-    }
-    
-    // Role-based access control
-    if (pathname.startsWith('/admin') && role !== 'admin') {
-      return NextResponse.redirect(new URL('/citizen/dashboard', request.url));
-    }
-    
-    // Allow admins to access citizen routes, but redirect citizens trying to access admin routes
-    if (pathname.startsWith('/citizen') && role !== 'citizen' && role !== 'admin') {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-    }
-    
     return NextResponse.next();
   } catch (error) {
     console.error('Middleware error:', error);
-    // On error, redirect to home with error message
+    // On error, allow access to auth page
+    if (pathname === '/auth') {
+      return NextResponse.next();
+    }
     const redirectUrl = new URL('/', request.url);
     redirectUrl.searchParams.set('error', 'authentication_error');
     return NextResponse.redirect(redirectUrl);

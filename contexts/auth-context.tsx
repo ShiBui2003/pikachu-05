@@ -2,16 +2,18 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
+
+type UserRole = 'admin' | 'citizen'
 
 type AuthContextType = {
   user: User | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error?: Error }>
-  signUp: (email: string, password: string, fullName: string, role?: 'admin' | 'citizen') => Promise<{ error?: Error }>
+  signUp: (email: string, password: string, fullName: string, role?: UserRole) => Promise<{ error?: Error }>
   signOut: () => Promise<{ error?: Error }>
-  signInWithGoogle: (userType?: 'admin' | 'citizen') => Promise<{ error?: Error }>
+  signInWithGoogle: (userType?: UserRole, callbackUrl?: string) => Promise<{ error?: Error }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -22,6 +24,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
+    const supabase = createClient()
+    
     // Check active sessions and sets the user
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
@@ -36,14 +40,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Only redirect if not already on a valid route
         if (role === 'admin' && !currentPath.startsWith('/admin')) {
-          router.push('/admin/dashboard');
+          router.replace('/admin/dashboard');
         } else if (role === 'citizen' && !currentPath.startsWith('/citizen')) {
-          router.push('/citizen/dashboard');
+          router.replace('/citizen/dashboard');
         }
       } else if (event === 'SIGNED_OUT') {
         // Only redirect if not already on a public route
-        if (!['/citizen/login', '/admin/login', '/'].includes(currentPath)) {
-          router.push('/');
+        if (!['/citizen/login', '/admin/login', '/', '/auth'].includes(currentPath)) {
+          router.replace('/');
         }
       }
     });
@@ -57,17 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         setUser(session?.user ?? null);
         
-        // Handle initial redirect based on session and role
-        if (session?.user) {
-          const role = session.user.user_metadata?.role || session.user.role;
-          const currentPath = window.location.pathname;
-          
-          if (role === 'admin' && !currentPath.startsWith('/admin')) {
-            router.push('/admin/dashboard');
-          } else if (role === 'citizen' && !currentPath.startsWith('/citizen')) {
-            router.push('/citizen/dashboard');
-          }
-        }
+        // Don't handle redirects here - let the individual pages handle them
+        // This prevents the flash of auth page
       } catch (error) {
         console.error('Error getting session:', error);
       } finally {
@@ -84,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      const supabase = createClient()
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -94,8 +90,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signUp = async (email: string, password: string, fullName: string, role: 'admin' | 'citizen' = 'citizen') => {
+  const signUp = async (email: string, password: string, fullName: string, role: UserRole = 'citizen') => {
     try {
+      const supabase = createClient()
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -115,6 +112,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      const supabase = createClient()
+      
       // Clear all auth-related cookies first
       if (typeof document !== 'undefined') {
         document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -143,18 +142,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
   
-  const signInWithGoogle = async (userType: 'admin' | 'citizen' = 'citizen') => {
+  const signInWithGoogle = async (userType: UserRole = 'citizen', callbackUrl?: string) => {
     try {
-      // First, start the OAuth flow
+      const supabase = createClient()
+      
+      // Use custom redirect URL if provided, otherwise use default
+      const options = callbackUrl 
+        ? { 
+            redirectTo: callbackUrl,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            }
+          }
+        : {
+            redirectTo: `${window.location.origin}/auth/callback`,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            }
+          }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?user_type=${userType}`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
+        options
       });
       
       if (error) throw error;
@@ -176,7 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   )
 }
