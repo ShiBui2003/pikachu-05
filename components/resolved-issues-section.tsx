@@ -22,6 +22,7 @@ interface ResolvedIssue {
   category: string;
   location_address: string;
   image_url?: string;
+  upvotes: number; // Added for upvote-based ranking
   created_at: string;
   updated_at: string;
   votes_count?: number;
@@ -205,7 +206,16 @@ export default function ResolvedIssuesSection({
       )}
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {issues.map((issue) => (
+        {issues
+          .sort((a, b) => {
+            // Primary sort: by upvotes (descending)
+            const upvoteDiff = (b.upvotes || 0) - (a.upvotes || 0);
+            if (upvoteDiff !== 0) return upvoteDiff;
+            
+            // Secondary sort: by creation date (descending) for stable sorting
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          })
+          .map((issue) => (
           <Card key={issue.id} className="hover:shadow-md transition-shadow group">
             <CardContent className="p-4">
               <div className="space-y-3">
