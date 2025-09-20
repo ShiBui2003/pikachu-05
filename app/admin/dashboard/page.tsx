@@ -44,6 +44,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { getUserDisplayName } from "@/lib/utils/avatar";
 import { isIssueForDepartment, getDepartmentName, type DepartmentKey } from "@/lib/department-mapping";
 
+
 // Types for our data
 type Issue = {
     id: string;
@@ -161,6 +162,7 @@ export default function AdminDashboard() {
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
     const [userDepartment, setUserDepartment] = useState<DepartmentKey | null>(null);
+    const [userRole, setUserRole] = useState<string>("");
 
     useEffect(() => {
         const checkAuth = async () => {
