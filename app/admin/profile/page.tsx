@@ -516,16 +516,46 @@ export default function AdminProfilePage() {
                                             value={profileData.department || ""}
                                             onValueChange={(value) => setProfileData(prev => ({ ...prev, department: value }))}
                                         >
-                                            <SelectTrigger>
+                                            <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Select department" />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="public-works">Public Works</SelectItem>
-                                                <SelectItem value="transportation">Transportation</SelectItem>
-                                                <SelectItem value="environment">Environment</SelectItem>
-                                                <SelectItem value="health">Health & Safety</SelectItem>
-                                                <SelectItem value="utilities">Utilities</SelectItem>
-                                                <SelectItem value="general">General Administration</SelectItem>
+                                            <SelectContent className="w-full min-w-[250px] max-w-[350px]">
+                                                <SelectItem value="public-works">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">Public Works</span>
+                                                        <span className="text-xs text-muted-foreground">Infrastructure and maintenance</span>
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem value="transportation">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">Transportation</span>
+                                                        <span className="text-xs text-muted-foreground">Roads, traffic, and transit</span>
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem value="environment">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">Environment</span>
+                                                        <span className="text-xs text-muted-foreground">Environmental services and sustainability</span>
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem value="health">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">Health & Safety</span>
+                                                        <span className="text-xs text-muted-foreground">Public health and safety services</span>
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem value="utilities">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">Utilities</span>
+                                                        <span className="text-xs text-muted-foreground">Water, electricity, and gas services</span>
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem value="general">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">General Administration</span>
+                                                        <span className="text-xs text-muted-foreground">General administrative services</span>
+                                                    </div>
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     ) : (
@@ -540,14 +570,34 @@ export default function AdminProfilePage() {
                                             value={profileData.admin_level || "senior"}
                                             onValueChange={(value) => setProfileData(prev => ({ ...prev, admin_level: value }))}
                                         >
-                                            <SelectTrigger>
+                                            <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Select admin level" />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="junior">Junior Admin</SelectItem>
-                                                <SelectItem value="senior">Senior Admin</SelectItem>
-                                                <SelectItem value="super">Super Admin</SelectItem>
-                                                <SelectItem value="system">System Admin</SelectItem>
+                                            <SelectContent className="w-full min-w-[200px] max-w-[300px]">
+                                                <SelectItem value="junior">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">Junior Admin</span>
+                                                        <span className="text-xs text-muted-foreground">Basic administrative access</span>
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem value="senior">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">Senior Admin</span>
+                                                        <span className="text-xs text-muted-foreground">Full administrative access</span>
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem value="super">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">Super Admin</span>
+                                                        <span className="text-xs text-muted-foreground">Advanced system access</span>
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem value="system">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">System Admin</span>
+                                                        <span className="text-xs text-muted-foreground">Complete system control</span>
+                                                    </div>
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     ) : (
