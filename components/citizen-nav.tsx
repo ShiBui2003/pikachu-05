@@ -6,32 +6,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-    Home,
-    Plus,
-    FileText,
-    Bell,
-    Trophy,
-    User,
-    LogOut,
-    Menu,
-    CheckCircle,
-} from "lucide-react";
+import { Home, Plus, FileText, Bell, User, LogOut } from "lucide-react";
 import RealTimeNotifications from "@/components/real-time-notifications";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-utils";
 import { useAuth } from "@/contexts/auth-context";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
     {
@@ -50,26 +32,15 @@ const navItems = [
         icon: FileText,
     },
     {
-        href: "/citizen/resolved",
-        label: "Resolved Issues",
-        icon: CheckCircle,
-    },
-    {
         href: "/citizen/notifications",
         label: "Notifications",
         icon: Bell,
         badge: 3, // Unread count
     },
-    {
-        href: "/citizen/leaderboard",
-        label: "Leaderboard",
-        icon: Trophy,
-    },
 ];
 
 export default function CitizenNav() {
     const pathname = usePathname();
-    const isMobile = useIsMobile();
     const [isOpen, setIsOpen] = useState(false);
     const { user } = useAuth();
     const displayName =
@@ -181,27 +152,40 @@ export default function CitizenNav() {
                         {/* Combined Profile Button with Notifications */}
                         <div className="flex items-center space-x-2">
                             <RealTimeNotifications />
-                            <Button 
-                                variant="default" 
-                                size="sm" 
+                            <Button
+                                variant="default"
+                                size="sm"
                                 className="h-9 bg-orange-500 hover:bg-orange-600 text-white px-4"
                                 asChild
                             >
-                                <Link href="/citizen/profile" className="flex items-center">
+                                <Link
+                                    href="/citizen/profile"
+                                    className="flex items-center"
+                                >
                                     <Avatar className="w-6 h-6 mr-2">
+                                        <AvatarImage
+                                            src={
+                                                (user?.user_metadata as any)
+                                                    ?.avatar_url ||
+                                                (user?.user_metadata as any)
+                                                    ?.picture
+                                            }
+                                            alt={displayName}
+                                        />
                                         <AvatarFallback className="bg-white text-orange-500 text-xs font-bold">
-                                            {String(displayName).substring(0, 2).toUpperCase()}
+                                            {String(displayName)
+                                                .substring(0, 2)
+                                                .toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                     <span>{displayName}</span>
                                 </Link>
                             </Button>
                         </div>
-                        
 
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={handleLogout}
                         >
@@ -215,26 +199,42 @@ export default function CitizenNav() {
                         {/* Combined Profile Button with Notifications - Mobile */}
                         <div className="flex items-center space-x-2">
                             <RealTimeNotifications />
-                            <Button 
-                                variant="default" 
-                                size="sm" 
+                            <Button
+                                variant="default"
+                                size="sm"
                                 className="h-9 bg-orange-500 hover:bg-orange-600 text-white px-3"
                                 asChild
                             >
-                                <Link href="/citizen/profile" className="flex items-center">
+                                <Link
+                                    href="/citizen/profile"
+                                    className="flex items-center"
+                                >
                                     <Avatar className="w-5 h-5 mr-1">
+                                        <AvatarImage
+                                            src={
+                                                (user?.user_metadata as any)
+                                                    ?.avatar_url ||
+                                                (user?.user_metadata as any)
+                                                    ?.picture
+                                            }
+                                            alt={displayName}
+                                        />
                                         <AvatarFallback className="bg-white text-orange-500 text-xs font-bold">
-                                            {String(displayName).substring(0, 2).toUpperCase()}
+                                            {String(displayName)
+                                                .substring(0, 2)
+                                                .toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
-                                    <span className="text-sm">{displayName}</span>
+                                    <span className="text-sm">
+                                        {displayName}
+                                    </span>
                                 </Link>
                             </Button>
                         </div>
-                        
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
+
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-9 w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={handleLogout}
                         >
@@ -273,12 +273,27 @@ export default function CitizenNav() {
                                     <div className="border-t pt-4 space-y-2">
                                         <div className="flex items-center gap-3 px-3 py-2 mb-2">
                                             <Avatar className="w-9 h-9">
+                                                <AvatarImage
+                                                    src={
+                                                        (
+                                                            user?.user_metadata as any
+                                                        )?.avatar_url ||
+                                                        (
+                                                            user?.user_metadata as any
+                                                        )?.picture
+                                                    }
+                                                    alt={displayName}
+                                                />
                                                 <AvatarFallback>
-                                                    {String(displayName).substring(0, 2).toUpperCase()}
+                                                    {String(displayName)
+                                                        .substring(0, 2)
+                                                        .toUpperCase()}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="min-w-0">
-                                                <div className="font-medium truncate">{displayName}</div>
+                                                <div className="font-medium truncate">
+                                                    {displayName}
+                                                </div>
                                                 <div className="text-xs text-muted-foreground truncate">
                                                     {user?.email ?? ""}
                                                 </div>
@@ -327,3 +342,4 @@ export default function CitizenNav() {
         </div>
     );
 }
+
