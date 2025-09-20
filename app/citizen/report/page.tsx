@@ -70,10 +70,59 @@ export default function ReportIssuePage() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+  e.preventDefault()
+  setIsSubmitting(true)
 
-    // Simulate API call
+  try {
+    let imageBase64: string | null = null
+    if (formData.image) {
+      const reader = new FileReader()
+      imageBase64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(formData.image as File)
+      })
+    }
+
+    // ✅ Enhanced Gemini verification with all required fields
+    const verifyRes = await fetch("/api/verify-issue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        title: formData.title,
+        category: formData.category,
+        description: formData.description, 
+        imageBase64 
+      })
+    })
+
+    if (!verifyRes.ok) {
+      throw new Error("Verification request failed")
+    }
+
+    const { decision } = await verifyRes.json()
+
+    // 🔹 Log Gemini response in console
+    console.log("=== FRONTEND VERIFICATION LOG ===")
+    console.log("Submitted Data:")
+    console.log("- Title:", formData.title)
+    console.log("- Category:", formData.category)
+    console.log("- Description:", formData.description)
+    console.log("- Has Image:", !!formData.image)
+    console.log("Gemini AI Verification Result:", decision)
+    console.log("==================================")
+
+    if (decision !== "Yes") {
+      toast({
+        title: "Verification Failed",
+        description: "Your report did not pass AI verification. Please ensure the issue description matches the category and is a legitimate civic concern.",
+        variant: "destructive"
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    // Original submission logic
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
     toast({
@@ -82,26 +131,32 @@ export default function ReportIssuePage() {
         "Your issue has been submitted and assigned ID: ISS-" +
         Math.floor(Math.random() * 1000)
           .toString()
-          .padStart(3, "0"),
+          .padStart(3, "0")
     })
 
     setIsSubmitting(false)
-
-    // Reset form
     setFormData({
       title: "",
       category: "",
       description: "",
       location: "",
       coordinates: { lat: "", lng: "" },
-      image: null,
+      image: null
     })
 
-    // Redirect to dashboard after success
     setTimeout(() => {
       window.location.href = "/citizen/dashboard"
     }, 2000)
+  } catch (err) {
+    console.error("Error during Gemini verification:", err) // 🔹 Log errors too
+    toast({
+      title: "Error",
+      description: "Something went wrong during verification.",
+      variant: "destructive"
+    })
+    setIsSubmitting(false)
   }
+}
 
   return (
     <div className="min-h-screen bg-background">
