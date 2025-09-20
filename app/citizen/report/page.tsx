@@ -232,12 +232,6 @@ export default function ReportIssuePage() {
 
             // Upload to Supabase storage
             const fileName = `${user.id}/${Date.now()}-${audioFile.name}`;
-            console.log("Standalone upload - File details:", {
-                fileName,
-                size: audioFile.size,
-                type: audioFile.type,
-                userId: user.id
-            });
             
             const { data, error } = await supabase.storage
                 .from("audio")
@@ -250,16 +244,12 @@ export default function ReportIssuePage() {
                 console.error("Standalone upload error:", error);
                 throw error;
             }
-            
-            console.log("Standalone upload successful:", data);
 
             // Get public URL
             try {
                 const {
                     data: { publicUrl },
                 } = supabase.storage.from("audio").getPublicUrl(fileName);
-                
-                console.log("Got public URL:", publicUrl);
                 setFormData((prev) => ({ ...prev, audio_url: publicUrl }));
             } catch (urlError) {
                 console.error("Error getting public URL:", urlError);
@@ -326,12 +316,6 @@ export default function ReportIssuePage() {
                         audioFile.type
                     );
 
-                    // Debug audio blob
-                    console.log("Audio blob details:", {
-                        size: audioBlob.size,
-                        type: audioBlob.type
-                    });
-
                     const { data, error } = await supabase.storage
                         .from("audio")
                         .upload(fileName, audioFile, {
@@ -343,8 +327,6 @@ export default function ReportIssuePage() {
                         console.error("Supabase storage upload error:", error);
                         throw error;
                     }
-                    
-                    console.log("Upload successful:", data);
 
                     // Get public URL
                     const {
@@ -363,8 +345,6 @@ export default function ReportIssuePage() {
                 }
             }
 
-            console.log("Submitting form data:", JSON.stringify(finalFormData, null, 2));
-
             try {
                 const response = await fetch("/api/issues", {
                     method: "POST",
@@ -375,9 +355,7 @@ export default function ReportIssuePage() {
                     body: JSON.stringify(finalFormData),
                 });
                 
-                console.log("API response status:", response.status);
                 const responseText = await response.text();
-                console.log("API response text:", responseText);
                 
                 // Parse the response text as JSON
                 const data = responseText ? JSON.parse(responseText) : {};

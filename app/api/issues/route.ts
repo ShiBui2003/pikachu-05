@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        console.log("Received request body:", body);
+
         const {
             title,
             description,
@@ -211,10 +211,6 @@ export async function POST(request: NextRequest) {
 
         // Check if at least one of description or audio_url is provided
         if (!title || !category) {
-            console.log("Missing required fields:", {
-                title: !!title,
-                category: !!category,
-            });
             return NextResponse.json(
                 { error: "Title and category are required" },
                 { status: 400 }
@@ -223,7 +219,6 @@ export async function POST(request: NextRequest) {
         
         // Ensure at least one of description or audio_url is provided
         if (!description && !audio_url) {
-            console.log("Missing content: Neither description nor audio provided");
             return NextResponse.json(
                 { error: "Either description text or audio recording is required" },
                 { status: 400 }
@@ -240,14 +235,6 @@ export async function POST(request: NextRequest) {
                 ? parseFloat(location_lng)
                 : Number(location_lng);
         const addressStr = (location_address || "").toString().trim();
-
-        console.log("Location validation:", {
-            addressStr,
-            latNum,
-            lngNum,
-            isFiniteLat: Number.isFinite(latNum),
-            isFiniteLng: Number.isFinite(lngNum),
-        });
 
         if (
             !addressStr ||
@@ -276,8 +263,7 @@ export async function POST(request: NextRequest) {
                 location_lng: lngNum,
                 landmark,
                 image_url,
-                // Temporarily comment out audio_url until migration is applied
-                // audio_url,
+                audio_url,
                 user_id: user.id,
             })
             .select(
