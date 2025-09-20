@@ -42,38 +42,37 @@ export default function UnifiedAuthPage() {
   const [error, setError] = useState<string | null>(null)
   
   const { toast } = useToast()
-  const { user, signIn, signUp, signInWithGoogle } = useAuth()
+  const { user, loading, signIn, signUp, signInWithGoogle } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-
-  // Set initial auth mode and role from URL parameters
-  useEffect(() => {
-    const modeParam = searchParams.get('mode')
-    const roleParam = searchParams.get('role')
-    
-    if (modeParam && (modeParam === 'signin' || modeParam === 'signup')) {
-      setAuthMode(modeParam)
-    }
-    
-    if (roleParam && (roleParam === 'citizen' || roleParam === 'admin')) {
-      setSelectedRole(roleParam)
-    }
-  }, [searchParams])
 
   // Redirect if user is already logged in
   useEffect(() => {
     if (user) {
       const redirectTo = searchParams.get('redirectedFrom')
       if (redirectTo && redirectTo.startsWith('/')) {
-        router.push(redirectTo as any)
+        router.replace(redirectTo as any)
       } else {
         // Redirect based on user role or default to citizen
         const userRole = user.user_metadata?.role || 'citizen'
         const dashboardPath = userRole === 'admin' ? '/admin/dashboard' : '/citizen/dashboard'
-        router.push(dashboardPath)
+        router.replace(dashboardPath)
       }
     }
   }, [user, router, searchParams])
+
+  // Show loading state while auth is being resolved
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="text-lg font-semibold">Loading...</h2>
+          <p className="text-muted-foreground mt-2">Please wait while we check your authentication status.</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))

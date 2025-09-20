@@ -73,10 +73,10 @@ export async function GET(request: NextRequest) {
         department:department_id(id, name, email, description),
         comments:comments(count),
         issue_votes:issue_votes(count)
-      `
-            )
-            .order("created_at", { ascending: false })
-            .range((page - 1) * limit, page * limit - 1);
+      `)
+      .order('upvotes', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1);
 
         if (category && category !== "all") {
             query = query.eq("category", category);

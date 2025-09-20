@@ -2,17 +2,18 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase/client'
-import { cookieFix } from '@/lib/cookie-fix'
+import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
+
+type UserRole = 'admin' | 'citizen'
 
 type AuthContextType = {
   user: User | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error?: Error }>
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error?: Error }>
+  signUp: (email: string, password: string, fullName: string, role?: UserRole) => Promise<{ error?: Error }>
   signOut: () => Promise<{ error?: Error }>
-  signInWithGoogle: (userType?: 'admin' | 'citizen') => Promise<{ error?: Error }>
+  signInWithGoogle: (userType?: UserRole, callbackUrl?: string) => Promise<{ error?: Error }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -23,6 +24,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
+    const supabase = createClient()
+    
     // Check active sessions and sets the user
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
@@ -35,22 +38,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN' && session?.user) {
         const role = session.user.user_metadata?.role || session.user.role || 'citizen';
         
-        // Determine redirect based on current path and role
-        if (currentPath.startsWith('/admin/login') || currentPath.startsWith('/admin/signup')) {
-          // If logging in from admin pages, go to admin dashboard regardless of role
-          router.push('/admin/dashboard');
-        } else if (currentPath.startsWith('/citizen/login') || currentPath.startsWith('/citizen/signup')) {
-          // If logging in from citizen pages, go to citizen dashboard
-          router.push('/citizen/dashboard');
-        } else if (role === 'admin' && !currentPath.startsWith('/admin')) {
-          router.push('/admin/dashboard');
-        } else if ((role === 'citizen' || !role) && !currentPath.startsWith('/citizen')) {
-          router.push('/citizen/dashboard');
+        // Only redirect if not already on a valid route or on auth callback
+        if (currentPath === '/auth/callback') {
+          // Let the callback page handle the redirect
+          return;
+        }
+        
+        // Only redirect if not already on a valid route
+        if (role === 'admin' && !currentPath.startsWith('/admin')) {
+          router.replace('/admin/dashboard');
+        } else if (role === 'citizen' && !currentPath.startsWith('/citizen')) {
+          router.replace('/citizen/dashboard');
         }
       } else if (event === 'SIGNED_OUT') {
         // Only redirect if not already on a public route
-        if (!['/citizen/login', '/admin/login', '/'].includes(currentPath)) {
-          router.push('/');
+        if (!['/citizen/login', '/admin/login', '/', '/auth'].includes(currentPath)) {
+          router.replace('/');
         }
       }
     });
@@ -64,22 +67,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         setUser(session?.user ?? null);
         
-        // Handle initial redirect based on session and role
+        // Don't handle redirects here for auth callback routes - let the callback page handle them
+        // This prevents conflicts during OAuth flows
+        const currentPath = window.location.pathname;
+        if (currentPath === '/auth/callback') {
+          return;
+        }
+        
+        // Handle initial redirect based on session and role for other routes
         if (session?.user) {
           const role = session.user.user_metadata?.role || session.user.role || 'citizen';
-          const currentPath = window.location.pathname;
           
           // Don't redirect if already on a valid route for the user's role
-          if (currentPath.startsWith('/admin/login') || currentPath.startsWith('/admin/signup')) {
-            // If on admin login/signup pages, go to admin dashboard
-            router.push('/admin/dashboard');
-          } else if (currentPath.startsWith('/citizen/login') || currentPath.startsWith('/citizen/signup')) {
-            // If on citizen login/signup pages, go to citizen dashboard
-            router.push('/citizen/dashboard');
-          } else if (role === 'admin' && !currentPath.startsWith('/admin')) {
-            router.push('/admin/dashboard');
-          } else if ((role === 'citizen' || !role) && !currentPath.startsWith('/citizen')) {
-            router.push('/citizen/dashboard');
+          if (role === 'admin' && !currentPath.startsWith('/admin')) {
+            router.replace('/admin/dashboard');
+          } else if ((role === 'citizen' || !role) && !currentPath.startsWith('/citizen') && currentPath !== '/auth') {
+            router.replace('/citizen/dashboard');
           }
         }
       } catch (error) {
@@ -98,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      const supabase = createClient()
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -108,15 +112,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, role: UserRole = 'citizen') => {
     try {
+      const supabase = createClient()
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
-            role: 'citizen',
+            role: role,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
@@ -129,16 +134,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Use cookie fix utility for comprehensive cleanup
-      cookieFix.clearSupabaseCookies();
-      cookieFix.clearAuthStorage();
+      const supabase = createClient()
+      
+      // Clear all auth-related cookies first
+      if (typeof document !== 'undefined') {
+        document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'sb-provider-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
       
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
       // Force a hard redirect to ensure all state is cleared
       if (typeof window !== 'undefined') {
-        window.location.href = '/';
+        window.location.href = '/auth';
         // Prevent any further execution after redirect
         await new Promise(() => {});
       }
@@ -146,24 +156,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: error ? new Error(error.message) : undefined };
     } catch (error) {
       console.error('Error during sign out:', error);
-      // Even if there's an error, try to reset auth completely
-      await cookieFix.resetAuth();
+      // Even if there's an error, try to redirect
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth';
+      }
       return { error: error as Error };
     }
   }
   
-  const signInWithGoogle = async (userType: 'admin' | 'citizen' = 'citizen') => {
+  const signInWithGoogle = async (userType: UserRole = 'citizen', callbackUrl?: string) => {
     try {
-      // First, start the OAuth flow
+      const supabase = createClient()
+      
+      // Use custom redirect URL if provided, otherwise use default
+      const redirectTo = callbackUrl || `${window.location.origin}/auth/callback`
+      
+      console.log('Google OAuth redirect URL:', redirectTo)
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?user_type=${userType}`,
+          redirectTo,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-          },
-        },
+          }
+        }
       });
       
       if (error) throw error;
@@ -185,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   )
 }

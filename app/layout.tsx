@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
+import Script from "next/script"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
 import { ToastProvider, ToastViewport } from "@/components/ui/toast"
@@ -20,12 +21,20 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        
         <AuthProvider>
           {children}
           <ToastProvider>
             <ToastViewport />
           </ToastProvider>
         </AuthProvider>
+      
+
+        {/* ✅ Razorpay Checkout Script */}
+        <Script
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   )

@@ -37,6 +37,7 @@ interface Issue {
   location_lng: number;
   landmark?: string;
   image_url?: string;
+  upvotes: number; // Added for upvote-based ranking
   created_at: string;
   updated_at: string;
   profiles?: {
@@ -159,18 +160,27 @@ export default function AdminIssuesPage() {
     fetchIssues()
   }, [])
 
-  const filteredIssues = allIssues.filter((issue) => {
-    const matchesSearch =
-      issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.location_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      issue.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (issue.profiles?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || issue.status === statusFilter
-    const matchesPriority = priorityFilter === "all" || issue.priority === priorityFilter
-    const matchesCategory = categoryFilter === "all" || issue.category === categoryFilter
+  const filteredIssues = allIssues
+    .filter((issue) => {
+      const matchesSearch =
+        issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        issue.location_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        issue.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (issue.profiles?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus = statusFilter === "all" || issue.status === statusFilter
+      const matchesPriority = priorityFilter === "all" || issue.priority === priorityFilter
+      const matchesCategory = categoryFilter === "all" || issue.category === categoryFilter
 
-    return matchesSearch && matchesStatus && matchesPriority && matchesCategory
-  })
+      return matchesSearch && matchesStatus && matchesPriority && matchesCategory
+    })
+    .sort((a, b) => {
+      // Primary sort: by upvotes (descending)
+      const upvoteDiff = (b.upvotes || 0) - (a.upvotes || 0);
+      if (upvoteDiff !== 0) return upvoteDiff;
+      
+      // Secondary sort: by creation date (descending) for stable sorting
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    })
 
   const statusCounts = {
     all: allIssues.length,
