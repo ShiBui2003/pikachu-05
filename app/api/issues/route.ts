@@ -209,14 +209,23 @@ export async function POST(request: NextRequest) {
             audio_url,
         } = body;
 
-        if (!title || !description || !category) {
+        // Check if at least one of description or audio_url is provided
+        if (!title || !category) {
             console.log("Missing required fields:", {
                 title: !!title,
-                description: !!description,
                 category: !!category,
             });
             return NextResponse.json(
-                { error: "Title, description, and category are required" },
+                { error: "Title and category are required" },
+                { status: 400 }
+            );
+        }
+        
+        // Ensure at least one of description or audio_url is provided
+        if (!description && !audio_url) {
+            console.log("Missing content: Neither description nor audio provided");
+            return NextResponse.json(
+                { error: "Either description text or audio recording is required" },
                 { status: 400 }
             );
         }
@@ -267,7 +276,8 @@ export async function POST(request: NextRequest) {
                 location_lng: lngNum,
                 landmark,
                 image_url,
-                audio_url,
+                // Temporarily comment out audio_url until migration is applied
+                // audio_url,
                 user_id: user.id,
             })
             .select(

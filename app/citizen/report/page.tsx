@@ -231,19 +231,44 @@ export default function ReportIssuePage() {
             );
 
             // Upload to Supabase storage
-            const fileName = `audio/${user.id}/${Date.now()}-${audioFile.name}`;
+            const fileName = `${user.id}/${Date.now()}-${audioFile.name}`;
+            console.log("Standalone upload - File details:", {
+                fileName,
+                size: audioFile.size,
+                type: audioFile.type,
+                userId: user.id
+            });
+            
             const { data, error } = await supabase.storage
                 .from("audio")
-                .upload(fileName, audioFile);
+                .upload(fileName, audioFile, {
+                    cacheControl: "3600",
+                    upsert: false
+                });
 
-            if (error) throw error;
+            if (error) {
+                console.error("Standalone upload error:", error);
+                throw error;
+            }
+            
+            console.log("Standalone upload successful:", data);
 
             // Get public URL
-            const {
-                data: { publicUrl },
-            } = supabase.storage.from("audio").getPublicUrl(fileName);
-
-            setFormData((prev) => ({ ...prev, audio_url: publicUrl }));
+            try {
+                const {
+                    data: { publicUrl },
+                } = supabase.storage.from("audio").getPublicUrl(fileName);
+                
+                console.log("Got public URL:", publicUrl);
+                setFormData((prev) => ({ ...prev, audio_url: publicUrl }));
+            } catch (urlError) {
+                console.error("Error getting public URL:", urlError);
+                toast({
+                    title: "Warning",
+                    description: "Audio uploaded but couldn't get public URL",
+                    variant: "destructive",
+                });
+            }
 
             toast({
                 title: "Success",
@@ -294,14 +319,32 @@ export default function ReportIssuePage() {
                         "Uploading audio file:",
                         fileName,
                         "User ID:",
-                        user?.id
+                        user?.id,
+                        "File size:",
+                        audioFile.size,
+                        "File type:",
+                        audioFile.type
                     );
+
+                    // Debug audio blob
+                    console.log("Audio blob details:", {
+                        size: audioBlob.size,
+                        type: audioBlob.type
+                    });
 
                     const { data, error } = await supabase.storage
                         .from("audio")
-                        .upload(fileName, audioFile);
+                        .upload(fileName, audioFile, {
+                            cacheControl: "3600",
+                            upsert: false
+                        });
 
-                    if (error) throw error;
+                    if (error) {
+                        console.error("Supabase storage upload error:", error);
+                        throw error;
+                    }
+                    
+                    console.log("Upload successful:", data);
 
                     // Get public URL
                     const {
@@ -320,28 +363,39 @@ export default function ReportIssuePage() {
                 }
             }
 
-            console.log("Submitting form data:", finalFormData);
+            console.log("Submitting form data:", JSON.stringify(finalFormData, null, 2));
 
-            const response = await fetch("/api/issues", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                credentials: "include",
-                body: JSON.stringify(finalFormData),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                toast({
-                    title: "Issue reported successfully",
-                    description:
-                        "Your issue has been submitted and will be reviewed by our team.",
+            try {
+                const response = await fetch("/api/issues", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    credentials: "include",
+                    body: JSON.stringify(finalFormData),
                 });
-                router.push("/citizen/dashboard");
-            } else {
-                throw new Error(data.error || "Failed to submit issue");
+                
+                console.log("API response status:", response.status);
+                const responseText = await response.text();
+                console.log("API response text:", responseText);
+                
+                // Parse the response text as JSON
+                const data = responseText ? JSON.parse(responseText) : {};
+
+                if (response.ok) {
+                    toast({
+                        title: "Issue reported successfully",
+                        description:
+                            "Your issue has been submitted and will be reviewed by our team.",
+                    });
+                    router.push("/citizen/dashboard");
+                } else {
+                    console.error("API error response:", data);
+                    throw new Error(data.error || "Failed to submit issue");
+                }
+            } catch (fetchError: any) {
+                console.error("Fetch error:", fetchError);
+                throw new Error("Network error: " + fetchError.message);
             }
         } catch (error: any) {
             toast({
