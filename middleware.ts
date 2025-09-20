@@ -35,7 +35,8 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/' || pathname.startsWith('/_next/') ||
       pathname.startsWith('/api/auth/') || pathname.startsWith('/api/roles') ||
       pathname.startsWith('/api/departments') || pathname.startsWith('/api/test-db-setup') ||
-      pathname === '/favicon.ico' || pathname.startsWith('/auth/callback')) {
+      pathname === '/favicon.ico' || pathname.startsWith('/auth/callback') ||
+      pathname.includes('/ai-urgency')) { // Allow AI urgency detection
     return NextResponse.next();
   }
   

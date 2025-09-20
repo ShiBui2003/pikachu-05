@@ -18,6 +18,9 @@ type Issue = {
   status: string
   location_address: string | null
   image_url: string | null
+  upvotes: number // Added for upvote-based ranking
+  ai_urgency?: "low" | "medium" | "high" | null
+  ai_confidence?: number | null
   created_at: string
   updated_at: string
   user_id: string
@@ -108,8 +111,63 @@ export default function MyIssuesPage() {
     fetchMine()
   }, [user?.id])
 
-  const activeIssues = useMemo(() => issues.filter(i => (i.status === 'resolved') === false), [issues])
-  const resolvedIssues = useMemo(() => issues.filter(i => i.status === 'resolved'), [issues])
+  const activeIssues = useMemo(() => 
+    issues
+      .filter(i => (i.status === 'resolved') === false)
+      .sort((a, b) => {
+        // Calculate combined scores using AI urgency and upvotes
+        const getCombinedScore = (issue: Issue) => {
+          const upvotes = issue.upvotes || 0;
+          const urgency = issue.ai_urgency || 'medium';
+          
+          // AI urgency weight: low=1, medium=2, high=3
+          const urgencyWeight = urgency === 'high' ? 3 : urgency === 'medium' ? 2 : 1;
+          const upvoteScore = Math.log(1 + upvotes);
+          
+          // Combined score: 0.7 * AI urgency + 0.3 * log(1 + upvotes)
+          return 0.7 * urgencyWeight + 0.3 * upvoteScore;
+        };
+        
+        const scoreA = getCombinedScore(a);
+        const scoreB = getCombinedScore(b);
+        const scoreDiff = scoreB - scoreA;
+        
+        if (scoreDiff !== 0) return scoreDiff;
+        
+        // Secondary sort: by creation date (descending) for stable sorting
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }), 
+    [issues]
+  )
+  
+  const resolvedIssues = useMemo(() => 
+    issues
+      .filter(i => i.status === 'resolved')
+      .sort((a, b) => {
+        // Calculate combined scores using AI urgency and upvotes
+        const getCombinedScore = (issue: Issue) => {
+          const upvotes = issue.upvotes || 0;
+          const urgency = issue.ai_urgency || 'medium';
+          
+          // AI urgency weight: low=1, medium=2, high=3
+          const urgencyWeight = urgency === 'high' ? 3 : urgency === 'medium' ? 2 : 1;
+          const upvoteScore = Math.log(1 + upvotes);
+          
+          // Combined score: 0.7 * AI urgency + 0.3 * log(1 + upvotes)
+          return 0.7 * urgencyWeight + 0.3 * upvoteScore;
+        };
+        
+        const scoreA = getCombinedScore(a);
+        const scoreB = getCombinedScore(b);
+        const scoreDiff = scoreB - scoreA;
+        
+        if (scoreDiff !== 0) return scoreDiff;
+        
+        // Secondary sort: by creation date (descending) for stable sorting
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }), 
+    [issues]
+  )
 
   const selectedIssueData = issues.find((issue) => issue.id === selectedIssue) || null
 

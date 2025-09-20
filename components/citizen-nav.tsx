@@ -15,14 +15,16 @@ import {
     User,
     LogOut,
     Menu,
+    Flag,
     CheckCircle,
+    DollarSign,
 } from "lucide-react";
 import RealTimeNotifications from "@/components/real-time-notifications";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -44,14 +46,9 @@ const navItems = [
         icon: Plus,
     },
     {
-        href: "/citizen/my-issues",
+        href: "/citizen/issues",
         label: "My Issues",
         icon: FileText,
-    },
-    {
-        href: "/citizen/resolved",
-        label: "Resolved Issues",
-        icon: CheckCircle,
     },
     {
         href: "/citizen/notifications",
@@ -60,18 +57,22 @@ const navItems = [
         badge: 3, // Unread count
     },
     {
-        href: "/citizen/leaderboard",
-        label: "Leaderboard",
-        icon: Trophy,
+        href: "/citizen/crowdfunding",
+        label: "₹ Funds",
+        icon: DollarSign,
+    },
+    {
+        href: "/citizen/Abhiyaan",
+        label: "Abhiyaan",
+        icon: Flag,
     },
 ];
 
 export default function CitizenNav() {
     const pathname = usePathname();
-    const isMobile = useIsMobile();
     const [isOpen, setIsOpen] = useState(false);
     const { user, signOut } = useAuth();
-    
+
     const displayName =
         (user?.user_metadata as any)?.full_name ||
         (user?.user_metadata as any)?.name ||
@@ -94,7 +95,7 @@ export default function CitizenNav() {
         >
             {navItems.map((item) => {
                 const isActive = pathname === item.href;
-                const Icon = item.icon;
+                const IconComponent = item.icon;
 
                 return (
                     <Button
@@ -102,13 +103,12 @@ export default function CitizenNav() {
                         variant={isActive ? "default" : "ghost"}
                         size={mobile ? "default" : "sm"}
                         asChild
-                        className={`relative ${
-                            mobile ? "w-full justify-start h-11" : "h-9"
-                        }`}
+                        className={`relative ${mobile ? "w-full justify-start h-11" : "h-9"
+                            }`}
                         onClick={onItemClick}
                     >
                         <Link href={item.href as any}>
-                            <Icon className="w-4 h-4 mr-2" />
+                            {IconComponent && <IconComponent className="w-4 h-4 mr-2" />}
                             {item.label}
                             {item.badge && (
                                 <Badge
@@ -134,7 +134,7 @@ export default function CitizenNav() {
         <div className="border-b bg-card sticky top-0 z-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3">
                 <div className="flex items-center justify-between">
-                    {/* Logo - Always visible */}
+                    {/* Logo */}
                     <Link
                         href="/citizen/dashboard"
                         className="flex items-center space-x-2"
@@ -155,27 +155,40 @@ export default function CitizenNav() {
                         {/* Combined Profile Button with Notifications */}
                         <div className="flex items-center space-x-2">
                             <RealTimeNotifications />
-                            <Button 
-                                variant="default" 
-                                size="sm" 
+                            <Button
+                                variant="default"
+                                size="sm"
                                 className="h-9 bg-orange-500 hover:bg-orange-600 text-white px-4"
                                 asChild
                             >
-                                <Link href="/citizen/profile" className="flex items-center">
+                                <Link
+                                    href="/citizen/profile"
+                                    className="flex items-center"
+                                >
                                     <Avatar className="w-6 h-6 mr-2">
+                                        <AvatarImage
+                                            src={
+                                                (user?.user_metadata as any)
+                                                    ?.avatar_url ||
+                                                (user?.user_metadata as any)
+                                                    ?.picture
+                                            }
+                                            alt={displayName}
+                                        />
                                         <AvatarFallback className="bg-white text-orange-500 text-xs font-bold">
-                                            {String(displayName).substring(0, 2).toUpperCase()}
+                                            {String(displayName)
+                                                .substring(0, 2)
+                                                .toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                     <span>{displayName}</span>
                                 </Link>
                             </Button>
                         </div>
-                        
 
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={handleLogout}
                         >
@@ -189,26 +202,42 @@ export default function CitizenNav() {
                         {/* Combined Profile Button with Notifications - Mobile */}
                         <div className="flex items-center space-x-2">
                             <RealTimeNotifications />
-                            <Button 
-                                variant="default" 
-                                size="sm" 
+                            <Button
+                                variant="default"
+                                size="sm"
                                 className="h-9 bg-orange-500 hover:bg-orange-600 text-white px-3"
                                 asChild
                             >
-                                <Link href="/citizen/profile" className="flex items-center">
+                                <Link
+                                    href="/citizen/profile"
+                                    className="flex items-center"
+                                >
                                     <Avatar className="w-5 h-5 mr-1">
+                                        <AvatarImage
+                                            src={
+                                                (user?.user_metadata as any)
+                                                    ?.avatar_url ||
+                                                (user?.user_metadata as any)
+                                                    ?.picture
+                                            }
+                                            alt={displayName}
+                                        />
                                         <AvatarFallback className="bg-white text-orange-500 text-xs font-bold">
-                                            {String(displayName).substring(0, 2).toUpperCase()}
+                                            {String(displayName)
+                                                .substring(0, 2)
+                                                .toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
-                                    <span className="text-sm">{displayName}</span>
+                                    <span className="text-sm">
+                                        {displayName}
+                                    </span>
                                 </Link>
                             </Button>
                         </div>
-                        
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
+
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-9 w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={handleLogout}
                         >
@@ -221,7 +250,7 @@ export default function CitizenNav() {
                                     size="sm"
                                     className="h-9 w-9 p-0"
                                 >
-                                    <User className="w-5 h-5" />
+                                    <Menu className="w-5 h-5" />
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-80">
@@ -238,21 +267,33 @@ export default function CitizenNav() {
                                     </div>
 
                                     <div className="flex-1">
-                                        <NavItems
-                                            mobile
-                                            onItemClick={() => setIsOpen(false)}
-                                        />
+                                        <NavItems mobile onItemClick={() => setIsOpen(false)} />
                                     </div>
 
                                     <div className="border-t pt-4 space-y-2">
                                         <div className="flex items-center gap-3 px-3 py-2 mb-2">
                                             <Avatar className="w-9 h-9">
+                                                <AvatarImage
+                                                    src={
+                                                        (
+                                                            user?.user_metadata as any
+                                                        )?.avatar_url ||
+                                                        (
+                                                            user?.user_metadata as any
+                                                        )?.picture
+                                                    }
+                                                    alt={displayName}
+                                                />
                                                 <AvatarFallback>
-                                                    {String(displayName).substring(0, 2).toUpperCase()}
+                                                    {String(displayName)
+                                                        .substring(0, 2)
+                                                        .toUpperCase()}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="min-w-0">
-                                                <div className="font-medium truncate">{displayName}</div>
+                                                <div className="font-medium truncate">
+                                                    {displayName}
+                                                </div>
                                                 <div className="text-xs text-muted-foreground truncate">
                                                     {user?.email ?? ""}
                                                 </div>
@@ -275,7 +316,7 @@ export default function CitizenNav() {
                                             asChild
                                             onClick={() => setIsOpen(false)}
                                         >
-                                            <Link href="/citizen/my-issues">
+                                            <Link href="/citizen/issues">
                                                 <FileText className="w-4 h-4 mr-2" />
                                                 My Issues
                                             </Link>
@@ -301,3 +342,4 @@ export default function CitizenNav() {
         </div>
     );
 }
+
