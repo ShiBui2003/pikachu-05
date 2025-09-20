@@ -45,6 +45,9 @@ type Issue = {
     location_address: string | null;
     location_lat: number | null;
     location_lng: number | null;
+    upvotes: number; // Added for upvote-based ranking
+    ai_urgency?: "low" | "medium" | "high" | null;
+    ai_confidence?: number | null;
     created_at: string;
     updated_at?: string;
     user_id?: string;
@@ -229,16 +232,40 @@ export default function CitizenIssuesMapPage() {
         return R * c;
     };
 
-    const filteredIssues = allIssues.filter((issue) => {
-        const matchesStatus =
-            statusFilter === "all" || issue.status === statusFilter;
-        const matchesPriority =
-            priorityFilter === "all" ||
-            (issue.priority || "medium") === priorityFilter;
-        const matchesCategory =
-            categoryFilter === "all" || issue.category === categoryFilter;
-        return matchesStatus && matchesPriority && matchesCategory;
-    });
+    const filteredIssues = allIssues
+        .filter((issue) => {
+            const matchesStatus =
+                statusFilter === "all" || issue.status === statusFilter;
+            const matchesPriority =
+                priorityFilter === "all" ||
+                (issue.priority || "medium") === priorityFilter;
+            const matchesCategory =
+                categoryFilter === "all" || issue.category === categoryFilter;
+            return matchesStatus && matchesPriority && matchesCategory;
+        })
+        .sort((a, b) => {
+            // Calculate combined scores using AI urgency and upvotes
+            const getCombinedScore = (issue: Issue) => {
+                const upvotes = issue.upvotes || 0;
+                const urgency = issue.ai_urgency || 'medium';
+                
+                // AI urgency weight: low=1, medium=2, high=3
+                const urgencyWeight = urgency === 'high' ? 3 : urgency === 'medium' ? 2 : 1;
+                const upvoteScore = Math.log(1 + upvotes);
+                
+                // Combined score: 0.7 * AI urgency + 0.3 * log(1 + upvotes)
+                return 0.7 * urgencyWeight + 0.3 * upvoteScore;
+            };
+            
+            const scoreA = getCombinedScore(a);
+            const scoreB = getCombinedScore(b);
+            const scoreDiff = scoreB - scoreA;
+            
+            if (scoreDiff !== 0) return scoreDiff;
+            
+            // Secondary sort: by creation date (descending) for stable sorting
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
 
     // Get nearby issues (within 5km of user location for citizens)
     const nearbyIssues = userLocation

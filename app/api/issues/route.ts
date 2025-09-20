@@ -73,10 +73,11 @@ export async function GET(request: NextRequest) {
         department:department_id(id, name, email, description),
         comments:comments(count),
         issue_votes:issue_votes(count)
-      `
-            )
-            .order("created_at", { ascending: false })
-            .range((page - 1) * limit, page * limit - 1);
+      `)
+      .order('ai_urgency', { ascending: false })
+      .order('upvotes', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1);
 
         if (category && category !== "all") {
             query = query.eq("category", category);
@@ -195,7 +196,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        console.log("Received request body:", body);
+
         const {
             title,
             description,
@@ -209,14 +210,18 @@ export async function POST(request: NextRequest) {
             audio_url,
         } = body;
 
-        if (!title || !description || !category) {
-            console.log("Missing required fields:", {
-                title: !!title,
-                description: !!description,
-                category: !!category,
-            });
+        // Check if at least one of description or audio_url is provided
+        if (!title || !category) {
             return NextResponse.json(
-                { error: "Title, description, and category are required" },
+                { error: "Title and category are required" },
+                { status: 400 }
+            );
+        }
+        
+        // Ensure at least one of description or audio_url is provided
+        if (!description && !audio_url) {
+            return NextResponse.json(
+                { error: "Either description text or audio recording is required" },
                 { status: 400 }
             );
         }
@@ -231,14 +236,6 @@ export async function POST(request: NextRequest) {
                 ? parseFloat(location_lng)
                 : Number(location_lng);
         const addressStr = (location_address || "").toString().trim();
-
-        console.log("Location validation:", {
-            addressStr,
-            latNum,
-            lngNum,
-            isFiniteLat: Number.isFinite(latNum),
-            isFiniteLng: Number.isFinite(lngNum),
-        });
 
         if (
             !addressStr ||
@@ -280,6 +277,17 @@ export async function POST(request: NextRequest) {
             .single();
 
         if (issue && !error) {
+            // Trigger AI urgency detection asynchronously (non-blocking)
+            fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/issues/${issue.id}/ai-urgency`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }).catch(err => {
+                console.error('Failed to trigger AI urgency detection:', err);
+                // Don't fail the issue creation if AI detection fails
+            });
+            
             return NextResponse.json({ issue }, { status: 201 });
         }
 

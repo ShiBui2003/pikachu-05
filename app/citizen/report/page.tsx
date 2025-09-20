@@ -38,8 +38,22 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
 
+interface FormData {
+  title: string
+  description: string
+  category: string
+  priority: string
+  location_address: string
+  location_lat: string
+  location_lng: string
+  image_url: string
+  audio_url: string
+  landmark?: string
+  file?: File
+}
+
 export default function ReportIssuePage() {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         title: "",
         description: "",
         category: "",
@@ -115,7 +129,8 @@ export default function ReportIssuePage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Failed to upload file");
 
-            setFormData((prev) => ({ ...prev, image_url: data.url }));
+            // Save both uploaded URL and File object for Gemini
+            setFormData((prev) => ({ ...prev, image_url: data.url, file }));
 
             toast({
                 title: "Success",
@@ -218,142 +233,10 @@ export default function ReportIssuePage() {
         }
     };
 
-    const uploadAudio = async () => {
-        if (!audioBlob || !user) return;
-
-        setIsUploading(true);
-        try {
-            // Convert blob to file
-            const audioFile = new File(
-                [audioBlob],
-                `audio-${Date.now()}.webm`,
-                { type: "audio/webm" }
-            );
-
-            // Upload to Supabase storage
-            const fileName = `audio/${user.id}/${Date.now()}-${audioFile.name}`;
-            const { data, error } = await supabase.storage
-                .from("audio")
-                .upload(fileName, audioFile);
-
-            if (error) throw error;
-
-            // Get public URL
-            const {
-                data: { publicUrl },
-            } = supabase.storage.from("audio").getPublicUrl(fileName);
-
-            setFormData((prev) => ({ ...prev, audio_url: publicUrl }));
-
-            toast({
-                title: "Success",
-                description: "Audio recording uploaded successfully",
-            });
-        } catch (error: any) {
-            console.error("Audio upload error:", error);
-            toast({
-                title: "Upload failed",
-                description:
-                    error.message ||
-                    "Failed to upload audio. Please try again.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsUploading(false);
-        }
-    };
-
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, "0")}`;
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-
-        try {
-            // Upload audio if there's a recording but no audio_url yet
-            let finalFormData = { ...formData };
-
-            if (audioBlob && !formData.audio_url) {
-                try {
-                    // Convert blob to file
-                    const audioFile = new File(
-                        [audioBlob],
-                        `audio-${Date.now()}.webm`,
-                        { type: "audio/webm" }
-                    );
-
-                    // Upload to Supabase storage
-                    const fileName = `${user?.id}/${Date.now()}-${
-                        audioFile.name
-                    }`;
-                    console.log(
-                        "Uploading audio file:",
-                        fileName,
-                        "User ID:",
-                        user?.id
-                    );
-
-                    const { data, error } = await supabase.storage
-                        .from("audio")
-                        .upload(fileName, audioFile);
-
-                    if (error) throw error;
-
-                    // Get public URL
-                    const {
-                        data: { publicUrl },
-                    } = supabase.storage.from("audio").getPublicUrl(fileName);
-
-                    finalFormData.audio_url = publicUrl;
-                } catch (audioError: any) {
-                    console.error("Audio upload error:", audioError);
-                    const errorMessage = audioError?.message || "Unknown error";
-                    toast({
-                        title: "Audio upload failed",
-                        description: `Failed to upload audio: ${errorMessage}. Submitting without audio.`,
-                        variant: "destructive",
-                    });
-                }
-            }
-
-            console.log("Submitting form data:", finalFormData);
-
-            const response = await fetch("/api/issues", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                credentials: "include",
-                body: JSON.stringify(finalFormData),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                toast({
-                    title: "Issue reported successfully",
-                    description:
-                        "Your issue has been submitted and will be reviewed by our team.",
-                });
-                router.push("/citizen/dashboard");
-            } else {
-                throw new Error(data.error || "Failed to submit issue");
-            }
-        } catch (error: any) {
-            toast({
-                title: "Submission failed",
-                description:
-                    error.message ||
-                    "Failed to submit issue. Please try again.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
     };
 
     const getCurrentLocation = () => {
@@ -379,6 +262,155 @@ export default function ReportIssuePage() {
                     });
                 }
             );
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        try {
+            // Convert file to base64 if exists
+            let imageBase64: string | null = null;
+            if (formData.file) {
+                const reader = new FileReader();
+                imageBase64 = await new Promise<string>((resolve, reject) => {
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(formData.file as File);
+                });
+            }
+
+            // Gemini verification
+            const verifyRes = await fetch("/api/verify-issue", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: formData.title,
+                    category: formData.category,
+                    description: formData.description,
+                    imageBase64
+                })
+            });
+
+            if (!verifyRes.ok) throw new Error("Verification request failed");
+            const { decision } = await verifyRes.json();
+
+            console.log("=== GEMINI VERIFICATION LOG ===");
+            console.log("Title:", formData.title);
+            console.log("Category:", formData.category);
+            console.log("Description:", formData.description);
+            console.log("Has Image:", !!formData.file);
+            console.log("Gemini Decision:", decision);
+            console.log("=================================");
+
+            if (decision !== "Yes") {
+                toast({
+                    title: "Verification Failed",
+                    description: "Your report did not pass AI verification. Please ensure it is a legitimate civic issue.",
+                    variant: "destructive"
+                });
+                setIsSubmitting(false);
+                return;
+            }
+
+            // Upload audio if there's a recording but no audio_url yet
+            let finalFormData = { ...formData };
+
+            if (audioBlob && !formData.audio_url) {
+                try {
+                    // Convert blob to file
+                    const audioFile = new File(
+                        [audioBlob],
+                        `audio-${Date.now()}.webm`,
+                        { type: "audio/webm" }
+                    );
+
+                    // Upload to Supabase storage
+                    const fileName = `${user?.id}/${Date.now()}-${
+                        audioFile.name
+                    }`;
+
+                    const { data, error } = await supabase.storage
+                        .from("audio")
+                        .upload(fileName, audioFile, {
+                            cacheControl: "3600",
+                            upsert: false
+                        });
+
+                    if (error) {
+                        console.error("Supabase storage upload error:", error);
+                        throw error;
+                    }
+
+                    // Get public URL
+                    const {
+                        data: { publicUrl },
+                    } = supabase.storage.from("audio").getPublicUrl(fileName);
+
+                    finalFormData.audio_url = publicUrl;
+                } catch (audioError: any) {
+                    console.error("Audio upload error:", audioError);
+                    const errorMessage = audioError?.message || "Unknown error";
+                    toast({
+                        title: "Audio upload failed",
+                        description: `Failed to upload audio: ${errorMessage}. Submitting without audio.`,
+                        variant: "destructive",
+                    });
+                }
+            }
+
+            // Submit issue to backend
+            const response = await fetch("/api/issues", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify(finalFormData),
+            });
+            
+            const responseText = await response.text();
+            const data = responseText ? JSON.parse(responseText) : {};
+
+            if (response.ok) {
+                toast({
+                    title: "Issue reported successfully",
+                    description:
+                        "Your issue has been submitted and will be reviewed by our team.",
+                });
+                
+                // Reset form
+                setFormData({
+                    title: "",
+                    description: "",
+                    category: "",
+                    priority: "medium",
+                    location_address: "",
+                    location_lat: "",
+                    location_lng: "",
+                    image_url: "",
+                    audio_url: "",
+                });
+                setAudioBlob(null);
+                setRecordingTime(0);
+                
+                setTimeout(() => router.push("/citizen/dashboard"), 1500);
+            } else {
+                console.error("API error response:", data);
+                throw new Error(data.error || "Failed to submit issue");
+            }
+        } catch (error: any) {
+            console.error("Error during submission:", error);
+            toast({
+                title: "Submission failed",
+                description:
+                    error.message ||
+                    "Failed to submit issue. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
