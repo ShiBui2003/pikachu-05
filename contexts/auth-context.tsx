@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
-type UserRole = 'citizen' | 'department_head' | 'supervisor' | 'field_worker' | 'clerk_operator' | 'technician'
+type UserRole = 'citizen' | 'department_head' | 'supervisor' | 'field_worker' | 'clerk_operator' | 'technician' | 'admin'
 
 type AuthContextType = {
   user: User | null
@@ -147,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signUp = async (email: string, password: string, fullName: string, role: UserRole = 'citizen', department?: string) => {{
+  const signUp = async (email: string, password: string, fullName: string, role: UserRole = 'citizen', department?: string) => {
     try {
       const supabase = createClient()
       const { error } = await supabase.auth.signUp({
