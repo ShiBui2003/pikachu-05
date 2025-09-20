@@ -182,11 +182,52 @@ export default function AdminProfilePage() {
                     total_admin_actions: 0,
                     success_rate: 0
                 });
+            } else if (response.status === 403) {
+                // User is not authenticated as admin, set default stats
+                console.warn('Admin access denied - user may not be authenticated as admin');
+                setAdminStats({
+                    issues_managed: 0,
+                    issues_resolved: 0,
+                    users_managed: 0,
+                    departments_managed: 0,
+                    notifications_sent: 0,
+                    reports_generated: 0,
+                    system_uptime: "N/A",
+                    last_login: "Not available",
+                    total_admin_actions: 0,
+                    success_rate: 0
+                });
             } else {
                 console.error('Admin stats API error:', response.status, response.statusText);
+                // Set default stats on error
+                setAdminStats({
+                    issues_managed: 0,
+                    issues_resolved: 0,
+                    users_managed: 0,
+                    departments_managed: 0,
+                    notifications_sent: 0,
+                    reports_generated: 0,
+                    system_uptime: "Error",
+                    last_login: "Error",
+                    total_admin_actions: 0,
+                    success_rate: 0
+                });
             }
         } catch (error) {
             console.error('Error fetching admin stats:', error);
+            // Set default stats on error
+            setAdminStats({
+                issues_managed: 0,
+                issues_resolved: 0,
+                users_managed: 0,
+                departments_managed: 0,
+                notifications_sent: 0,
+                reports_generated: 0,
+                system_uptime: "Error",
+                last_login: "Error",
+                total_admin_actions: 0,
+                success_rate: 0
+            });
         } finally {
             setStatsLoading(false);
         }

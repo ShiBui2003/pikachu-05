@@ -169,12 +169,16 @@ export default function AdminDashboard() {
                 error,
             } = await supabase.auth.getUser();
 
-            if (
-                error ||
-                !user ||
-                (user.user_metadata?.role !== "admin" && user.role !== "admin")
-            ) {
+            if (error || !user) {
                 router.push("/admin/login");
+                return;
+            }
+
+            // Check if user has staff role (any role other than citizen)
+            const role = user.user_metadata?.role || user.role || 'citizen';
+            setUserRole(role);
+            if (role === 'citizen') {
+                router.push("/citizen/dashboard");
                 return;
             }
 
@@ -839,7 +843,7 @@ export default function AdminDashboard() {
                                             )}
                                         </p>
                                         <p className="text-xs text-muted-foreground">
-                                            Admin
+                                            {userRole.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                                         </p>
                                     </div>
                                 </div>
