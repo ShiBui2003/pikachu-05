@@ -1,11 +1,13 @@
+import { DEPARTMENT_MAPPING } from "@/lib/department-mapping"
 import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
   try {
     const { title, category, description, imageBase64 } = await req.json()
 
-    // Create comprehensive prompt for Gemini
-    let prompt = `You are verifying a civic issue report. Analyze if this is a legitimate civic issue that requires municipal attention.
+    // Prompt for verifying issue legitimacy
+    const verifyPrompt = `
+You are verifying a civic issue report. Analyze if this is a legitimate civic issue that requires municipal attention.
 
 Issue Title: "${title}"
 Category: "${category}"
@@ -19,67 +21,122 @@ Check if:
 
 Only respond with exactly "Yes" or "No".
 - "Yes" if it's a legitimate civic issue
-- "No" if it's spam, fake, irrelevant, or doesn't match the category`
+- "No" if it's spam, fake, irrelevant, or doesn't match the category
+`
 
+    // Prompt for validating / correcting the category
+    const categoryPrompt = `
+You are a helpful assistant analyzing the category of a civic issue report.
+You will be given the title, category, and description of an issue.
+Your job is to analyze them and determine the most appropriate category.
+
+Issue Title: "${title}"
+Category: "${category}"
+Description: "${description}"
+
+The available categories are: ${Object.values(DEPARTMENT_MAPPING)
+      .map((department) => department.categories)
+      .flat()
+      .join(", ")}
+
+Return only the category that best matches the issue. match the result word to word with the available categories.
+`
+
+    // === Build request bodies ===
     const requestBody: any = {
       contents: [
         {
-          parts: [
-            {
-              text: prompt
-            }
-          ]
-        }
+          parts: [{ text: verifyPrompt }],
+        },
       ],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 10
-      }
+        maxOutputTokens: 10,
+      },
     }
 
-    // Add image if provided
+    const categoryRequestBody: any = {
+      contents: [
+        {
+          parts: [{ text: categoryPrompt }],
+        },
+      ],
+    }
+
+    // === Handle image if provided ===
     if (imageBase64) {
-      // Extract the actual base64 data (remove data:image/jpeg;base64, prefix)
-      const base64Data = imageBase64.split(',')[1] || imageBase64
-      
-      requestBody.contents[0].parts.push({
+      // Extract mime type & raw base64
+      const matches = imageBase64.match(/^data:(image\/\w+);base64,(.+)$/)
+      let mimeType = "image/jpeg"
+      let base64Data = imageBase64
+
+      if (matches) {
+        mimeType = matches[1]
+        base64Data = matches[2]
+      } else if (imageBase64.includes(",")) {
+        base64Data = imageBase64.split(",")[1]
+      }
+
+      const inlineImage = {
         inline_data: {
-          mime_type: "image/jpeg", // Assume JPEG, could be made dynamic
-          data: base64Data
-        }
-      } as any)
+          mime_type: mimeType,
+          data: base64Data,
+        },
+      }
+
+      // Add image to both requests
+      requestBody.contents[0].parts.push(inlineImage)
+      categoryRequestBody.contents[0].parts.push(inlineImage)
     }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
+    // === Call Gemini APIs ===
+    const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GEMINI_API_KEY}`
+
+    const [categoryResponse, verifyResponse] = await Promise.all([
+      fetch(GEMINI_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody)
-      }
-    )
+        body: JSON.stringify(categoryRequestBody),
+      }),
+      fetch(GEMINI_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      }),
+    ])
 
-    if (!response.ok) {
-      console.error("Gemini API error:", response.status, await response.text())
+    if (!verifyResponse.ok) {
+      console.error("Gemini API verification error:", verifyResponse.status, await verifyResponse.text())
       return NextResponse.json({ decision: "No" })
     }
 
-    const data = await response.json()
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No"
+    if (!categoryResponse.ok) {
+      console.error("Gemini API category error:", categoryResponse.status, await categoryResponse.text())
+    }
 
-    // Ensure only "Yes" or "No"
-    const decision = text.trim().toLowerCase().includes("yes") ? "Yes" : "No"
+    // === Parse responses ===
+    const verifyData = await verifyResponse.json()
+    const categoryData = await categoryResponse.json()
+
+    const verifyText = verifyData?.candidates?.[0]?.content?.parts?.[0]?.text || "No"
+    const categoryText = categoryData?.candidates?.[0]?.content?.parts?.[0]?.text || category
+
+    const decision = verifyText.trim().toLowerCase().includes("yes") ? "Yes" : "No"
 
     console.log("=== GEMINI VERIFICATION RESULT ===")
     console.log("Title:", title)
-    console.log("Category:", category)
+    console.log("Category (user):", category)
+    console.log("Category (AI):", categoryText.trim())
     console.log("Description:", description)
     console.log("Has Image:", !!imageBase64)
-    console.log("Gemini Response:", text.trim())
+    console.log("Gemini Verify Response:", verifyText.trim())
     console.log("Final Decision:", decision)
+    console.log("Available Categories:", Object.values(DEPARTMENT_MAPPING)
+      .map((department) => department.categories)
+      .flat()
+      .join(", "))
     console.log("=====================================")
-
-    return NextResponse.json({ decision })
+    return NextResponse.json({ decision, category: categoryText.trim() })
   } catch (error) {
     console.error("Gemini verification error:", error)
     return NextResponse.json({ decision: "No" })
