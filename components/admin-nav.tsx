@@ -14,6 +14,7 @@ import {
     Shield,
     Users,
     LogOut,
+    User,
 } from "lucide-react";
 import AdminNotifications from "@/components/admin-notifications";
 
@@ -43,6 +44,11 @@ const navItems = [
         href: "/admin/users",
         label: "Users",
         icon: Users,
+    },
+    {
+        href: "/admin/profile",
+        label: "Profile",
+        icon: User,
     },
 ];
 
