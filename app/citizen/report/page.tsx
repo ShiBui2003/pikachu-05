@@ -252,12 +252,35 @@ export default function ReportIssuePage() {
                     <Select value={formData.category} onValueChange={(v) => handleInputChange('category', v)}>
                       <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Roads">Roads & Infrastructure</SelectItem>
-                        <SelectItem value="Lighting">Street Lighting</SelectItem>
-                        <SelectItem value="Sanitation">Sanitation & Waste</SelectItem>
-                        <SelectItem value="Water">Water & Sewage</SelectItem>
-                        <SelectItem value="Traffic">Traffic & Safety</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="infrastructure">Infrastructure & Maintenance</SelectItem>
+                        <SelectItem value="potholes">Potholes & Road Damage</SelectItem>
+                        <SelectItem value="streetlights">Street Lighting</SelectItem>
+                        <SelectItem value="sidewalks">Sidewalks & Walkways</SelectItem>
+                        <SelectItem value="drainage">Drainage & Flooding</SelectItem>
+                        <SelectItem value="parks">Parks & Public Facilities</SelectItem>
+                        <SelectItem value="traffic">Traffic & Safety</SelectItem>
+                        <SelectItem value="roads">Roads & Highways</SelectItem>
+                        <SelectItem value="signs">Traffic Signs & Signals</SelectItem>
+                        <SelectItem value="parking">Parking Issues</SelectItem>
+                        <SelectItem value="transit">Public Transit</SelectItem>
+                        <SelectItem value="bridges">Bridges & Overpasses</SelectItem>
+                        <SelectItem value="garbage">Garbage & Waste</SelectItem>
+                        <SelectItem value="recycling">Recycling</SelectItem>
+                        <SelectItem value="pollution">Pollution & Air Quality</SelectItem>
+                        <SelectItem value="trees">Trees & Green Spaces</SelectItem>
+                        <SelectItem value="waste-management">Waste Management</SelectItem>
+                        <SelectItem value="safety">Safety & Hazards</SelectItem>
+                        <SelectItem value="health">Public Health</SelectItem>
+                        <SelectItem value="emergency">Emergency Services</SelectItem>
+                        <SelectItem value="sanitation">Sanitation</SelectItem>
+                        <SelectItem value="water">Water Services</SelectItem>
+                        <SelectItem value="electricity">Electricity & Power</SelectItem>
+                        <SelectItem value="gas">Gas Services</SelectItem>
+                        <SelectItem value="sewer">Sewer & Wastewater</SelectItem>
+                        <SelectItem value="power">Power Outages</SelectItem>
+                        <SelectItem value="utilities">Utility Services</SelectItem>
+                        <SelectItem value="general">General Issues</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

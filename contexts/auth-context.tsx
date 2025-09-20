@@ -145,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             full_name: fullName,
             role: role,
             department: department,
+            admin_level: role === 'admin' ? 'senior' : undefined, // Set default admin level for admins
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },

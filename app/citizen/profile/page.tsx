@@ -34,6 +34,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import AccountManagement from "@/components/account-management";
+import { getDepartmentName, type DepartmentKey } from "@/lib/department-mapping";
 
 interface ProfileData {
   full_name: string;
@@ -51,9 +52,11 @@ interface ProfileData {
 export default function ProfilePage() {
     const { user } = useAuth();
     const { toast } = useToast();
-    const [isEditing, setIsEditing] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [userRole, setUserRole] = useState<string>("");
+  const [userDepartment, setUserDepartment] = useState<string>("");
     const [profileData, setProfileData] = useState<ProfileData>({
         full_name: "",
         email: "",
@@ -78,6 +81,12 @@ export default function ProfilePage() {
 
     useEffect(() => {
         if (user) {
+            // Set user role and department from metadata
+            const role = user.user_metadata?.role || user.role || 'citizen';
+            const department = user.user_metadata?.department;
+            setUserRole(role);
+            setUserDepartment(department || '');
+            
             fetchProfileData();
             fetchIssueStats();
         }
@@ -253,9 +262,18 @@ export default function ProfilePage() {
                                 
                                 <h2 className="text-xl font-semibold mb-2">{displayName}</h2>
                                 <p className="text-muted-foreground mb-4">{profileData.email}</p>
-                                <Badge variant="secondary" className="mb-4">
-                                    Citizen
-                                </Badge>
+                                
+                                {/* Role and Department Display */}
+                                <div className="flex flex-col gap-2 mb-4">
+                                    <Badge variant="secondary" className="w-fit">
+                                        {userRole === 'admin' ? 'Administrator' : 'Citizen'}
+                                    </Badge>
+                                    {userDepartment && (
+                                        <Badge variant="outline" className="w-fit">
+                                            {getDepartmentName(userDepartment as DepartmentKey)}
+                                        </Badge>
+                                    )}
+                                </div>
                                 
                                 {!isEditing ? (
                                     <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">

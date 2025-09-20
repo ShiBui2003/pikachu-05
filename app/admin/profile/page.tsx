@@ -46,6 +46,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import AccountManagement from "@/components/account-management";
+import { getDepartmentName, type DepartmentKey } from "@/lib/department-mapping";
 
 interface ProfileData {
   full_name: string;
@@ -82,6 +83,9 @@ export default function AdminProfilePage() {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [userRole, setUserRole] = useState<string>("");
+    const [userDepartment, setUserDepartment] = useState<string>("");
+    const [userAdminLevel, setUserAdminLevel] = useState<string>("");
     const [profileData, setProfileData] = useState<ProfileData>({
         full_name: "",
         email: "",
@@ -113,6 +117,18 @@ export default function AdminProfilePage() {
 
     useEffect(() => {
         if (user) {
+            // Set user role, department, and admin level from metadata
+            const role = user.user_metadata?.role || user.role || 'admin';
+            const department = user.user_metadata?.department;
+            const adminLevel = user.user_metadata?.admin_level || 'senior';
+            
+            console.log('User metadata:', user.user_metadata);
+            console.log('Role:', role, 'Department:', department, 'Admin Level:', adminLevel);
+            
+            setUserRole(role);
+            setUserDepartment(department || '');
+            setUserAdminLevel(adminLevel);
+            
             fetchProfileData();
             fetchAdminStats();
         }
@@ -179,6 +195,7 @@ export default function AdminProfilePage() {
     const handleSave = async () => {
         setLoading(true);
         try {
+            // Save profile data
             const response = await fetch('/api/profile', {
                 method: 'PUT',
                 headers: {
@@ -189,6 +206,19 @@ export default function AdminProfilePage() {
             });
 
             if (response.ok) {
+                // Also update user metadata with department and admin level if they changed
+                if (user?.id) {
+                    const { createClient } = await import('@/lib/supabase/client');
+                    const supabase = createClient();
+                    
+                    await supabase.auth.updateUser({
+                        data: {
+                            department: userDepartment,
+                            admin_level: userAdminLevel
+                        }
+                    });
+                }
+
                 toast({
                     title: "Profile updated",
                     description: "Your admin profile has been successfully updated."
@@ -297,12 +327,12 @@ export default function AdminProfilePage() {
                                 <div className="flex gap-2 mb-4">
                                     <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                                         <Shield className="w-3 h-3 mr-1" />
-                                        {profileData.admin_level || "Senior"} Admin
+                                        {userAdminLevel ? userAdminLevel.charAt(0).toUpperCase() + userAdminLevel.slice(1) : "Senior"} Admin
                                     </Badge>
-                                    {profileData.department && (
+                                    {userDepartment && (
                                         <Badge variant="outline">
                                             <Building className="w-3 h-3 mr-1" />
-                                            {profileData.department}
+                                            {getDepartmentName(userDepartment as DepartmentKey)}
                                         </Badge>
                                     )}
                                 </div>
@@ -514,8 +544,8 @@ export default function AdminProfilePage() {
                                     <Label htmlFor="department">Department</Label>
                                     {isEditing ? (
                                         <Select
-                                            value={profileData.department || ""}
-                                            onValueChange={(value) => setProfileData(prev => ({ ...prev, department: value }))}
+                                            value={userDepartment || ""}
+                                            onValueChange={(value) => setUserDepartment(value)}
                                         >
                                             <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Select department" />
@@ -560,7 +590,9 @@ export default function AdminProfilePage() {
                                             </SelectContent>
                                         </Select>
                                     ) : (
-                                        <p className="text-muted-foreground">{profileData.department || "Not assigned"}</p>
+                                        <p className="text-muted-foreground">
+                                            {userDepartment ? getDepartmentName(userDepartment as DepartmentKey) : "Not assigned"}
+                                        </p>
                                     )}
                                 </div>
 
@@ -568,8 +600,8 @@ export default function AdminProfilePage() {
                                     <Label htmlFor="admin_level">Admin Level</Label>
                                     {isEditing ? (
                                         <Select
-                                            value={profileData.admin_level || "senior"}
-                                            onValueChange={(value) => setProfileData(prev => ({ ...prev, admin_level: value }))}
+                                            value={userAdminLevel || "senior"}
+                                            onValueChange={(value) => setUserAdminLevel(value)}
                                         >
                                             <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Select admin level" />
@@ -602,7 +634,9 @@ export default function AdminProfilePage() {
                                             </SelectContent>
                                         </Select>
                                     ) : (
-                                        <p className="text-muted-foreground capitalize">{profileData.admin_level || "Senior"} Admin</p>
+                                        <p className="text-muted-foreground capitalize">
+                                            {userAdminLevel ? userAdminLevel.charAt(0).toUpperCase() + userAdminLevel.slice(1) : "Senior"} Admin
+                                        </p>
                                     )}
                                 </div>
                             </div>
