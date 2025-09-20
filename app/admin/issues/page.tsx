@@ -194,7 +194,6 @@ export default function AdminIssuesPage() {
   }
 
   const handleBulkAction = (action: string) => {
-    console.log(`Performing ${action} on issues:`, selectedIssues)
     setSelectedIssues([])
   }
 
@@ -295,7 +294,7 @@ export default function AdminIssuesPage() {
           window.location.href = `/admin/issues/${issueId}`;
           return;
         default:
-          console.log('Unknown action:', action);
+          // Unknown action
       }
       
       await new Promise(resolve => setTimeout(resolve, 500));
