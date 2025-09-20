@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
         comments:comments(count),
         issue_votes:issue_votes(count)
       `)
+      .order('upvotes', { ascending: false })
       .order('created_at', { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
 

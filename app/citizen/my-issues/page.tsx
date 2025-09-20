@@ -18,6 +18,7 @@ type Issue = {
   status: string
   location_address: string | null
   image_url: string | null
+  upvotes: number // Added for upvote-based ranking
   created_at: string
   updated_at: string
   user_id: string
@@ -108,8 +109,33 @@ export default function MyIssuesPage() {
     fetchMine()
   }, [user?.id])
 
-  const activeIssues = useMemo(() => issues.filter(i => (i.status === 'resolved') === false), [issues])
-  const resolvedIssues = useMemo(() => issues.filter(i => i.status === 'resolved'), [issues])
+  const activeIssues = useMemo(() => 
+    issues
+      .filter(i => (i.status === 'resolved') === false)
+      .sort((a, b) => {
+        // Primary sort: by upvotes (descending)
+        const upvoteDiff = (b.upvotes || 0) - (a.upvotes || 0);
+        if (upvoteDiff !== 0) return upvoteDiff;
+        
+        // Secondary sort: by creation date (descending) for stable sorting
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }), 
+    [issues]
+  )
+  
+  const resolvedIssues = useMemo(() => 
+    issues
+      .filter(i => i.status === 'resolved')
+      .sort((a, b) => {
+        // Primary sort: by upvotes (descending)
+        const upvoteDiff = (b.upvotes || 0) - (a.upvotes || 0);
+        if (upvoteDiff !== 0) return upvoteDiff;
+        
+        // Secondary sort: by creation date (descending) for stable sorting
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }), 
+    [issues]
+  )
 
   const selectedIssueData = issues.find((issue) => issue.id === selectedIssue) || null
 
