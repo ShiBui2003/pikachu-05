@@ -36,7 +36,8 @@ export default function UnifiedAuthPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    fullName: ""
+    fullName: "",
+    department: ""
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -114,7 +115,7 @@ export default function UnifiedAuthPage() {
         }
         // If no redirect, the useEffect will handle role-based redirect
       } else {
-        const { error } = await signUp(formData.email, formData.password, formData.fullName, selectedRole)
+        const { error } = await signUp(formData.email, formData.password, formData.fullName, selectedRole, formData.department)
         if (error) throw error
         
         toast({
@@ -246,6 +247,59 @@ export default function UnifiedAuthPage() {
                       <div className="flex items-center space-x-2">
                         <Shield className="w-4 h-4 text-purple-600" />
                         <span>Administrator - Manage and resolve issues</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Department Selection - Only for Admin Signup */}
+            {authMode === "signup" && selectedRole === "admin" && (
+              <div className="space-y-2">
+                <Label htmlFor="department">Select Your Department</Label>
+                <Select 
+                  value={formData.department} 
+                  onValueChange={(value) => handleInputChange("department", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose your department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public-works">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Public Works</span>
+                        <span className="text-xs text-muted-foreground">Infrastructure and maintenance</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="transportation">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Transportation</span>
+                        <span className="text-xs text-muted-foreground">Roads, traffic, and transit</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="environment">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Environment</span>
+                        <span className="text-xs text-muted-foreground">Environmental services and sustainability</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="health">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Health & Safety</span>
+                        <span className="text-xs text-muted-foreground">Public health and safety services</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="utilities">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Utilities</span>
+                        <span className="text-xs text-muted-foreground">Water, electricity, and gas services</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="general">
+                      <div className="flex flex-col">
+                        <span className="font-medium">General Administration</span>
+                        <span className="text-xs text-muted-foreground">General administrative services</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
