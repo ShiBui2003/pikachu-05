@@ -45,6 +45,7 @@ import {
   AlertCircle,
   TrendingUp
 } from "lucide-react";
+import AccountManagement from "@/components/account-management";
 
 interface ProfileData {
   full_name: string;
@@ -717,66 +718,8 @@ export default function AdminProfilePage() {
                         </CardContent>
                     </Card>
 
-                    {/* System Actions */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Settings className="w-5 h-5" />
-                                System Actions
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Change Password</p>
-                                    <p className="text-sm text-muted-foreground">Update your admin account password</p>
-                                </div>
-                                <Button variant="outline" size="sm">
-                                    <Key className="w-4 h-4 mr-2" />
-                                    Change Password
-                                </Button>
-                            </div>
-                            
-                            <Separator />
-                            
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">System Backup</p>
-                                    <p className="text-sm text-muted-foreground">Create a system backup</p>
-                                </div>
-                                <Button variant="outline" size="sm">
-                                    <Database className="w-4 h-4 mr-2" />
-                                    Backup Now
-                                </Button>
-                            </div>
-                            
-                            <Separator />
-                            
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Export Data</p>
-                                    <p className="text-sm text-muted-foreground">Export system data and reports</p>
-                                </div>
-                                <Button variant="outline" size="sm">
-                                    <Upload className="w-4 h-4 mr-2" />
-                                    Export
-                                </Button>
-                            </div>
-                            
-                            <Separator />
-                            
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium text-red-600">System Maintenance</p>
-                                    <p className="text-sm text-muted-foreground">Schedule system maintenance mode</p>
-                                </div>
-                                <Button variant="destructive" size="sm">
-                                    <Settings className="w-4 h-4 mr-2" />
-                                    Maintenance
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {/* Account Management */}
+                    <AccountManagement userType="admin" />
                 </div>
             </div>
         </div>

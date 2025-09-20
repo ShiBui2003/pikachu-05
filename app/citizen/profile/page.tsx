@@ -33,6 +33,7 @@ import {
   Trash2,
   RefreshCw
 } from "lucide-react";
+import AccountManagement from "@/components/account-management";
 
 interface ProfileData {
   full_name: string;
@@ -546,52 +547,8 @@ export default function ProfilePage() {
                         </CardContent>
                     </Card>
 
-                    {/* Account Actions */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Settings className="w-5 h-5" />
-                                Account Actions
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Change Password</p>
-                                    <p className="text-sm text-muted-foreground">Update your account password</p>
-                                </div>
-                                <Button variant="outline" size="sm">
-                                    Change Password
-                                </Button>
-                            </div>
-                            
-                            <Separator />
-                            
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Download Data</p>
-                                    <p className="text-sm text-muted-foreground">Download a copy of your account data</p>
-                                </div>
-                                <Button variant="outline" size="sm">
-                                    <Upload className="w-4 h-4 mr-2" />
-                                    Download
-                                </Button>
-                            </div>
-                            
-                            <Separator />
-                            
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium text-red-600">Delete Account</p>
-                                    <p className="text-sm text-muted-foreground">Permanently delete your account and all data</p>
-                                </div>
-                                <Button variant="destructive" size="sm">
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {/* Account Management */}
+                    <AccountManagement userType="citizen" />
                 </div>
             </div>
         </div>
