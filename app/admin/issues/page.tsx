@@ -24,7 +24,6 @@ import {
   Building2,
 } from "lucide-react"
 import SimpleAdminActions from "@/components/simple-admin-actions"
-import AIUrgencyBadge from "@/components/ai-urgency-badge"
 
 interface Issue {
   id: string;
@@ -39,8 +38,6 @@ interface Issue {
   landmark?: string;
   image_url?: string;
   upvotes: number; // Added for upvote-based ranking
-  ai_urgency?: "low" | "medium" | "high" | null;
-  ai_confidence?: number | null;
   created_at: string;
   updated_at: string;
   profiles?: {
@@ -139,6 +136,7 @@ export default function AdminIssuesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [processingIssue, setProcessingIssue] = useState<string | null>(null)
+  const [expandedUserIds, setExpandedUserIds] = useState<Set<string>>(new Set())
 
   // Fetch issues from API
   useEffect(() => {
@@ -177,24 +175,9 @@ export default function AdminIssuesPage() {
       return matchesSearch && matchesStatus && matchesPriority && matchesCategory
     })
     .sort((a, b) => {
-      // Calculate combined scores using AI urgency and upvotes
-      const getCombinedScore = (issue: Issue) => {
-        const upvotes = issue.upvotes || 0;
-        const urgency = issue.ai_urgency || 'medium';
-        
-        // AI urgency weight: low=1, medium=2, high=3
-        const urgencyWeight = urgency === 'high' ? 3 : urgency === 'medium' ? 2 : 1;
-        const upvoteScore = Math.log(1 + upvotes);
-        
-        // Combined score: 0.7 * AI urgency + 0.3 * log(1 + upvotes)
-        return 0.7 * urgencyWeight + 0.3 * upvoteScore;
-      };
-      
-      const scoreA = getCombinedScore(a);
-      const scoreB = getCombinedScore(b);
-      const scoreDiff = scoreB - scoreA;
-      
-      if (scoreDiff !== 0) return scoreDiff;
+      // Primary sort: by upvotes (descending)
+      const upvoteDiff = (b.upvotes || 0) - (a.upvotes || 0);
+      if (upvoteDiff !== 0) return upvoteDiff;
       
       // Secondary sort: by creation date (descending) for stable sorting
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -326,6 +309,18 @@ export default function AdminIssuesPage() {
     } finally {
       setProcessingIssue(null);
     }
+  };
+
+  const handleUserIdClick = (issueId: string) => {
+    setExpandedUserIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(issueId)) {
+        newSet.delete(issueId);
+      } else {
+        newSet.add(issueId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -478,38 +473,182 @@ export default function AdminIssuesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12">
-                          <input
-                            type="checkbox"
-                            checked={selectedIssues.length === filteredIssues.length && filteredIssues.length > 0}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedIssues(filteredIssues.map((issue) => issue.id))
-                              } else {
-                                setSelectedIssues([])
-                              }
-                            }}
-                            className="rounded"
-                          />
-                        </TableHead>
-                        <TableHead>Issue</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Priority</TableHead>
-                        <TableHead>AI Urgency</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Assigned To</TableHead>
-                        <TableHead>Reported</TableHead>
-                        <TableHead className="w-12">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredIssues.map((issue) => (
-                        <TableRow key={issue.id}>
-                          <TableCell>
+                {/* Desktop Table View - Hidden on mobile */}
+                <div className="hidden lg:block rounded-md border overflow-hidden">
+                  <div className="overflow-x-auto max-w-full">
+                    <Table className="min-w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">
+                            <input
+                              type="checkbox"
+                              checked={selectedIssues.length === filteredIssues.length && filteredIssues.length > 0}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedIssues(filteredIssues.map((issue) => issue.id))
+                                } else {
+                                  setSelectedIssues([])
+                                }
+                              }}
+                              className="rounded"
+                            />
+                          </TableHead>
+                          <TableHead className="min-w-[300px]">Issue</TableHead>
+                          <TableHead className="w-24">Status</TableHead>
+                          <TableHead className="w-20">Priority</TableHead>
+                          <TableHead className="w-24">AI Urgency</TableHead>
+                          <TableHead className="w-24">Category</TableHead>
+                          <TableHead className="min-w-[150px]">Assigned To</TableHead>
+                          <TableHead className="min-w-[120px]">Reported</TableHead>
+                          <TableHead className="w-16">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredIssues.map((issue) => (
+                          <TableRow key={issue.id}>
+                            <TableCell>
+                              <input
+                                type="checkbox"
+                                checked={selectedIssues.includes(issue.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedIssues([...selectedIssues, issue.id])
+                                  } else {
+                                    setSelectedIssues(selectedIssues.filter((id) => id !== issue.id))
+                                  }
+                                }}
+                                className="rounded"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1 max-w-[280px]">
+                                <div className="font-medium truncate" title={issue.title}>{issue.title}</div>
+                                <div className="text-sm text-muted-foreground flex items-center">
+                                  <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                                  <span className="truncate" title={issue.location_address}>
+                                    {issue.location_address}
+                                  </span>
+                                </div>
+                                <div 
+                                  className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+                                  onClick={() => handleUserIdClick(issue.id)}
+                                  title="Click to show/hide full ID"
+                                >
+                                  ID: {issue.id.slice(0, 8)}...
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`${getStatusColor(issue.status)} text-xs`}>
+                                {getStatusIcon(issue.status)}
+                                <span className="ml-1 capitalize hidden sm:inline">{issue.status.replace("_", " ")}</span>
+                                <span className="ml-1 capitalize sm:hidden">{issue.status.charAt(0).toUpperCase()}</span>
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`${getPriorityColor(issue.priority)} text-xs`} variant="outline">
+                                {issue.priority.charAt(0).toUpperCase()}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <AIUrgencyBadge 
+                                urgency={issue.ai_urgency}
+                                confidence={issue.ai_confidence}
+                                className="text-xs"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {getCategoryLabel(issue.category).slice(0, 8)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {issue.assigned_profile ? (
+                                <div className="space-y-1 max-w-[140px]">
+                                  <div className="text-sm font-medium truncate" title={issue.assigned_profile.full_name}>
+                                    {issue.assigned_profile.full_name}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground truncate" title={issue.department?.name}>
+                                    {issue.department?.name}
+                                  </div>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border">
+                                      {issue.id}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : issue.department ? (
+                                <div className="space-y-1 max-w-[140px]">
+                                  <div className="text-sm font-medium">Department</div>
+                                  <div className="text-xs text-muted-foreground truncate" title={issue.department.name}>
+                                    {issue.department.name}
+                                  </div>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border">
+                                      {issue.id}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="space-y-1 max-w-[140px]">
+                                  <span className="text-muted-foreground text-sm">Unassigned</span>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border">
+                                      {issue.id}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1 max-w-[110px]">
+                                <div className="text-sm flex items-center">
+                                  <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
+                                  <span className="text-xs">{new Date(issue.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <div className="text-xs text-muted-foreground flex items-center">
+                                  <User className="w-3 h-3 mr-1 flex-shrink-0" />
+                                  <span className="truncate" title={issue.profiles?.full_name || 'Unknown'}>
+                                    {issue.profiles?.full_name || 'Unknown'}
+                                  </span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <SimpleAdminActions
+                                issue={{
+                                  id: issue.id,
+                                  status: issue.status,
+                                  title: issue.title
+                                }}
+                                onAction={handleIssueAction}
+                                processing={processingIssue === issue.id}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+
+                {filteredIssues.length === 0 && (
+                  <div className="text-center py-8">
+                    <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Issues Found</h3>
+                    <p className="text-muted-foreground">
+                      No issues match your current filters. Try adjusting your search criteria.
+                    </p>
+                  </div>
+                )}
+
+                {/* Mobile Card View - Hidden on larger screens */}
+                <div className="block lg:hidden mt-4">
+                  <div className="space-y-4">
+                    {filteredIssues.map((issue) => (
+                      <Card key={issue.id} className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center space-x-2">
                             <input
                               type="checkbox"
                               checked={selectedIssues.includes(issue.id)}
@@ -522,93 +661,121 @@ export default function AdminIssuesPage() {
                               }}
                               className="rounded"
                             />
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="font-medium">{issue.title}</div>
-                              <div className="text-sm text-muted-foreground flex items-center">
-                                <MapPin className="w-3 h-3 mr-1" />
-                                {issue.location_address}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {issue.id.slice(0, 8)}...
-                              </div>
+                            <div className="flex-1">
+                              <h3 className="font-medium text-sm leading-tight">{issue.title}</h3>
+                              <p 
+                                className="text-xs text-muted-foreground mt-1 cursor-pointer hover:text-primary transition-colors"
+                                onClick={() => handleUserIdClick(issue.id)}
+                                title="Click to show/hide full ID"
+                              >
+                                ID: {issue.id.slice(0, 8)}...
+                              </p>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getStatusColor(issue.status)}>
+                          </div>
+                          <SimpleAdminActions
+                            issue={{
+                              id: issue.id,
+                              status: issue.status,
+                              title: issue.title
+                            }}
+                            onAction={handleIssueAction}
+                            processing={processingIssue === issue.id}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Status</span>
+                            <Badge className={`${getStatusColor(issue.status)} text-xs`}>
                               {getStatusIcon(issue.status)}
                               <span className="ml-1 capitalize">{issue.status.replace("_", " ")}</span>
                             </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getPriorityColor(issue.priority)} variant="outline">
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Priority</span>
+                            <Badge className={`${getPriorityColor(issue.priority)} text-xs`} variant="outline">
                               {issue.priority}
                             </Badge>
-                          </TableCell>
-                          <TableCell>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">AI Urgency</span>
                             <AIUrgencyBadge 
                               urgency={issue.ai_urgency}
                               confidence={issue.ai_confidence}
                               className="text-xs"
                             />
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{getCategoryLabel(issue.category)}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {issue.assigned_profile ? (
-                              <div className="space-y-1">
-                                <div className="text-sm font-medium">{issue.assigned_profile.full_name}</div>
-                                <div className="text-xs text-muted-foreground">{issue.department?.name}</div>
-                              </div>
-                            ) : issue.department ? (
-                              <div className="space-y-1">
-                                <div className="text-sm font-medium">Department</div>
-                                <div className="text-xs text-muted-foreground">{issue.department.name}</div>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">Unassigned</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="text-sm flex items-center">
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Category</span>
+                            <Badge variant="outline" className="text-xs">
+                              {getCategoryLabel(issue.category)}
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Assigned To</span>
+                            <span className="text-xs">
+                              {issue.assigned_profile ? (
+                                <div>
+                                  <div className="font-medium">{issue.assigned_profile.full_name}</div>
+                                  <div className="text-muted-foreground">{issue.department?.name}</div>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border mt-1">
+                                      {issue.id}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : issue.department ? (
+                                <div>
+                                  <div className="font-medium">Department</div>
+                                  <div className="text-muted-foreground">{issue.department.name}</div>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border mt-1">
+                                      {issue.id}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div>
+                                  <span className="text-muted-foreground">Unassigned</span>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border mt-1">
+                                      {issue.id}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Reported</span>
+                            <div className="text-xs text-right">
+                              <div className="flex items-center">
                                 <Calendar className="w-3 h-3 mr-1" />
                                 {new Date(issue.created_at).toLocaleDateString()}
                               </div>
-                              <div className="text-xs text-muted-foreground flex items-center">
+                              <div className="flex items-center text-muted-foreground">
                                 <User className="w-3 h-3 mr-1" />
                                 {issue.profiles?.full_name || 'Unknown'}
                               </div>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <SimpleAdminActions
-                              issue={{
-                                id: issue.id,
-                                status: issue.status,
-                                title: issue.title
-                              }}
-                              onAction={handleIssueAction}
-                              processing={processingIssue === issue.id}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {filteredIssues.length === 0 && (
-                  <div className="text-center py-8">
-                    <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Issues Found</h3>
-                    <p className="text-muted-foreground">
-                      No issues match your current filters. Try adjusting your search criteria.
-                    </p>
+                          </div>
+                          
+                          <div className="pt-2 border-t">
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                              <span className="truncate">{issue.location_address}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
