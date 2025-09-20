@@ -24,6 +24,7 @@ import {
   Building2,
 } from "lucide-react"
 import SimpleAdminActions from "@/components/simple-admin-actions"
+import AIUrgencyBadge from "@/components/ai-urgency-badge"
 
 interface Issue {
   id: string;
@@ -38,6 +39,8 @@ interface Issue {
   landmark?: string;
   image_url?: string;
   upvotes: number; // Added for upvote-based ranking
+  ai_urgency?: "low" | "medium" | "high" | null;
+  ai_confidence?: number | null;
   created_at: string;
   updated_at: string;
   profiles?: {
@@ -174,9 +177,24 @@ export default function AdminIssuesPage() {
       return matchesSearch && matchesStatus && matchesPriority && matchesCategory
     })
     .sort((a, b) => {
-      // Primary sort: by upvotes (descending)
-      const upvoteDiff = (b.upvotes || 0) - (a.upvotes || 0);
-      if (upvoteDiff !== 0) return upvoteDiff;
+      // Calculate combined scores using AI urgency and upvotes
+      const getCombinedScore = (issue: Issue) => {
+        const upvotes = issue.upvotes || 0;
+        const urgency = issue.ai_urgency || 'medium';
+        
+        // AI urgency weight: low=1, medium=2, high=3
+        const urgencyWeight = urgency === 'high' ? 3 : urgency === 'medium' ? 2 : 1;
+        const upvoteScore = Math.log(1 + upvotes);
+        
+        // Combined score: 0.7 * AI urgency + 0.3 * log(1 + upvotes)
+        return 0.7 * urgencyWeight + 0.3 * upvoteScore;
+      };
+      
+      const scoreA = getCombinedScore(a);
+      const scoreB = getCombinedScore(b);
+      const scoreDiff = scoreB - scoreA;
+      
+      if (scoreDiff !== 0) return scoreDiff;
       
       // Secondary sort: by creation date (descending) for stable sorting
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -481,6 +499,7 @@ export default function AdminIssuesPage() {
                         <TableHead>Issue</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Priority</TableHead>
+                        <TableHead>AI Urgency</TableHead>
                         <TableHead>Category</TableHead>
                         <TableHead>Assigned To</TableHead>
                         <TableHead>Reported</TableHead>
@@ -526,6 +545,13 @@ export default function AdminIssuesPage() {
                             <Badge className={getPriorityColor(issue.priority)} variant="outline">
                               {issue.priority}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <AIUrgencyBadge 
+                              urgency={issue.ai_urgency}
+                              confidence={issue.ai_confidence}
+                              className="text-xs"
+                            />
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">{getCategoryLabel(issue.category)}</Badge>
