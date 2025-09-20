@@ -136,6 +136,7 @@ export default function AdminIssuesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [processingIssue, setProcessingIssue] = useState<string | null>(null)
+  const [expandedUserIds, setExpandedUserIds] = useState<Set<string>>(new Set())
 
   // Fetch issues from API
   useEffect(() => {
@@ -308,6 +309,18 @@ export default function AdminIssuesPage() {
     } finally {
       setProcessingIssue(null);
     }
+  };
+
+  const handleUserIdClick = (issueId: string) => {
+    setExpandedUserIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(issueId)) {
+        newSet.delete(issueId);
+      } else {
+        newSet.add(issueId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -515,7 +528,11 @@ export default function AdminIssuesPage() {
                                     {issue.location_address}
                                   </span>
                                 </div>
-                                <div className="text-xs text-muted-foreground">
+                                <div 
+                                  className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+                                  onClick={() => handleUserIdClick(issue.id)}
+                                  title="Click to show/hide full ID"
+                                >
                                   ID: {issue.id.slice(0, 8)}...
                                 </div>
                               </div>
@@ -546,6 +563,11 @@ export default function AdminIssuesPage() {
                                   <div className="text-xs text-muted-foreground truncate" title={issue.department?.name}>
                                     {issue.department?.name}
                                   </div>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border">
+                                      {issue.id}
+                                    </div>
+                                  )}
                                 </div>
                               ) : issue.department ? (
                                 <div className="space-y-1 max-w-[140px]">
@@ -553,9 +575,21 @@ export default function AdminIssuesPage() {
                                   <div className="text-xs text-muted-foreground truncate" title={issue.department.name}>
                                     {issue.department.name}
                                   </div>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border">
+                                      {issue.id}
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
-                                <span className="text-muted-foreground text-sm">Unassigned</span>
+                                <div className="space-y-1 max-w-[140px]">
+                                  <span className="text-muted-foreground text-sm">Unassigned</span>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border">
+                                      {issue.id}
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </TableCell>
                             <TableCell>
@@ -621,7 +655,13 @@ export default function AdminIssuesPage() {
                             />
                             <div className="flex-1">
                               <h3 className="font-medium text-sm leading-tight">{issue.title}</h3>
-                              <p className="text-xs text-muted-foreground mt-1">ID: {issue.id.slice(0, 8)}...</p>
+                              <p 
+                                className="text-xs text-muted-foreground mt-1 cursor-pointer hover:text-primary transition-colors"
+                                onClick={() => handleUserIdClick(issue.id)}
+                                title="Click to show/hide full ID"
+                              >
+                                ID: {issue.id.slice(0, 8)}...
+                              </p>
                             </div>
                           </div>
                           <SimpleAdminActions
@@ -665,14 +705,31 @@ export default function AdminIssuesPage() {
                                 <div>
                                   <div className="font-medium">{issue.assigned_profile.full_name}</div>
                                   <div className="text-muted-foreground">{issue.department?.name}</div>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border mt-1">
+                                      {issue.id}
+                                    </div>
+                                  )}
                                 </div>
                               ) : issue.department ? (
                                 <div>
                                   <div className="font-medium">Department</div>
                                   <div className="text-muted-foreground">{issue.department.name}</div>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border mt-1">
+                                      {issue.id}
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
-                                <span className="text-muted-foreground">Unassigned</span>
+                                <div>
+                                  <span className="text-muted-foreground">Unassigned</span>
+                                  {expandedUserIds.has(issue.id) && (
+                                    <div className="text-xs text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded border mt-1">
+                                      {issue.id}
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </span>
                           </div>
