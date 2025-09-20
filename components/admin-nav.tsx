@@ -9,12 +9,17 @@ import { Badge } from "@/components/ui/badge";
 
 // ✅ Correct supabase client import
 import { createClient } from "@/lib/supabase/client";
-
-// ✅ Icons from lucide-react
-import { BarChart3, Bell, FileText, Settings, Shield, Users, LogOut, Flag } from "lucide-react";
-
-// ✅ Notification component
-import NotificationSystem from "@/components/notification-system";
+import { useAuth } from "@/contexts/auth-context";
+import {
+    BarChart3,
+    Bell,
+    FileText,
+    Settings,
+    Shield,
+    Users,
+    LogOut,
+} from "lucide-react";
+import AdminNotifications from "@/components/admin-notifications";
 
 // Navigation items
 const navItems = [
@@ -28,15 +33,12 @@ const navItems = [
 ];
 
 export default function AdminNav() {
-  const pathname = usePathname();
-  const router = useRouter();
-
-  // Logout function
-  const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/admin/login");
-  };
+    const pathname = usePathname();
+    const router = useRouter();
+    const { signOut } = useAuth();
+    const handleLogout = async () => {
+        await signOut();
+    };
 
   return (
     <div className="border-b bg-card">
@@ -57,48 +59,46 @@ export default function AdminNav() {
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
 
-                return (
-                  <Button
-                    key={item.href}
-                    variant={isActive ? "default" : "ghost"}
-                    size="sm"
-                    asChild
-                    className="relative"
-                  >
-                    <Link href={item.href} className="flex items-center">
-                      {Icon && <Icon className="w-4 h-4 mr-2" />}
-                      {item.label}
-                      {item.badge && (
-                        <Badge
-                          variant="destructive"
-                          className="ml-2 px-1 py-0 text-xs"
+                                return (
+                                    <Link key={item.href} href={item.href as any}>
+                                        <button
+                                            className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 relative ${
+                                                isActive 
+                                                    ? 'bg-primary text-primary-foreground' 
+                                                    : 'text-gray-700 hover:bg-gray-100'
+                                            }`}
+                                        >
+                                            <Icon className="w-4 h-4 mr-2" />
+                                            {item.label}
+                                            {item.badge && (
+                                                <Badge
+                                                    variant="destructive"
+                                                    className="ml-2 px-1 py-0 text-xs"
+                                                >
+                                                    {item.badge}
+                                                </Badge>
+                                            )}
+                                        </button>
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+                    </div>
+
+                    <div className="flex items-center space-x-4">
+                        <AdminNotifications />
+
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleLogout}
                         >
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </Link>
-                  </Button>
-                );
-              })}
-            </nav>
-          </div>
-
-          {/* Right section */}
-          <div className="flex items-center space-x-4">
-            <NotificationSystem />
-
-            <Button variant="ghost" size="sm" className="flex items-center">
-              <Shield className="w-4 h-4 mr-2" />
-              Admin Panel
-            </Button>
-
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="flex items-center">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
+                            <LogOut className="w-4 h-4 mr-2" />
+                            Logout
+                        </Button>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }

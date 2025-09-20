@@ -1,373 +1,435 @@
-"use client";
+"use client"
 
-import type React from "react";
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ArrowLeft,
+  User,
+  UserPlus,
+  LogIn,
+  Shield,
+  MapPin
+} from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/auth-context"
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
-import { MapPin, Mail, Lock, Eye, EyeOff, User } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@/lib/supabase/client";
+type AuthMode = "signin" | "signup"
+type UserRole = "citizen" | "admin"
 
-export default function CitizenSignupPage() {
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [formData, setFormData] = useState({
-        name: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        agreeToTerms: false,
-    });
-    const [isLoading, setIsLoading] = useState(false);
-    const { toast } = useToast();
-    const router = useRouter();
+export default function UnifiedAuthPage() {
+  const [authMode, setAuthMode] = useState<AuthMode>("signin")
+  const [selectedRole, setSelectedRole] = useState<UserRole>("citizen")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    fullName: ""
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  
+  const { toast } = useToast()
+  const { user, signIn, signUp, signInWithGoogle } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
-    const handleInputChange = (field: string, value: string | boolean) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
+  // Set initial auth mode and role from URL parameters
+  useEffect(() => {
+    const modeParam = searchParams.get('mode')
+    const roleParam = searchParams.get('role')
+    
+    if (modeParam && (modeParam === 'signin' || modeParam === 'signup')) {
+      setAuthMode(modeParam)
+    }
+    
+    if (roleParam && (roleParam === 'citizen' || roleParam === 'admin')) {
+      setSelectedRole(roleParam)
+    }
+  }, [searchParams])
 
-    const handleSignup = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        if (formData.password !== formData.confirmPassword) {
-            toast({
-                title: "Password Mismatch",
-                description: "Passwords do not match. Please try again.",
-                variant: "destructive",
-            });
-            setIsLoading(false);
-            return;
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      const redirectTo = searchParams.get('redirectedFrom')
+      if (redirectTo && redirectTo.startsWith('/')) {
+        router.push(redirectTo as any)
+      } else {
+        // Redirect based on user role or default to citizen
+        const userRole = user.user_metadata?.role || 'citizen'
+        const dashboardPath = userRole === 'admin' ? '/admin/dashboard' : '/citizen/dashboard'
+        router.push(dashboardPath)
+      }
+    }
+  }, [user, router, searchParams])
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    setError(null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (authMode === "signup") {
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match")
+        return
+      }
+      if (formData.password.length < 6) {
+        setError("Password must be at least 6 characters long")
+        return
+      }
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      if (authMode === "signin") {
+        const { error } = await signIn(formData.email, formData.password)
+        if (error) throw error
+        
+        toast({
+          title: "Login Successful",
+          description: `Welcome back! Redirecting to your dashboard...`,
+        })
+        
+        // Auto-redirect based on user role will be handled by the useEffect
+        const redirectTo = searchParams.get('redirectedFrom')
+        if (redirectTo && redirectTo.startsWith('/')) {
+          router.push(redirectTo as any)
         }
-        if (!formData.agreeToTerms) {
-            toast({
-                title: "Terms Required",
-                description: "Please agree to the terms and conditions.",
-                variant: "destructive",
-            });
-            setIsLoading(false);
-            return;
-        }
-        const supabase = createClient();
-        try {
-            const { error } = await supabase.auth.signUp({
-                email: formData.email,
-                password: formData.password,
-            });
-            if (error) throw error;
-            toast({
-                title: "Account Created",
-                description:
-                    "Welcome! Please check your email to verify your account.",
-            });
-            setTimeout(() => {
-                router.push("/citizen/login");
-            }, 1500);
-        } catch (error: any) {
-            toast({
-                title: "Signup Failed",
-                description:
-                    error.message || "An error occurred during signup.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        // If no redirect, the useEffect will handle role-based redirect
+      } else {
+        const { error } = await signUp(formData.email, formData.password, formData.fullName, selectedRole)
+        if (error) throw error
+        
+        toast({
+          title: "Account Created Successfully!",
+          description: `Welcome! Please check your email to verify your account.`,
+        })
+        router.push("/auth")
+        return
+      }
+    } catch (error: any) {
+      setError(error.message || `${authMode === "signin" ? "Login" : "Sign up"} failed. Please try again.`)
+      toast({
+        title: `${authMode === "signin" ? "Login" : "Sign Up"} Failed`,
+        description: error.message || `An error occurred during ${authMode === "signin" ? "login" : "sign up"}.`,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-    const handleGoogleSignup = () => {
-        const supabase = createClient();
-        setIsLoading(true);
-        supabase.auth
-            .signInWithOAuth({
-                provider: "google",
-            })
-            .catch((error: any) => {
-                toast({
-                    title: "Google Signup Failed",
-                    description:
-                        error.message ||
-                        "An error occurred during Google signup.",
-                    variant: "destructive",
-                });
-            })
-            .finally(() => setIsLoading(false));
-    };
+  const handleGoogleAuth = async () => {
+    try {
+      // For signup, we'll pass the role via URL parameters
+      if (authMode === "signup") {
+        // Create the OAuth URL with role parameter
+        const baseUrl = window.location.origin
+        const callbackUrl = `${baseUrl}/auth/callback?role=${selectedRole}&signup=true`
+        
+        console.log('Starting Google OAuth with callback URL:', callbackUrl)
+        
+        const { error } = await signInWithGoogle(selectedRole, callbackUrl)
+        if (error) throw error
+      } else {
+        // For signin, use default callback
+        const { error } = await signInWithGoogle('citizen')
+        if (error) throw error
+        
+        toast({
+          title: "Login Successful",
+          description: "Welcome back! Redirecting to your dashboard...",
+        })
+      }
+    } catch (error: any) {
+      toast({
+        title: `Google ${authMode === "signin" ? "Login" : "Sign Up"} Failed`,
+        description: error.message || `An error occurred during Google ${authMode === "signin" ? "login" : "sign up"}.`,
+        variant: "destructive",
+      })
+    }
+  }
 
-    // Handle OAuth callback: extract access_token from URL hash and set cookie
-    React.useEffect(() => {
-                        if (typeof window !== "undefined" && window.location.hash.includes('access_token=')) {
-                                const params = new URLSearchParams(window.location.hash.substring(1));
-                                const accessToken = params.get('access_token');
-                                const refreshToken = params.get('refresh_token');
-                                if (accessToken) {
-                                        // Redirect to API route to set cookie server-side and redirect to dashboard
-                                        window.location.href = `/api/auth/set-token?access_token=${encodeURIComponent(accessToken)}${refreshToken ? `&refresh_token=${encodeURIComponent(refreshToken)}` : ''}&redirect=/citizen/dashboard`;
-                                }
-                        }
-    }, [router]);
+  const toggleAuthMode = () => {
+    setAuthMode(prev => prev === "signin" ? "signup" : "signin")
+    setError(null)
+    setFormData({
+      email: "",
+      password: "",
+      confirmPassword: "",
+      fullName: ""
+    })
+  }
 
-    return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
-                <div className="text-center mb-8">
-                    <div className="flex items-center justify-center mb-4">
-                        <MapPin className="w-8 h-8 text-accent mr-2" />
-                        <h1 className="text-2xl font-bold">Civic Platform</h1>
-                    </div>
-                    <h2 className="text-xl text-muted-foreground">
-                        Citizen Portal
-                    </h2>
-                </div>
-
-                <Card>
-                    <CardHeader className="text-center">
-                        <CardTitle>Create Account</CardTitle>
-                        <CardDescription>
-                            Join the community and start reporting civic issues
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <form onSubmit={handleSignup} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Full Name</Label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="name"
-                                        type="text"
-                                        placeholder="Enter your full name"
-                                        value={formData.name}
-                                        onChange={(e) =>
-                                            handleInputChange(
-                                                "name",
-                                                e.target.value
-                                            )
-                                        }
-                                        className="pl-10"
-                                        required
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        placeholder="Enter your email"
-                                        value={formData.email}
-                                        onChange={(e) =>
-                                            handleInputChange(
-                                                "email",
-                                                e.target.value
-                                            )
-                                        }
-                                        className="pl-10"
-                                        required
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="password">Password</Label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="password"
-                                        type={
-                                            showPassword ? "text" : "password"
-                                        }
-                                        placeholder="Create a password"
-                                        value={formData.password}
-                                        onChange={(e) =>
-                                            handleInputChange(
-                                                "password",
-                                                e.target.value
-                                            )
-                                        }
-                                        className="pl-10 pr-10"
-                                        required
-                                        disabled={isLoading}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowPassword(!showPassword)
-                                        }
-                                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                                        disabled={isLoading}
-                                    >
-                                        {showPassword ? (
-                                            <EyeOff className="h-4 w-4" />
-                                        ) : (
-                                            <Eye className="h-4 w-4" />
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="confirmPassword">
-                                    Confirm Password
-                                </Label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="confirmPassword"
-                                        type={
-                                            showConfirmPassword
-                                                ? "text"
-                                                : "password"
-                                        }
-                                        placeholder="Confirm your password"
-                                        value={formData.confirmPassword}
-                                        onChange={(e) =>
-                                            handleInputChange(
-                                                "confirmPassword",
-                                                e.target.value
-                                            )
-                                        }
-                                        className="pl-10 pr-10"
-                                        required
-                                        disabled={isLoading}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowConfirmPassword(
-                                                !showConfirmPassword
-                                            )
-                                        }
-                                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                                        disabled={isLoading}
-                                    >
-                                        {showConfirmPassword ? (
-                                            <EyeOff className="h-4 w-4" />
-                                        ) : (
-                                            <Eye className="h-4 w-4" />
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="terms"
-                                    checked={formData.agreeToTerms}
-                                    onCheckedChange={(checked) =>
-                                        handleInputChange(
-                                            "agreeToTerms",
-                                            checked as boolean
-                                        )
-                                    }
-                                    disabled={isLoading}
-                                />
-                                <Label htmlFor="terms" className="text-sm">
-                                    I agree to the{" "}
-                                    <Link
-                                        href="/terms"
-                                        className="text-accent hover:underline"
-                                    >
-                                        Terms of Service
-                                    </Link>{" "}
-                                    and{" "}
-                                    <Link
-                                        href="/privacy"
-                                        className="text-accent hover:underline"
-                                    >
-                                        Privacy Policy
-                                    </Link>
-                                </Label>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                className="w-full"
-                                disabled={isLoading}
-                            >
-                                {isLoading
-                                    ? "Creating Account..."
-                                    : "Create Account"}
-                            </Button>
-                        </form>
-
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <Separator className="w-full" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-card px-2 text-muted-foreground">
-                                    Or continue with
-                                </span>
-                            </div>
-                        </div>
-
-                        <Button
-                            variant="outline"
-                            className="w-full bg-transparent"
-                            onClick={handleGoogleSignup}
-                        >
-                            <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                                <path
-                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                    fill="#4285F4"
-                                />
-                                <path
-                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                    fill="#34A853"
-                                />
-                                <path
-                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                                    fill="#FBBC05"
-                                />
-                                <path
-                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                                    fill="#EA4335"
-                                />
-                            </svg>
-                            Continue with Google
-                        </Button>
-
-                        <div className="text-center text-sm">
-                            <span className="text-muted-foreground">
-                                Already have an account?{" "}
-                            </span>
-                            <Link
-                                href="/citizen/login"
-                                className="text-accent hover:underline"
-                            >
-                                Sign in
-                            </Link>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <div className="text-center mt-6">
-                    <Link
-                        href="/"
-                        className="text-sm text-muted-foreground hover:text-accent"
-                    >
-                        ← Back to Home
-                    </Link>
-                </div>
-            </div>
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Back to Home */}
+        <div className="mb-6">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Home
+            </Link>
+          </Button>
         </div>
-    );
+
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">
+              {authMode === "signin" ? "Welcome Back" : "Create Account"}
+            </CardTitle>
+            <CardDescription>
+              {authMode === "signin" 
+                ? "Sign in to your account" 
+                : "Join our community and make a difference"
+              }
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-6">
+            {/* Auth Mode Toggle */}
+            <div className="flex bg-muted rounded-lg p-1">
+              <Button
+                variant={authMode === "signin" ? "default" : "ghost"}
+                size="sm"
+                className="flex-1"
+                onClick={() => setAuthMode("signin")}
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                Sign In
+              </Button>
+              <Button
+                variant={authMode === "signup" ? "default" : "ghost"}
+                size="sm"
+                className="flex-1"
+                onClick={() => setAuthMode("signup")}
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Sign Up
+              </Button>
+            </div>
+
+            {/* Role Selection - Only for Signup */}
+            {authMode === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="role">Select Your Role</Label>
+                <Select value={selectedRole} onValueChange={(value: UserRole) => setSelectedRole(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="citizen">
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="w-4 h-4 text-blue-600" />
+                        <span>Citizen - Report and track civic issues</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="admin">
+                      <div className="flex items-center space-x-2">
+                        <Shield className="w-4 h-4 text-purple-600" />
+                        <span>Administrator - Manage and resolve issues</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                  {error}
+                </div>
+              )}
+
+              {authMode === "signup" && (
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={formData.fullName}
+                      onChange={(e) => handleInputChange("fullName", e.target.value)}
+                      className="pl-10"
+                      required={authMode === "signup"}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={authMode === "signin" ? "Enter your password" : "Create a password"}
+                    value={formData.password}
+                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    className="pl-10 pr-10"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {authMode === "signup" && (
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm your password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                      className="pl-10 pr-10"
+                      required={authMode === "signup"}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    {authMode === "signin" ? "Signing In..." : "Creating Account..."}
+                  </>
+                ) : (
+                  authMode === "signin" ? "Sign In" : "Create Account"
+                )}
+              </Button>
+            </form>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleAuth}
+                disabled={isLoading}
+              >
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                  <path
+                    fill="currentColor"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
+                </svg>
+                Continue with Google
+              </Button>
+              
+              {authMode === "signup" && (
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Make sure to select your role above before using Google signup
+                </p>
+              )}
+
+            <div className="text-center text-sm">
+              <span className="text-muted-foreground">
+                {authMode === "signin" ? "Don't have an account? " : "Already have an account? "}
+              </span>
+              <Button
+                variant="link"
+                className="p-0 h-auto text-primary hover:underline"
+                onClick={toggleAuthMode}
+              >
+                {authMode === "signin" ? "Sign up" : "Sign in"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
 }

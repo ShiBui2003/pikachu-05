@@ -16,10 +16,22 @@ import {
   LogOut,
   Menu,
   Flag,
+    CheckCircle,
 } from "lucide-react";
-import NotificationSystem from "@/components/notification-system";
+import RealTimeNotifications from "@/components/real-time-notifications";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 // ✅ Navigation Items with INR symbol for "Funds"
 const navItems = [
@@ -63,10 +75,16 @@ const navItems = [
 ];
 
 export default function CitizenNav() {
-  const pathname = usePathname();
-  const isMobile = useIsMobile();
-  const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
+    const pathname = usePathname();
+    const isMobile = useIsMobile();
+    const [isOpen, setIsOpen] = useState(false);
+    const { user, signOut } = useAuth();
+    
+    const displayName =
+        (user?.user_metadata as any)?.full_name ||
+        (user?.user_metadata as any)?.name ||
+        (user?.email ? String(user.email).split("@")[0] : undefined) ||
+        "Profile";
 
   const NavItems = ({
     mobile = false,
@@ -86,41 +104,39 @@ export default function CitizenNav() {
         const isActive = pathname === item.href;
         const Icon = item.icon;
 
-        return (
-          <Button
-            key={item.href}
-            variant={isActive ? "default" : "ghost"}
-            size={mobile ? "default" : "sm"}
-            asChild
-            className={`relative ${
-              mobile ? "w-full justify-start h-11" : "h-9"
-            }`}
-            onClick={onItemClick}
-          >
-            <Link href={item.href}>
-              {Icon && <Icon className="w-4 h-4 mr-2" />}
-              {item.label}
-              {item.badge && (
-                <Badge
-                  variant="destructive"
-                  className="ml-auto px-1 py-0 text-xs"
-                >
-                  {item.badge}
-                </Badge>
-              )}
-            </Link>
-          </Button>
-        );
-      })}
-    </nav>
-  );
+                return (
+                    <Button
+                        key={item.href}
+                        variant={isActive ? "default" : "ghost"}
+                        size={mobile ? "default" : "sm"}
+                        asChild
+                        className={`relative ${
+                            mobile ? "w-full justify-start h-11" : "h-9"
+                        }`}
+                        onClick={onItemClick}
+                    >
+                        <Link href={item.href as any}>
+                            <Icon className="w-4 h-4 mr-2" />
+                            {item.label}
+                            {item.badge && (
+                                <Badge
+                                    variant="destructive"
+                                    className="ml-auto px-1 py-0 text-xs"
+                                >
+                                    {item.badge}
+                                </Badge>
+                            )}
+                        </Link>
+                    </Button>
+                );
+            })}
+        </nav>
+    );
 
-  // ✅ Supabase logout
-  const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/citizen/login");
-  };
+    // Use the unified auth context logout
+    const handleLogout = async () => {
+        await signOut();
+    };
 
   return (
     <div className="border-b bg-card sticky top-0 z-50">
@@ -142,77 +158,151 @@ export default function CitizenNav() {
           {/* Desktop Navigation */}
           <NavItems />
 
-          {/* Desktop User Actions */}
-          <div className="hidden lg:flex lg:items-center lg:space-x-4">
-            <NotificationSystem />
-            <Button variant="ghost" size="sm" className="h-9">
-              <User className="w-4 h-4 mr-2" />
-              Profile
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9"
-              onClick={handleLogout}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
+                    {/* Desktop User Actions */}
+                    <div className="hidden lg:flex lg:items-center lg:space-x-2">
+                        {/* Combined Profile Button with Notifications */}
+                        <div className="flex items-center space-x-2">
+                            <RealTimeNotifications />
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="h-9 bg-orange-500 hover:bg-orange-600 text-white px-4"
+                                asChild
+                            >
+                                <Link href="/citizen/profile" className="flex items-center">
+                                    <Avatar className="w-6 h-6 mr-2">
+                                        <AvatarFallback className="bg-white text-orange-500 text-xs font-bold">
+                                            {String(displayName).substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span>{displayName}</span>
+                                </Link>
+                            </Button>
+                        </div>
+                        
 
-          {/* Mobile Navigation */}
-          <div className="flex lg:hidden items-center space-x-2">
-            <NotificationSystem />
-            <Sheet open={isOpen} onOpenChange={setIsOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 p-0"
-                >
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-80">
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-                        <Home className="w-5 h-5 text-accent-foreground" />
-                      </div>
-                      <span className="font-semibold text-lg">
-                        CivicReport
-                      </span>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={handleLogout}
+                        >
+                            <LogOut className="w-4 h-4 mr-2" />
+                            Logout
+                        </Button>
                     </div>
-                  </div>
+
+                    {/* Mobile Navigation */}
+                    <div className="flex lg:hidden items-center space-x-2">
+                        {/* Combined Profile Button with Notifications - Mobile */}
+                        <div className="flex items-center space-x-2">
+                            <RealTimeNotifications />
+                            <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="h-9 bg-orange-500 hover:bg-orange-600 text-white px-3"
+                                asChild
+                            >
+                                <Link href="/citizen/profile" className="flex items-center">
+                                    <Avatar className="w-5 h-5 mr-1">
+                                        <AvatarFallback className="bg-white text-orange-500 text-xs font-bold">
+                                            {String(displayName).substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm">{displayName}</span>
+                                </Link>
+                            </Button>
+                        </div>
+                        
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-9 w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={handleLogout}
+                        >
+                            <LogOut className="w-4 h-4" />
+                        </Button>
+                        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+                            <SheetTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-9 w-9 p-0"
+                                >
+                                    <User className="w-5 h-5" />
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="right" className="w-80">
+                                <div className="flex flex-col h-full">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center space-x-2">
+                                            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+                                                <Home className="w-5 h-5 text-accent-foreground" />
+                                            </div>
+                                            <span className="font-semibold text-lg">
+                                                CivicReport
+                                            </span>
+                                        </div>
+                                    </div>
 
                   <div className="flex-1">
                     <NavItems mobile onItemClick={() => setIsOpen(false)} />
                   </div>
 
-                  <div className="border-t pt-4 space-y-2">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start h-11"
-                    >
-                      <User className="w-4 h-4 mr-2" />
-                      Profile
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start h-11"
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Logout
-                    </Button>
-                  </div>
+                                    <div className="border-t pt-4 space-y-2">
+                                        <div className="flex items-center gap-3 px-3 py-2 mb-2">
+                                            <Avatar className="w-9 h-9">
+                                                <AvatarFallback>
+                                                    {String(displayName).substring(0, 2).toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="min-w-0">
+                                                <div className="font-medium truncate">{displayName}</div>
+                                                <div className="text-xs text-muted-foreground truncate">
+                                                    {user?.email ?? ""}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-start h-11"
+                                            asChild
+                                            onClick={() => setIsOpen(false)}
+                                        >
+                                            <Link href="/citizen/profile">
+                                                <User className="w-4 h-4 mr-2" />
+                                                Profile
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-start h-11"
+                                            asChild
+                                            onClick={() => setIsOpen(false)}
+                                        >
+                                            <Link href="/citizen/my-issues">
+                                                <FileText className="w-4 h-4 mr-2" />
+                                                My Issues
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-start h-11"
+                                            asChild
+                                            onClick={() => setIsOpen(false)}
+                                        >
+                                            <Link href="/citizen/notifications">
+                                                <Bell className="w-4 h-4 mr-2" />
+                                                Notifications
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+                    </div>
                 </div>
-              </SheetContent>
-            </Sheet>
-          </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }

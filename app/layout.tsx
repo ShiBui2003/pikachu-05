@@ -1,15 +1,16 @@
-import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import Script from "next/script"
 import "./globals.css"
+import { AuthProvider } from "@/contexts/auth-context"
+import { ToastProvider, ToastViewport } from "@/components/ui/toast"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Civic Issue Reporting System",
   description: "Report and track community issues efficiently",
-  generator: "v0.app",
+  generator: 'v0.app'
 }
 
 export default function RootLayout({
@@ -20,7 +21,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {children}
+        
+        <AuthProvider>
+          {children}
+          <ToastProvider>
+            <ToastViewport />
+          </ToastProvider>
+        </AuthProvider>
+      
 
         {/* ✅ Razorpay Checkout Script */}
         <Script
