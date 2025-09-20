@@ -24,6 +24,7 @@ import {
   Building2,
 } from "lucide-react"
 import SimpleAdminActions from "@/components/simple-admin-actions"
+import AIUrgencyBadge from "@/components/ai-urgency-badge"
 
 interface Issue {
   id: string;
