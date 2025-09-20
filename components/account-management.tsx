@@ -154,13 +154,13 @@ export default function AccountManagement({ userType }: AccountManagementProps) 
       if (response.ok) {
         toast({
           title: "Account Deleted",
-          description: "Your account and all data have been permanently deleted. You will be redirected to the login page."
+          description: "Your account and all data have been permanently deleted. You will be redirected to create a new account."
         });
         
-        // Wait a moment for the toast to show, then sign out and redirect
+        // Wait a moment for the toast to show, then sign out and redirect to signup
         setTimeout(async () => {
           await signOut();
-          router.push('/auth');
+          router.push('/auth?mode=signup');
         }, 2000);
       } else {
         toast({

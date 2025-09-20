@@ -51,13 +51,23 @@ export default function UnifiedAuthPage() {
   useEffect(() => {
     const modeParam = searchParams.get('mode')
     const roleParam = searchParams.get('role')
+    const isFirstTime = searchParams.get('firstTime') === 'true'
+    const emailParam = searchParams.get('email')
     
-    if (modeParam && (modeParam === 'signin' || modeParam === 'signup')) {
+    // Check if this is a first-time user or coming from account deletion
+    if (isFirstTime || !modeParam) {
+      setAuthMode('signup')
+    } else if (modeParam && (modeParam === 'signin' || modeParam === 'signup')) {
       setAuthMode(modeParam)
     }
     
     if (roleParam && (roleParam === 'citizen' || roleParam === 'admin')) {
       setSelectedRole(roleParam)
+    }
+    
+    // Pre-fill email if provided (for first-time users)
+    if (emailParam && isFirstTime) {
+      setFormData(prev => ({ ...prev, email: emailParam }))
     }
   }, [searchParams])
 

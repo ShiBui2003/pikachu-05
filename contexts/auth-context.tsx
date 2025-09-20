@@ -102,11 +102,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       const supabase = createClient()
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
-      return { error: error ? new Error(error.message) : undefined }
+      
+      if (error) {
+        return { error: new Error(error.message) }
+      }
+      
+      // Check if this is a first-time sign-in (no profile exists)
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', data.user.id)
+          .single()
+        
+        // If no profile exists, this is a first-time user
+        if (!profile) {
+          // Redirect to signup to complete profile setup
+          if (typeof window !== 'undefined') {
+            window.location.href = '/auth?mode=signup&firstTime=true&email=' + encodeURIComponent(email)
+          }
+        }
+      }
+      
+      return { error: undefined }
     } catch (error) {
       return { error: error as Error }
     }
@@ -147,9 +169,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
-      // Force a hard redirect to ensure all state is cleared
+      // Force a hard redirect to signup page after signout
       if (typeof window !== 'undefined') {
-        window.location.href = '/auth';
+        window.location.href = '/auth?mode=signup';
         // Prevent any further execution after redirect
         await new Promise(() => {});
       }
@@ -157,9 +179,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: error ? new Error(error.message) : undefined };
     } catch (error) {
       console.error('Error during sign out:', error);
-      // Even if there's an error, try to redirect
+      // Even if there's an error, try to redirect to signup
       if (typeof window !== 'undefined') {
-        window.location.href = '/auth';
+        window.location.href = '/auth?mode=signup';
       }
       return { error: error as Error };
     }
