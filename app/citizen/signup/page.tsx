@@ -398,6 +398,52 @@ export default function UnifiedAuthPage() {
                         <span className="text-xs text-muted-foreground">General administrative services</span>
                       </div>
                     </SelectItem>
+                    <SelectItem value="supervisor">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-green-600" />
+                        <span>Supervisor - Team management and oversight</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="field_worker">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-orange-600" />
+                        <span>Field Worker - On-ground issue resolution</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="clerk_operator">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-cyan-600" />
+                        <span>Clerk/Operator - Administrative tasks</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="technician">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-red-600" />
+                        <span>Technician - Technical specialist</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Department Selection - Only for non-citizen roles during signup */}
+            {authMode === "signup" && selectedRole !== "citizen" && (
+              <div className="space-y-2">
+                <Label htmlFor="department">Select Your Department</Label>
+                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose your department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        <div className="flex items-center space-x-2">
+                          <Shield className="w-4 h-4 text-blue-600" />
+                          <span>{dept.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
