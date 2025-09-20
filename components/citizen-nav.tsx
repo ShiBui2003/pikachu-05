@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,8 @@ import {
   LogOut,
   Menu,
   Flag,
-    CheckCircle,
+  CheckCircle,
+  DollarSign,
 } from "lucide-react";
 import RealTimeNotifications from "@/components/real-time-notifications";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -33,7 +34,7 @@ import {
     DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 
-// ✅ Navigation Items with INR symbol for "Funds"
+// ✅ Navigation Items with proper icons
 const navItems = [
   {
     href: "/citizen/dashboard",
@@ -63,12 +64,11 @@ const navItems = [
   },
   {
     href: "/citizen/crowdfunding",
-    // ✅ Add INR symbol here
     label: "₹ Funds",
+    icon: DollarSign,
   },
   {
     href: "/citizen/Abhiyaan",
-    // ✅ Add INR symbol here
     label: "Abhiyaan",
     icon: Flag,
   },
@@ -102,7 +102,7 @@ export default function CitizenNav() {
     >
       {navItems.map((item) => {
         const isActive = pathname === item.href;
-        const Icon = item.icon;
+        const IconComponent = item.icon;
 
                 return (
                     <Button
@@ -116,7 +116,7 @@ export default function CitizenNav() {
                         onClick={onItemClick}
                     >
                         <Link href={item.href as any}>
-                            <Icon className="w-4 h-4 mr-2" />
+                            {IconComponent && <IconComponent className="w-4 h-4 mr-2" />}
                             {item.label}
                             {item.badge && (
                                 <Badge
@@ -229,7 +229,7 @@ export default function CitizenNav() {
                                     size="sm"
                                     className="h-9 w-9 p-0"
                                 >
-                                    <User className="w-5 h-5" />
+                                    <Menu className="w-5 h-5" />
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-80">
