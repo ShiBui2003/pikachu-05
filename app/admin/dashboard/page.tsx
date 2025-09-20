@@ -42,6 +42,8 @@ import AnalyticsCharts from "@/components/analytics-charts";
 import { createClient } from "@/lib/supabase/client";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getUserDisplayName } from "@/lib/utils/avatar";
+import { isIssueForDepartment, getDepartmentName, type DepartmentKey } from "@/lib/department-mapping";
+
 
 // Types for our data
 type Issue = {
@@ -159,7 +161,8 @@ export default function AdminDashboard() {
     // Current user state
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
-    const [userRole, setUserRole] = useState<string>('citizen');
+    const [userDepartment, setUserDepartment] = useState<DepartmentKey | null>(null);
+    const [userRole, setUserRole] = useState<string>("");
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -191,6 +194,10 @@ export default function AdminDashboard() {
                 .single();
 
             setCurrentUserProfile(profile);
+            
+            // Get user's department from metadata
+            const department = user.user_metadata?.department as DepartmentKey;
+            setUserDepartment(department);
 
             // Load dashboard data
             await loadDashboardData();
@@ -251,7 +258,7 @@ export default function AdminDashboard() {
         // Get all issues
         const { data: allIssues, error } = await supabase
             .from("issues")
-            .select("status, created_at, updated_at");
+            .select("status, created_at, updated_at, title, description, category");
 
         if (error) throw error;
 
@@ -260,9 +267,19 @@ export default function AdminDashboard() {
             status: string;
             created_at: string;
             updated_at: string | null;
+            title: string;
+            description: string;
+            category: string;
         };
 
-        const typedIssues = (allIssues || []) as IssueData[];
+        let typedIssues = (allIssues || []) as IssueData[];
+        
+        // Filter issues by department if user has a specific department
+        if (userDepartment) {
+            typedIssues = typedIssues.filter(issue => 
+                isIssueForDepartment(issue, userDepartment)
+            );
+        }
 
         const now = new Date();
         const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -487,11 +504,21 @@ export default function AdminDashboard() {
       `
             )
             .order("created_at", { ascending: false })
-            .limit(5);
+            .limit(50); // Get more issues to filter
 
         if (error) throw error;
 
-        return (issues || []) as Issue[];
+        let filteredIssues = (issues || []) as Issue[];
+        
+        // Filter issues by department if user has a specific department
+        if (userDepartment) {
+            filteredIssues = filteredIssues.filter(issue => 
+                isIssueForDepartment(issue, userDepartment)
+            );
+        }
+        
+        // Return only the first 5 after filtering
+        return filteredIssues.slice(0, 5);
     };
 
     const fetchNotificationCount = async (): Promise<number> => {
@@ -741,9 +768,17 @@ export default function AdminDashboard() {
                             <div>
                                 <h1 className="text-xl sm:text-2xl font-bold">
                                     Municipal Dashboard
+                                    {userDepartment && (
+                                        <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                            - {getDepartmentName(userDepartment)}
+                                        </span>
+                                    )}
                                 </h1>
                                 <p className="text-sm sm:text-base text-muted-foreground">
-                                    Civic issue management and analytics
+                                    {userDepartment 
+                                        ? `Department-specific issue management and analytics`
+                                        : `Civic issue management and analytics`
+                                    }
                                 </p>
                             </div>
                         </div>

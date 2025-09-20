@@ -24,6 +24,8 @@ import {
   Building2,
 } from "lucide-react"
 import SimpleAdminActions from "@/components/simple-admin-actions"
+import { isIssueForDepartment, getDepartmentName, type DepartmentKey } from "@/lib/department-mapping"
+import { useAuth } from "@/contexts/auth-context"
 import AIUrgencyBadge from "@/components/ai-urgency-badge"
 
 interface Issue {
@@ -128,6 +130,7 @@ const getCategoryLabel = (category: string) => {
 }
 
 export default function AdminIssuesPage() {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
@@ -138,16 +141,38 @@ export default function AdminIssuesPage() {
   const [error, setError] = useState<string | null>(null)
   const [processingIssue, setProcessingIssue] = useState<string | null>(null)
   const [expandedUserIds, setExpandedUserIds] = useState<Set<string>>(new Set())
+  const [userDepartment, setUserDepartment] = useState<DepartmentKey | null>(null)
 
   // Fetch issues from API
   useEffect(() => {
     const fetchIssues = async () => {
       try {
         setLoading(true)
+        
+        // Get user's department
+        if (user?.user_metadata?.department) {
+          setUserDepartment(user.user_metadata.department as DepartmentKey)
+        }
+        
         const response = await fetch('/api/issues?limit=100')
         if (response.ok) {
           const data = await response.json()
-          setAllIssues(data.issues || [])
+          let issues = data.issues || []
+          
+          // Filter issues by department if user has a specific department
+          if (user?.user_metadata?.department) {
+            const department = user.user_metadata.department as DepartmentKey
+            console.log('Filtering issues for department:', department);
+            console.log('Total issues before filtering:', issues.length);
+            
+            issues = issues.filter((issue: Issue) => 
+              isIssueForDepartment(issue, department)
+            )
+            
+            console.log('Total issues after filtering:', issues.length);
+          }
+          
+          setAllIssues(issues)
         } else {
           setError('Failed to fetch issues')
         }
@@ -159,8 +184,10 @@ export default function AdminIssuesPage() {
       }
     }
 
-    fetchIssues()
-  }, [])
+    if (user) {
+      fetchIssues()
+    }
+  }, [user])
 
   const filteredIssues = allIssues
     .filter((issue) => {
@@ -337,8 +364,20 @@ export default function AdminIssuesPage() {
                 </button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold">Issue Management</h1>
-                <p className="text-muted-foreground">Track, assign, and manage all civic issues</p>
+                <h1 className="text-2xl font-bold">
+                  Issue Management
+                  {userDepartment && (
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      - {getDepartmentName(userDepartment)}
+                    </span>
+                  )}
+                </h1>
+                <p className="text-muted-foreground">
+                  {userDepartment 
+                    ? `Track, assign, and manage ${getDepartmentName(userDepartment).toLowerCase()} issues`
+                    : `Track, assign, and manage all civic issues`
+                  }
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">

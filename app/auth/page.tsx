@@ -52,7 +52,8 @@ export default function UnifiedAuthPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    fullName: ""
+    fullName: "",
+    department: ""
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

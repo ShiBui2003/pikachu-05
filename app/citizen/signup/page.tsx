@@ -52,7 +52,8 @@ export default function UnifiedAuthPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    fullName: ""
+    fullName: "",
+    department: ""
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -91,13 +92,28 @@ export default function UnifiedAuthPage() {
   useEffect(() => {
     const modeParam = searchParams.get('mode')
     const roleParam = searchParams.get('role')
+    const isFirstTime = searchParams.get('firstTime') === 'true'
+    const emailParam = searchParams.get('email')
     
-    if (modeParam && (modeParam === 'signin' || modeParam === 'signup')) {
+    // Check if this is a first-time user or coming from account deletion
+    if (isFirstTime || !modeParam) {
+      setAuthMode('signup')
+    } else if (modeParam && (modeParam === 'signin' || modeParam === 'signup')) {
       setAuthMode(modeParam)
     }
     
     if (roleParam && (roleParam === 'citizen' || roleParam === 'department_head' || roleParam === 'supervisor' || roleParam === 'field_worker' || roleParam === 'clerk_operator' || roleParam === 'technician')) {
       setSelectedRole(roleParam as UserRole)
+    }
+    
+    // Pre-fill email if provided (for first-time users)
+    if (emailParam && isFirstTime) {
+      setFormData(prev => ({ ...prev, email: emailParam }))
+    }
+    
+    // Pre-fill email if provided (for first-time users)
+    if (emailParam && isFirstTime) {
+      setFormData(prev => ({ ...prev, email: emailParam }))
     }
   }, [searchParams])
 
@@ -303,6 +319,83 @@ export default function UnifiedAuthPage() {
                       <div className="flex items-center space-x-2">
                         <Shield className="w-4 h-4 text-purple-600" />
                         <span>Department Head - Full administrative access</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="supervisor">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-green-600" />
+                        <span>Supervisor - Team management and oversight</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="field_worker">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-orange-600" />
+                        <span>Field Worker - On-ground issue resolution</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="clerk_operator">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-cyan-600" />
+                        <span>Clerk/Operator - Administrative tasks</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="technician">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-red-600" />
+                        <span>Technician - Technical specialist</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Department Selection - Only for Admin Signup */}
+            {authMode === "signup" && selectedRole === "admin" && (
+              <div className="space-y-2">
+                <Label htmlFor="department">Select Your Department</Label>
+                <Select 
+                  value={formData.department} 
+                  onValueChange={(value) => handleInputChange("department", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose your department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public-works">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Public Works</span>
+                        <span className="text-xs text-muted-foreground">Infrastructure and maintenance</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="transportation">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Transportation</span>
+                        <span className="text-xs text-muted-foreground">Roads, traffic, and transit</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="environment">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Environment</span>
+                        <span className="text-xs text-muted-foreground">Environmental services and sustainability</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="health">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Health & Safety</span>
+                        <span className="text-xs text-muted-foreground">Public health and safety services</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="utilities">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Utilities</span>
+                        <span className="text-xs text-muted-foreground">Water, electricity, and gas services</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="general">
+                      <div className="flex flex-col">
+                        <span className="font-medium">General Administration</span>
+                        <span className="text-xs text-muted-foreground">General administrative services</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="supervisor">

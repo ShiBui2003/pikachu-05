@@ -33,6 +33,8 @@ import {
   Trash2,
   RefreshCw
 } from "lucide-react";
+import AccountManagement from "@/components/account-management";
+import { getDepartmentName, type DepartmentKey } from "@/lib/department-mapping";
 
 interface ProfileData {
   full_name: string;
@@ -50,9 +52,11 @@ interface ProfileData {
 export default function ProfilePage() {
     const { user } = useAuth();
     const { toast } = useToast();
-    const [isEditing, setIsEditing] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [userRole, setUserRole] = useState<string>("");
+  const [userDepartment, setUserDepartment] = useState<string>("");
     const [profileData, setProfileData] = useState<ProfileData>({
         full_name: "",
         email: "",
@@ -77,6 +81,12 @@ export default function ProfilePage() {
 
     useEffect(() => {
         if (user) {
+            // Set user role and department from metadata
+            const role = user.user_metadata?.role || user.role || 'citizen';
+            const department = user.user_metadata?.department;
+            setUserRole(role);
+            setUserDepartment(department || '');
+            
             fetchProfileData();
             fetchIssueStats();
         }
@@ -252,9 +262,18 @@ export default function ProfilePage() {
                                 
                                 <h2 className="text-xl font-semibold mb-2">{displayName}</h2>
                                 <p className="text-muted-foreground mb-4">{profileData.email}</p>
-                                <Badge variant="secondary" className="mb-4">
-                                    Citizen
-                                </Badge>
+                                
+                                {/* Role and Department Display */}
+                                <div className="flex flex-col gap-2 mb-4">
+                                    <Badge variant="secondary" className="w-fit">
+                                        {userRole === 'admin' ? 'Administrator' : 'Citizen'}
+                                    </Badge>
+                                    {userDepartment && (
+                                        <Badge variant="outline" className="w-fit">
+                                            {getDepartmentName(userDepartment as DepartmentKey)}
+                                        </Badge>
+                                    )}
+                                </div>
                                 
                                 {!isEditing ? (
                                     <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
@@ -546,52 +565,8 @@ export default function ProfilePage() {
                         </CardContent>
                     </Card>
 
-                    {/* Account Actions */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Settings className="w-5 h-5" />
-                                Account Actions
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Change Password</p>
-                                    <p className="text-sm text-muted-foreground">Update your account password</p>
-                                </div>
-                                <Button variant="outline" size="sm">
-                                    Change Password
-                                </Button>
-                            </div>
-                            
-                            <Separator />
-                            
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Download Data</p>
-                                    <p className="text-sm text-muted-foreground">Download a copy of your account data</p>
-                                </div>
-                                <Button variant="outline" size="sm">
-                                    <Upload className="w-4 h-4 mr-2" />
-                                    Download
-                                </Button>
-                            </div>
-                            
-                            <Separator />
-                            
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium text-red-600">Delete Account</p>
-                                    <p className="text-sm text-muted-foreground">Permanently delete your account and all data</p>
-                                </div>
-                                <Button variant="destructive" size="sm">
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {/* Account Management */}
+                    <AccountManagement userType="citizen" />
                 </div>
             </div>
         </div>
