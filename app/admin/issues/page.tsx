@@ -286,8 +286,7 @@ export default function AdminIssuesPage() {
                     // Simple category matching since categories are now department names
                     matchesDepartment =
                         issue.category === categoryFilter ||
-                        (issue.department &&
-                            issue.department.name === categoryFilter);
+                        (issue.department?.name === categoryFilter);
                 }
 
                 if (
