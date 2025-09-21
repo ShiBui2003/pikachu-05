@@ -206,10 +206,10 @@ export default function MyIssuesPage() {
                   Back to Dashboard
                 </Link>
               </Button>
-              <div>
+              {/* <div>
                 <h1 className="text-3xl font-bold text-gray-900">My Issues</h1>
                 <p className="text-gray-600">Track the progress of your reported issues</p>
-              </div>
+              </div> */}
             </div>
             <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white shadow-md">
               <Link href="/citizen/report">
