@@ -129,44 +129,43 @@ $$ LANGUAGE plpgsql;
 ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
 
+-- Drop and recreate policies for roles
+DROP POLICY IF EXISTS "Allow authenticated users to read roles" ON roles;
+DROP POLICY IF EXISTS "Allow department heads to manage roles" ON roles;
+
 -- Allow all authenticated users to read roles
 CREATE POLICY "Allow authenticated users to read roles" ON roles
   FOR SELECT TO authenticated USING (true);
 
--- Allow department heads and above to manage roles
-CREATE POLICY "Allow department heads to manage roles" ON roles
-  FOR ALL TO authenticated USING (
-    has_permission(auth.uid(), 'manage_departments')
-  );
+-- For now, only allow read access to roles to avoid circular dependency
+-- Role management will be handled at application level
+
+-- Drop and recreate policies for user_roles
+DROP POLICY IF EXISTS "Allow authenticated users to read user_roles" ON user_roles;
+DROP POLICY IF EXISTS "Allow department heads to manage user_roles" ON user_roles;
 
 -- Allow all authenticated users to read user_roles
 CREATE POLICY "Allow authenticated users to read user_roles" ON user_roles
   FOR SELECT TO authenticated USING (true);
 
--- Allow department heads to manage user_roles
-CREATE POLICY "Allow department heads to manage user_roles" ON user_roles
-  FOR ALL TO authenticated USING (
-    has_permission(auth.uid(), 'manage_users')
-  );
+-- For now, only allow read access to user_roles to avoid circular dependency
+-- User role management will be handled at application level
 
 -- Update profiles RLS to include role-based access
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Department heads can view department profiles" ON profiles;
 
--- Create new role-based policies
+-- Create simple role-based policies (without circular dependency)
 CREATE POLICY "Users can view own profile" ON profiles
   FOR SELECT TO authenticated USING (auth.uid() = id);
 
 CREATE POLICY "Users can update own profile" ON profiles
   FOR UPDATE TO authenticated USING (auth.uid() = id);
 
--- Allow department heads to view all profiles in their department
-CREATE POLICY "Department heads can view department profiles" ON profiles
-  FOR SELECT TO authenticated USING (
-    has_permission(auth.uid(), 'manage_users') AND
-    department_id = (SELECT department_id FROM profiles WHERE id = auth.uid())
-  );
+-- For now, remove the department heads policy to avoid circular dependency
+-- Department-level access will be handled at the application level
 
 -- Create view for user role information
 CREATE OR REPLACE VIEW user_role_view AS
@@ -175,7 +174,7 @@ SELECT
   p.email,
   p.full_name,
   p.phone,
-  p.address,
+  p.location,
   r.name as role_name,
   r.level as role_level,
   r.description as role_description,

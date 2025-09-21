@@ -26,6 +26,7 @@ import {
     Eye,
     ThumbsUp,
     MessageCircle,
+    Shield,
 } from "lucide-react";
 import { GoogleMap } from "@/components/ui/google-map";
 import { FallbackMap } from "@/components/ui/fallback-map";
@@ -47,6 +48,14 @@ type Issue = {
     ai_urgency?: "low" | "medium" | "high" | null;
     ai_confidence?: number | null;
 };
+
+interface Department {
+    id: string;
+    name: string;
+    email: string;
+    description?: string;
+    created_at: string;
+}
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -99,6 +108,7 @@ export default function CitizenDashboard() {
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [issues, setIssues] = useState<Issue[]>([]);
+    const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -211,40 +221,66 @@ export default function CitizenDashboard() {
         getCurrentLocation();
     }, []);
 
+    // Fetch departments for the filter
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const response = await fetch("/api/departments");
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.departments && Array.isArray(data.departments)) {
+                        setDepartments(data.departments);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching departments:", error);
+            }
+        };
+
+        fetchDepartments();
+    }, []);
+
     const filteredIssues = useMemo(() => {
         return issues
             .filter((issue) => {
                 const loc = (issue.location_address || "").toLowerCase();
                 const matchesSearch =
-                    issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    issue.title
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase()) ||
                     loc.includes(searchTerm.toLowerCase());
                 const matchesStatus =
                     statusFilter === "all" || issue.status === statusFilter;
                 const matchesCategory =
-                    categoryFilter === "all" || issue.category === categoryFilter;
+                    categoryFilter === "all" ||
+                    issue.category === categoryFilter;
                 return matchesSearch && matchesStatus && matchesCategory;
             })
             .sort((a, b) => {
                 // Calculate combined scores using AI urgency and upvotes
                 const getCombinedScore = (issue: Issue) => {
                     const upvotes = issue.upvotes || 0;
-                    const urgency = issue.ai_urgency || 'medium';
-                    
+                    const urgency = issue.ai_urgency || "medium";
+
                     // AI urgency weight: low=1, medium=2, high=3
-                    const urgencyWeight = urgency === 'high' ? 3 : urgency === 'medium' ? 2 : 1;
+                    const urgencyWeight =
+                        urgency === "high" ? 3 : urgency === "medium" ? 2 : 1;
                     const upvoteScore = Math.log(1 + upvotes);
-                    
+
                     // Combined score: 0.7 * AI urgency + 0.3 * log(1 + upvotes)
                     return 0.7 * urgencyWeight + 0.3 * upvoteScore;
                 };
-                
+
                 const scoreA = getCombinedScore(a);
                 const scoreB = getCombinedScore(b);
                 const scoreDiff = scoreB - scoreA;
-                
+
                 if (scoreDiff !== 0) return scoreDiff;
                 // Secondary sort: by creation date (descending) for stable sorting
-                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                return (
+                    new Date(b.created_at).getTime() -
+                    new Date(a.created_at).getTime()
+                );
             });
     }, [issues, searchTerm, statusFilter, categoryFilter]);
 
@@ -278,9 +314,9 @@ export default function CitizenDashboard() {
         const a =
             Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos((lat1 * Math.PI) / 180) *
-            Math.cos((lat2 * Math.PI) / 180) *
-            Math.sin(dLng / 2) *
-            Math.sin(dLng / 2);
+                Math.cos((lat2 * Math.PI) / 180) *
+                Math.sin(dLng / 2) *
+                Math.sin(dLng / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     };
@@ -535,19 +571,34 @@ export default function CitizenDashboard() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">
-                                            All Categories
+                                            <div className="flex items-center space-x-2">
+                                                <Shield className="w-4 h-4 text-blue-600" />
+                                                <span>All Categories</span>
+                                            </div>
                                         </SelectItem>
                                         <SelectItem value="pothole">
-                                            Pothole
+                                            <div className="flex items-center space-x-2">
+                                                <Shield className="w-4 h-4 text-blue-600" />
+                                                <span>Pothole</span>
+                                            </div>
                                         </SelectItem>
                                         <SelectItem value="streetlight">
-                                            Streetlight
+                                            <div className="flex items-center space-x-2">
+                                                <Shield className="w-4 h-4 text-blue-600" />
+                                                <span>Streetlight</span>
+                                            </div>
                                         </SelectItem>
                                         <SelectItem value="garbage">
-                                            Garbage
+                                            <div className="flex items-center space-x-2">
+                                                <Shield className="w-4 h-4 text-blue-600" />
+                                                <span>Garbage</span>
+                                            </div>
                                         </SelectItem>
                                         <SelectItem value="water-leakage">
-                                            Water Leakage
+                                            <div className="flex items-center space-x-2">
+                                                <Shield className="w-4 h-4 text-blue-600" />
+                                                <span>Water Leakage</span>
+                                            </div>
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -650,9 +701,13 @@ export default function CitizenDashboard() {
                                                                     )}
                                                                 </span>
                                                             </Badge>
-                                                            <AIUrgencyBadge 
-                                                                urgency={issue.ai_urgency}
-                                                                confidence={issue.ai_confidence}
+                                                            <AIUrgencyBadge
+                                                                urgency={
+                                                                    issue.ai_urgency
+                                                                }
+                                                                confidence={
+                                                                    issue.ai_confidence
+                                                                }
                                                                 className="text-xs"
                                                             />
                                                         </div>
@@ -979,7 +1034,7 @@ export default function CitizenDashboard() {
                                             {filteredIssues.length})
                                             {userLocation &&
                                                 nearbyIssues.length !==
-                                                filteredIssues.length && (
+                                                    filteredIssues.length && (
                                                     <span className="text-xs font-normal text-muted-foreground ml-2">
                                                         ({nearbyIssues.length}{" "}
                                                         nearby)
@@ -1007,11 +1062,12 @@ export default function CitizenDashboard() {
                                                 ].map((issue) => (
                                                     <div
                                                         key={issue.id}
-                                                        className={`p-2 border rounded cursor-pointer transition-colors hover:bg-muted/50 ${selectedIssue ===
-                                                                issue.id
+                                                        className={`p-2 border rounded cursor-pointer transition-colors hover:bg-muted/50 ${
+                                                            selectedIssue ===
+                                                            issue.id
                                                                 ? "ring-2 ring-accent"
                                                                 : ""
-                                                            }`}
+                                                        }`}
                                                         onClick={() =>
                                                             setSelectedIssue(
                                                                 issue.id

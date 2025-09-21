@@ -42,8 +42,7 @@ import AnalyticsCharts from "@/components/analytics-charts";
 import { createClient } from "@/lib/supabase/client";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { getUserDisplayName } from "@/lib/utils/avatar";
-import { isIssueForDepartment, getDepartmentName, type DepartmentKey } from "@/lib/department-mapping";
-
+import { isIssueForDepartment, getDepartmentName } from "@/lib/departments";
 
 // Types for our data
 type Issue = {
@@ -161,7 +160,8 @@ export default function AdminDashboard() {
     // Current user state
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
-    const [userDepartment, setUserDepartment] = useState<DepartmentKey | null>(null);
+    const [userDepartment, setUserDepartment] = useState<string | null>(null);
+    const [userDepartmentName, setUserDepartmentName] = useState<string>("");
     const [userRole, setUserRole] = useState<string>("");
 
     useEffect(() => {
@@ -177,9 +177,9 @@ export default function AdminDashboard() {
             }
 
             // Check if user has staff role (any role other than citizen)
-            const role = user.user_metadata?.role || user.role || 'citizen';
+            const role = user.user_metadata?.role || user.role || "citizen";
             setUserRole(role);
-            if (role === 'citizen') {
+            if (role === "citizen") {
                 router.push("/citizen/dashboard");
                 return;
             }
@@ -194,10 +194,16 @@ export default function AdminDashboard() {
                 .single();
 
             setCurrentUserProfile(profile);
-            
+
             // Get user's department from metadata
-            const department = user.user_metadata?.department as DepartmentKey;
+            const department = user.user_metadata?.department;
             setUserDepartment(department);
+
+            // Get department name
+            if (department) {
+                const departmentName = await getDepartmentName(department);
+                setUserDepartmentName(departmentName);
+            }
 
             // Load dashboard data
             await loadDashboardData();
@@ -258,7 +264,9 @@ export default function AdminDashboard() {
         // Get all issues
         const { data: allIssues, error } = await supabase
             .from("issues")
-            .select("status, created_at, updated_at, title, description, category");
+            .select(
+                "status, created_at, updated_at, title, description, category"
+            );
 
         if (error) throw error;
 
@@ -273,12 +281,16 @@ export default function AdminDashboard() {
         };
 
         let typedIssues = (allIssues || []) as IssueData[];
-        
+
         // Filter issues by department if user has a specific department
         if (userDepartment) {
-            typedIssues = typedIssues.filter(issue => 
-                isIssueForDepartment(issue, userDepartment)
-            );
+            const departmentFilteredIssues = [];
+            for (const issue of typedIssues) {
+                if (await isIssueForDepartment(issue, userDepartment)) {
+                    departmentFilteredIssues.push(issue);
+                }
+            }
+            typedIssues = departmentFilteredIssues;
         }
 
         const now = new Date();
@@ -509,14 +521,18 @@ export default function AdminDashboard() {
         if (error) throw error;
 
         let filteredIssues = (issues || []) as Issue[];
-        
+
         // Filter issues by department if user has a specific department
         if (userDepartment) {
-            filteredIssues = filteredIssues.filter(issue => 
-                isIssueForDepartment(issue, userDepartment)
-            );
+            const departmentFilteredIssues = [];
+            for (const issue of filteredIssues) {
+                if (await isIssueForDepartment(issue, userDepartment)) {
+                    departmentFilteredIssues.push(issue);
+                }
+            }
+            filteredIssues = departmentFilteredIssues;
         }
-        
+
         // Return only the first 5 after filtering
         return filteredIssues.slice(0, 5);
     };
@@ -768,17 +784,16 @@ export default function AdminDashboard() {
                             <div>
                                 <h1 className="text-xl sm:text-2xl font-bold">
                                     Municipal Dashboard
-                                    {userDepartment && (
+                                    {userDepartmentName && (
                                         <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                            - {getDepartmentName(userDepartment)}
+                                            - {userDepartmentName}
                                         </span>
                                     )}
                                 </h1>
                                 <p className="text-sm sm:text-base text-muted-foreground">
-                                    {userDepartment 
+                                    {userDepartment
                                         ? `Department-specific issue management and analytics`
-                                        : `Civic issue management and analytics`
-                                    }
+                                        : `Civic issue management and analytics`}
                                 </p>
                             </div>
                         </div>
@@ -845,7 +860,11 @@ export default function AdminDashboard() {
                                             )}
                                         </p>
                                         <p className="text-xs text-muted-foreground">
-                                            {userRole.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                            {userRole
+                                                .replace("_", " ")
+                                                .replace(/\b\w/g, (l) =>
+                                                    l.toUpperCase()
+                                                )}
                                         </p>
                                     </div>
                                 </div>
