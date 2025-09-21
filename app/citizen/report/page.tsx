@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
     Card,
     CardContent,
@@ -32,24 +33,33 @@ import {
     Pause,
     Trash2,
     Download,
+    Shield,
 } from "lucide-react";
 import MapPicker, { MapPickerValue } from "@/components/map-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
 
+interface Department {
+    id: string;
+    name: string;
+    email: string;
+    description?: string;
+    created_at: string;
+}
+
 interface FormData {
-  title: string
-  description: string
-  category: string
-  priority: string
-  location_address: string
-  location_lat: string
-  location_lng: string
-  image_url: string
-  audio_url: string
-  landmark?: string
-  file?: File
+    title: string;
+    description: string;
+    category: string;
+    priority: string;
+    location_address: string;
+    location_lat: string;
+    location_lng: string;
+    image_url: string;
+    audio_url: string;
+    landmark?: string;
+    file?: File;
 }
 
 export default function ReportIssuePage() {
@@ -73,6 +83,19 @@ export default function ReportIssuePage() {
     const [descriptionMode, setDescriptionMode] = useState<"text" | "audio">(
         "text"
     );
+    const [departments, setDepartments] = useState<Department[]>([]);
+
+    // Speech-to-text (Web Speech API) state
+    const [supportsSpeech, setSupportsSpeech] = useState(false);
+    const [transcribeEnabled, setTranscribeEnabled] = useState(true);
+    const [recognizing, setRecognizing] = useState(false);
+    const [speechLang, setSpeechLang] = useState<string>(
+        typeof navigator !== "undefined" && navigator.language
+            ? navigator.language
+            : "en-US"
+    );
+    const [transcript, setTranscript] = useState<string>("");
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -99,7 +122,40 @@ export default function ReportIssuePage() {
             if (audioRef.current) {
                 audioRef.current.pause();
             }
+            // Stop speech recognition if active
+            try {
+                recognitionRef.current?.stop?.();
+            } catch {}
         };
+    }, []);
+
+    // Detect Web Speech API support
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const SR =
+                (window as any).SpeechRecognition ||
+                (window as any).webkitSpeechRecognition;
+            setSupportsSpeech(!!SR);
+        }
+    }, []);
+
+    // Fetch departments for category selection
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const response = await fetch("/api/departments");
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.departments && Array.isArray(data.departments)) {
+                        setDepartments(data.departments);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching departments:", error);
+            }
+        };
+
+        fetchDepartments();
     }, []);
 
     const handleInputChange = (field: string, value: string) => {
@@ -181,6 +237,11 @@ export default function ReportIssuePage() {
             recordingIntervalRef.current = setInterval(() => {
                 setRecordingTime((prev) => prev + 1);
             }, 1000);
+
+            // Start speech recognition if enabled
+            if (supportsSpeech && transcribeEnabled) {
+                startTranscription();
+            }
         } catch (error) {
             console.error("Error starting recording:", error);
             toast({
@@ -201,8 +262,80 @@ export default function ReportIssuePage() {
                 clearInterval(recordingIntervalRef.current);
                 recordingIntervalRef.current = null;
             }
+            // Stop speech recognition
+            if (supportsSpeech) {
+                stopTranscription();
+            }
         }
     };
+
+    // Start Web Speech API transcription
+    const startTranscription = () => {
+        try {
+            const SR =
+                (window as any).SpeechRecognition ||
+                (window as any).webkitSpeechRecognition;
+            if (!SR) return;
+            const recognition = new SR();
+            recognition.lang = speechLang || "en-US";
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onresult = (event: any) => {
+                let finalText = "";
+                let interimText = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const res = event.results[i];
+                    if (res.isFinal) {
+                        finalText += res[0].transcript + " ";
+                    } else {
+                        interimText += res[0].transcript + " ";
+                    }
+                }
+                const combined = [transcript, finalText, interimText]
+                    .filter(Boolean)
+                    .join(" ")
+                    .trim();
+                setTranscript(combined);
+            };
+            recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
+                console.warn("Speech recognition error:", e);
+            };
+            recognition.onend = () => {
+                setRecognizing(false);
+                // Auto-restart during recording if enabled
+                if (isRecording && transcribeEnabled) {
+                    try {
+                        recognition.start();
+                        setRecognizing(true);
+                    } catch (error) {
+                        console.warn('Failed to restart recognition:', error);
+                    }
+                }
+            };
+            recognition.start();
+            recognitionRef.current = recognition;
+            setRecognizing(true);
+        } catch (err) {
+            console.warn("Failed to start speech recognition:", err);
+        }
+    };
+
+    const stopTranscription = () => {
+        try {
+            recognitionRef.current?.stop?.();
+        } catch {}
+        recognitionRef.current = null;
+        setRecognizing(false);
+    };
+
+    // Keep form description in sync with transcript while in audio mode
+    useEffect(() => {
+        if (descriptionMode === "audio" && transcribeEnabled) {
+            setFormData((prev) => ({ ...prev, description: transcript }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [transcript, descriptionMode, transcribeEnabled]);
 
     const playAudio = () => {
         if (audioBlob && !isPlaying) {
@@ -282,23 +415,30 @@ export default function ReportIssuePage() {
             }
 
             // Gemini verification
+            const effectiveDescription =
+                descriptionMode === "audio" && transcribeEnabled && transcript
+                    ? transcript
+                    : formData.description;
+
             const verifyRes = await fetch("/api/verify-issue", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     title: formData.title,
                     category: formData.category,
-                    description: formData.description,
-                    imageBase64
-                })
+                    description: effectiveDescription,
+                    imageBase64,
+                }),
             });
 
             if (!verifyRes.ok) throw new Error("Verification request failed");
-            const { decision } = await verifyRes.json();
+            const { decision, category: verifiedCategory } =
+                await verifyRes.json();
 
             console.log("=== GEMINI VERIFICATION LOG ===");
             console.log("Title:", formData.title);
-            console.log("Category:", formData.category);
+            console.log("Category (Original):", formData.category);
+            console.log("Category (Verified):", verifiedCategory);
             console.log("Description:", formData.description);
             console.log("Has Image:", !!formData.file);
             console.log("Gemini Decision:", decision);
@@ -307,15 +447,21 @@ export default function ReportIssuePage() {
             if (decision !== "Yes") {
                 toast({
                     title: "Verification Failed",
-                    description: "Your report did not pass AI verification. Please ensure it is a legitimate civic issue.",
-                    variant: "destructive"
+                    description:
+                        "Your report did not pass AI verification. Please ensure it is a legitimate civic issue.",
+                    variant: "destructive",
                 });
                 setIsSubmitting(false);
                 return;
             }
 
             // Upload audio if there's a recording but no audio_url yet
-            let finalFormData = { ...formData };
+            // Use verified category from Gemini
+            let finalFormData = {
+                ...formData,
+                category: verifiedCategory || formData.category,
+                description: effectiveDescription,
+            };
 
             if (audioBlob && !formData.audio_url) {
                 try {
@@ -335,7 +481,7 @@ export default function ReportIssuePage() {
                         .from("audio")
                         .upload(fileName, audioFile, {
                             cacheControl: "3600",
-                            upsert: false
+                            upsert: false,
                         });
 
                     if (error) {
@@ -369,7 +515,7 @@ export default function ReportIssuePage() {
                 credentials: "include",
                 body: JSON.stringify(finalFormData),
             });
-            
+
             const responseText = await response.text();
             const data = responseText ? JSON.parse(responseText) : {};
 
@@ -379,7 +525,7 @@ export default function ReportIssuePage() {
                     description:
                         "Your issue has been submitted and will be reviewed by our team.",
                 });
-                
+
                 // Reset form
                 setFormData({
                     title: "",
@@ -394,7 +540,7 @@ export default function ReportIssuePage() {
                 });
                 setAudioBlob(null);
                 setRecordingTime(0);
-                
+
                 setTimeout(() => router.push("/citizen/dashboard"), 1500);
             } else {
                 console.error("API error response:", data);
@@ -499,6 +645,170 @@ export default function ReportIssuePage() {
                                             className="space-y-4"
                                         >
                                             <div className="border rounded-lg p-4 space-y-4">
+                                                {supportsSpeech ? (
+                                                    <div className="flex flex-col gap-3 rounded-md border p-3 bg-muted/30">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <Shield className="w-4 h-4 text-blue-600" />
+                                                                <span className="text-sm font-medium">
+                                                                    Auto-transcribe
+                                                                    speech
+                                                                    (free)
+                                                                </span>
+                                                            </div>
+                                                            <Switch
+                                                                checked={
+                                                                    transcribeEnabled
+                                                                }
+                                                                onCheckedChange={(
+                                                                    v
+                                                                ) => {
+                                                                    setTranscribeEnabled(
+                                                                        !!v
+                                                                    );
+                                                                    if (!v) {
+                                                                        stopTranscription();
+                                                                    } else if (
+                                                                        isRecording
+                                                                    ) {
+                                                                        startTranscription();
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                            <div className="space-y-1">
+                                                                <Label className="text-xs">
+                                                                    Language
+                                                                </Label>
+                                                                <Select
+                                                                    value={
+                                                                        speechLang
+                                                                    }
+                                                                    onValueChange={(
+                                                                        v
+                                                                    ) => {
+                                                                        setSpeechLang(
+                                                                            v
+                                                                        );
+                                                                        if (
+                                                                            recognizing
+                                                                        ) {
+                                                                            stopTranscription();
+                                                                            startTranscription();
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <SelectTrigger className="h-8">
+                                                                        <SelectValue placeholder="Select language" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="en-US">
+                                                                            English
+                                                                            (US)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="en-GB">
+                                                                            English
+                                                                            (UK)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="hi-IN">
+                                                                            Hindi
+                                                                            (India)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="bn-IN">
+                                                                            Bengali
+                                                                            (India)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="ta-IN">
+                                                                            Tamil
+                                                                            (India)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="te-IN">
+                                                                            Telugu
+                                                                            (India)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="mr-IN">
+                                                                            Marathi
+                                                                            (India)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="gu-IN">
+                                                                            Gujarati
+                                                                            (India)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="pa-IN">
+                                                                            Punjabi
+                                                                            (India)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="ur-PK">
+                                                                            Urdu
+                                                                            (Pakistan)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="es-ES">
+                                                                            Spanish
+                                                                            (Spain)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="fr-FR">
+                                                                            French
+                                                                            (France)
+                                                                        </SelectItem>
+                                                                        <SelectItem value="de-DE">
+                                                                            German
+                                                                            (Germany)
+                                                                        </SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label className="text-xs">
+                                                                    Status
+                                                                </Label>
+                                                                <div className="text-xs text-muted-foreground">
+                                                                    {transcribeEnabled
+                                                                        ? recognizing
+                                                                            ? "Listening…"
+                                                                            : isRecording
+                                                                            ? "Ready"
+                                                                            : "Idle"
+                                                                        : "Disabled"}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">
+                                                                Transcript
+                                                                (editable)
+                                                            </Label>
+                                                            <Textarea
+                                                                value={
+                                                                    transcript
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setTranscript(
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                                rows={4}
+                                                                placeholder="Live transcript will appear here…"
+                                                            />
+                                                            <p className="text-xs text-muted-foreground">
+                                                                The transcript
+                                                                will be sent as
+                                                                your description
+                                                                when submitting.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="rounded-md border p-3 bg-muted/30 text-xs text-muted-foreground">
+                                                        Your browser does not
+                                                        support free speech
+                                                        transcription. You can
+                                                        still record audio and
+                                                        type a description
+                                                        manually.
+                                                    </div>
+                                                )}
                                                 {!audioBlob ? (
                                                     <div className="text-center space-y-4">
                                                         <div className="flex flex-col items-center space-y-2">
@@ -623,35 +933,27 @@ export default function ReportIssuePage() {
                                         </Label>
                                         <Select
                                             value={formData.category}
-                                            onValueChange={(value) =>
-                                                handleInputChange(
-                                                    "category",
-                                                    value
-                                                )
+                                            onValueChange={(v) =>
+                                                handleInputChange("category", v)
                                             }
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select category" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="Roads">
-                                                    Roads & Infrastructure
-                                                </SelectItem>
-                                                <SelectItem value="Lighting">
-                                                    Street Lighting
-                                                </SelectItem>
-                                                <SelectItem value="Sanitation">
-                                                    Sanitation & Waste
-                                                </SelectItem>
-                                                <SelectItem value="Water">
-                                                    Water & Sewage
-                                                </SelectItem>
-                                                <SelectItem value="Traffic">
-                                                    Traffic & Safety
-                                                </SelectItem>
-                                                <SelectItem value="Other">
-                                                    Other
-                                                </SelectItem>
+                                                {departments.map((dept) => (
+                                                    <SelectItem
+                                                        key={dept.id}
+                                                        value={dept.name}
+                                                    >
+                                                        <div className="flex items-center space-x-2">
+                                                            <Shield className="w-4 h-4 text-blue-600" />
+                                                            <span>
+                                                                {dept.name}
+                                                            </span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </div>

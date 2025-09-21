@@ -63,6 +63,12 @@ export async function GET(request: NextRequest) {
             });
         }
 
+        // Get current user for role-based filtering
+        const {
+            data: { user },
+            error: authError,
+        } = await supabase.auth.getUser();
+
         let query = supabase
             .from("issues")
             .select(
@@ -73,11 +79,79 @@ export async function GET(request: NextRequest) {
         department:department_id(id, name, email, description),
         comments:comments(count),
         issue_votes:issue_votes(count)
-      `)
-      .order('ai_urgency', { ascending: false })
-      .order('upvotes', { ascending: false })
-      .order('created_at', { ascending: false })
-      .range((page - 1) * limit, page * limit - 1);
+      `
+            )
+            .order("created_at", { ascending: false })
+            .range((page - 1) * limit, page * limit - 1);
+
+        // Get user profile for role-based filtering
+        let userProfile: any = null;
+        if (user) {
+            // Get user's profile information with role from roles table
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select(
+                    `
+                    role_id,
+                    department_id,
+                    roles:role_id (
+                        id,
+                        name,
+                        level,
+                        permissions
+                    )
+                `
+                )
+                .eq("id", user.id)
+                .single();
+
+            userProfile = profile;
+
+            console.log("=== ROLE-BASED FILTERING DEBUG ===");
+            console.log("User ID:", user.id);
+            console.log("Profile:", JSON.stringify(profile, null, 2));
+
+            // Check if user has admin-type role (level > 0, as citizens have level 0)
+            const p = profile as any;
+            let isAdminType = false;
+
+            if (p?.roles && p.roles.level > 0) {
+                isAdminType = true;
+                console.log(
+                    `User role: ${p.roles.name} (level ${p.roles.level})`
+                );
+            } else if (p?.role && p.role !== "citizen") {
+                isAdminType = true;
+                console.log(`User role (fallback): ${p.role}`);
+            } else if (
+                user.user_metadata?.role &&
+                user.user_metadata.role !== "citizen"
+            ) {
+                isAdminType = true;
+                console.log(`User role (metadata): ${user.user_metadata.role}`);
+            }
+
+            // Admin-type roles should only see issues that are:
+            // 1. Unassigned (department_id is null)
+            // 2. Assigned to their department
+            if (isAdminType && p?.department_id) {
+                const deptId = p.department_id;
+                console.log(
+                    `Applying role-based filter: department_id.is.null OR department_id.eq.${deptId}`
+                );
+                query = query.or(
+                    `department_id.is.null,department_id.eq.${deptId}`
+                );
+            } else if (isAdminType) {
+                console.log(
+                    "Admin user without department - showing only unassigned issues"
+                );
+                query = query.is("department_id", null);
+            } else {
+                console.log("No filtering applied - user is citizen");
+            }
+            console.log("====================================");
+        }
 
         if (category && category !== "all") {
             query = query.eq("category", category);
@@ -107,6 +181,33 @@ export async function GET(request: NextRequest) {
         let countQuery = supabase
             .from("issues")
             .select("*", { count: "exact", head: true });
+
+        // Apply same role-based filtering for count
+        if (userProfile) {
+            const p = userProfile as any;
+            let isAdminType = false;
+
+            if (p?.roles && p.roles.level > 0) {
+                isAdminType = true;
+            } else if (p?.role && p.role !== "citizen") {
+                isAdminType = true;
+            } else if (
+                user?.user_metadata?.role &&
+                user.user_metadata.role !== "citizen"
+            ) {
+                isAdminType = true;
+            }
+
+            if (isAdminType && p?.department_id) {
+                const deptId = p.department_id;
+                countQuery = countQuery.or(
+                    `department_id.is.null,department_id.eq.${deptId}`
+                );
+            } else if (isAdminType) {
+                countQuery = countQuery.is("department_id", null);
+            }
+        }
+
         if (category && category !== "all")
             countQuery = countQuery.eq("category", category);
         if (status && status !== "all")
@@ -141,23 +242,31 @@ export async function GET(request: NextRequest) {
                 }
             }
 
-            // Fallback simple counts per issue using separate queries per id to guarantee correctness
-            // (kept small as we page results)
+            // Calculate counts per issue including specific upvotes count
             await Promise.all(
                 issueList.map(async (it: any) => {
-                    const [{ count: cCount }, { count: vCount }] =
-                        await Promise.all([
-                            supabase
-                                .from("comments")
-                                .select("*", { count: "exact", head: true })
-                                .eq("issue_id", it.id),
-                            supabase
-                                .from("issue_votes")
-                                .select("*", { count: "exact", head: true })
-                                .eq("issue_id", it.id),
-                        ]);
+                    const [
+                        { count: cCount },
+                        { count: vCount },
+                        { count: upCount },
+                    ] = await Promise.all([
+                        supabase
+                            .from("comments")
+                            .select("*", { count: "exact", head: true })
+                            .eq("issue_id", it.id),
+                        supabase
+                            .from("issue_votes")
+                            .select("*", { count: "exact", head: true })
+                            .eq("issue_id", it.id),
+                        supabase
+                            .from("issue_votes")
+                            .select("*", { count: "exact", head: true })
+                            .eq("issue_id", it.id)
+                            .eq("vote_type", "up"),
+                    ]);
                     it.comments_count = cCount || 0;
                     it.votes_count = vCount || 0;
+                    it.upvotes = upCount || 0;
                 })
             );
         }
@@ -217,11 +326,13 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             );
         }
-        
+
         // Ensure at least one of description or audio_url is provided
         if (!description && !audio_url) {
             return NextResponse.json(
-                { error: "Either description text or audio recording is required" },
+                {
+                    error: "Either description text or audio recording is required",
+                },
                 { status: 400 }
             );
         }
@@ -250,8 +361,18 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Insert the issue and return with related profile info (requires FKs between issues.user_id and profiles.id)
-        // The department assignment will be handled automatically by the database trigger
+        // Find the department that matches the category (since categories are now department names)
+        const { data: departments } = await supabase
+            .from("departments")
+            .select("id, name")
+            .eq("name", category);
+
+        const departmentId =
+            departments && departments.length > 0
+                ? (departments[0] as any).id
+                : null;
+
+        // Insert the issue with automatic department assignment
         const { data: issue, error } = await supabase
             .from("issues")
             .insert({
@@ -266,28 +387,34 @@ export async function POST(request: NextRequest) {
                 image_url,
                 audio_url,
                 user_id: user.id,
+                department_id: departmentId, // Assign to matching department
             })
             .select(
                 `
         *,
         profiles:user_id(full_name, email),
-        department:department_id(name, email)
+        department:department_id(id, name, email, description)
       `
             )
             .single();
 
         if (issue && !error) {
             // Trigger AI urgency detection asynchronously (non-blocking)
-            fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/issues/${issue.id}/ai-urgency`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }).catch(err => {
-                console.error('Failed to trigger AI urgency detection:', err);
+            fetch(
+                `${
+                    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+                }/api/issues/${(issue as any).id}/ai-urgency`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            ).catch((err) => {
+                console.error("Failed to trigger AI urgency detection:", err);
                 // Don't fail the issue creation if AI detection fails
             });
-            
+
             return NextResponse.json({ issue }, { status: 201 });
         }
 
