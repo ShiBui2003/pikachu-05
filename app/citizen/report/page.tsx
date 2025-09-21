@@ -32,24 +32,33 @@ import {
     Pause,
     Trash2,
     Download,
+    Shield,
 } from "lucide-react";
 import MapPicker, { MapPickerValue } from "@/components/map-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
 
+interface Department {
+    id: string;
+    name: string;
+    email: string;
+    description?: string;
+    created_at: string;
+}
+
 interface FormData {
-  title: string
-  description: string
-  category: string
-  priority: string
-  location_address: string
-  location_lat: string
-  location_lng: string
-  image_url: string
-  audio_url: string
-  landmark?: string
-  file?: File
+    title: string;
+    description: string;
+    category: string;
+    priority: string;
+    location_address: string;
+    location_lat: string;
+    location_lng: string;
+    image_url: string;
+    audio_url: string;
+    landmark?: string;
+    file?: File;
 }
 
 export default function ReportIssuePage() {
@@ -73,6 +82,7 @@ export default function ReportIssuePage() {
     const [descriptionMode, setDescriptionMode] = useState<"text" | "audio">(
         "text"
     );
+    const [departments, setDepartments] = useState<Department[]>([]);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -100,6 +110,25 @@ export default function ReportIssuePage() {
                 audioRef.current.pause();
             }
         };
+    }, []);
+
+    // Fetch departments for category selection
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const response = await fetch("/api/departments");
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.departments && Array.isArray(data.departments)) {
+                        setDepartments(data.departments);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching departments:", error);
+            }
+        };
+
+        fetchDepartments();
     }, []);
 
     const handleInputChange = (field: string, value: string) => {
@@ -289,16 +318,18 @@ export default function ReportIssuePage() {
                     title: formData.title,
                     category: formData.category,
                     description: formData.description,
-                    imageBase64
-                })
+                    imageBase64,
+                }),
             });
 
             if (!verifyRes.ok) throw new Error("Verification request failed");
-            const { decision } = await verifyRes.json();
+            const { decision, category: verifiedCategory } =
+                await verifyRes.json();
 
             console.log("=== GEMINI VERIFICATION LOG ===");
             console.log("Title:", formData.title);
-            console.log("Category:", formData.category);
+            console.log("Category (Original):", formData.category);
+            console.log("Category (Verified):", verifiedCategory);
             console.log("Description:", formData.description);
             console.log("Has Image:", !!formData.file);
             console.log("Gemini Decision:", decision);
@@ -307,15 +338,20 @@ export default function ReportIssuePage() {
             if (decision !== "Yes") {
                 toast({
                     title: "Verification Failed",
-                    description: "Your report did not pass AI verification. Please ensure it is a legitimate civic issue.",
-                    variant: "destructive"
+                    description:
+                        "Your report did not pass AI verification. Please ensure it is a legitimate civic issue.",
+                    variant: "destructive",
                 });
                 setIsSubmitting(false);
                 return;
             }
 
             // Upload audio if there's a recording but no audio_url yet
-            let finalFormData = { ...formData };
+            // Use verified category from Gemini
+            let finalFormData = {
+                ...formData,
+                category: verifiedCategory || formData.category,
+            };
 
             if (audioBlob && !formData.audio_url) {
                 try {
@@ -335,7 +371,7 @@ export default function ReportIssuePage() {
                         .from("audio")
                         .upload(fileName, audioFile, {
                             cacheControl: "3600",
-                            upsert: false
+                            upsert: false,
                         });
 
                     if (error) {
@@ -369,7 +405,7 @@ export default function ReportIssuePage() {
                 credentials: "include",
                 body: JSON.stringify(finalFormData),
             });
-            
+
             const responseText = await response.text();
             const data = responseText ? JSON.parse(responseText) : {};
 
@@ -379,7 +415,7 @@ export default function ReportIssuePage() {
                     description:
                         "Your issue has been submitted and will be reviewed by our team.",
                 });
-                
+
                 // Reset form
                 setFormData({
                     title: "",
@@ -394,7 +430,7 @@ export default function ReportIssuePage() {
                 });
                 setAudioBlob(null);
                 setRecordingTime(0);
-                
+
                 setTimeout(() => router.push("/citizen/dashboard"), 1500);
             } else {
                 console.error("API error response:", data);
@@ -615,45 +651,38 @@ export default function ReportIssuePage() {
                                     </Tabs>
                                 </div>
 
-                {/* Category and Priority */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category *</Label>
-                    <Select value={formData.category} onValueChange={(v) => handleInputChange('category', v)}>
-                      <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="infrastructure">Infrastructure & Maintenance</SelectItem>
-                        <SelectItem value="potholes">Potholes & Road Damage</SelectItem>
-                        <SelectItem value="streetlights">Street Lighting</SelectItem>
-                        <SelectItem value="sidewalks">Sidewalks & Walkways</SelectItem>
-                        <SelectItem value="drainage">Drainage & Flooding</SelectItem>
-                        <SelectItem value="parks">Parks & Public Facilities</SelectItem>
-                        <SelectItem value="traffic">Traffic & Safety</SelectItem>
-                        <SelectItem value="roads">Roads & Highways</SelectItem>
-                        <SelectItem value="signs">Traffic Signs & Signals</SelectItem>
-                        <SelectItem value="parking">Parking Issues</SelectItem>
-                        <SelectItem value="transit">Public Transit</SelectItem>
-                        <SelectItem value="bridges">Bridges & Overpasses</SelectItem>
-                        <SelectItem value="garbage">Garbage & Waste</SelectItem>
-                        <SelectItem value="recycling">Recycling</SelectItem>
-                        <SelectItem value="pollution">Pollution & Air Quality</SelectItem>
-                        <SelectItem value="trees">Trees & Green Spaces</SelectItem>
-                        <SelectItem value="waste-management">Waste Management</SelectItem>
-                        <SelectItem value="safety">Safety & Hazards</SelectItem>
-                        <SelectItem value="health">Public Health</SelectItem>
-                        <SelectItem value="emergency">Emergency Services</SelectItem>
-                        <SelectItem value="sanitation">Sanitation</SelectItem>
-                        <SelectItem value="water">Water Services</SelectItem>
-                        <SelectItem value="electricity">Electricity & Power</SelectItem>
-                        <SelectItem value="gas">Gas Services</SelectItem>
-                        <SelectItem value="sewer">Sewer & Wastewater</SelectItem>
-                        <SelectItem value="power">Power Outages</SelectItem>
-                        <SelectItem value="utilities">Utility Services</SelectItem>
-                        <SelectItem value="general">General Issues</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                                {/* Category and Priority */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="category">
+                                            Category *
+                                        </Label>
+                                        <Select
+                                            value={formData.category}
+                                            onValueChange={(v) =>
+                                                handleInputChange("category", v)
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select category" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {departments.map((dept) => (
+                                                    <SelectItem
+                                                        key={dept.id}
+                                                        value={dept.name}
+                                                    >
+                                                        <div className="flex items-center space-x-2">
+                                                            <Shield className="w-4 h-4 text-blue-600" />
+                                                            <span>
+                                                                {dept.name}
+                                                            </span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
 
                                     <div className="space-y-2">
                                         <Label htmlFor="priority">
