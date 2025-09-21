@@ -95,7 +95,7 @@ export default function ReportIssuePage() {
             : "en-US"
     );
     const [transcript, setTranscript] = useState<string>("");
-    const recognitionRef = useRef<any>(null);
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
