@@ -301,7 +301,7 @@ export default function ReportIssuePage() {
                 ).trim();
                 setTranscript(combined);
             };
-            recognition.onerror = (e: any) => {
+            recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
                 console.warn("Speech recognition error:", e);
             };
             recognition.onend = () => {
