@@ -292,13 +292,10 @@ export default function ReportIssuePage() {
                         interimText += res[0].transcript + " ";
                     }
                 }
-                const combined = (
-                    transcript +
-                    " " +
-                    finalText +
-                    " " +
-                    interimText
-                ).trim();
+                const combined = [transcript, finalText, interimText]
+                    .filter(Boolean)
+                    .join(" ")
+                    .trim();
                 setTranscript(combined);
             };
             recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
