@@ -308,7 +308,9 @@ export default function ReportIssuePage() {
                     try {
                         recognition.start();
                         setRecognizing(true);
-                    } catch {}
+                    } catch (error) {
+                        console.warn('Failed to restart recognition:', error);
+                    }
                 }
             };
             recognition.start();
