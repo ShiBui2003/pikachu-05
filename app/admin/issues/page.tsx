@@ -29,18 +29,18 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import {
-    ArrowLeft,
-    Search,
-    Eye,
-    Edit,
-    MapPin,
-    Calendar,
-    User,
-    Clock,
-    AlertTriangle,
-    CheckCircle,
-    MoreHorizontal,
-    Building2,
+  ArrowLeft,
+  Search,
+  Eye,
+  Edit,
+  MapPin,
+  Calendar,
+  User,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  MoreHorizontal,
+  Building2,
     Shield,
     ThumbsUp,
     Filter,
@@ -53,104 +53,104 @@ import { useAuth } from "@/contexts/auth-context";
 import AIUrgencyBadge from "@/components/ai-urgency-badge";
 
 interface Issue {
-    id: string;
-    title: string;
-    description: string;
-    category: string;
-    priority: string;
-    status: string;
-    location_address: string;
-    location_lat: number;
-    location_lng: number;
-    landmark?: string;
-    image_url?: string;
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: string;
+  status: string;
+  location_address: string;
+  location_lat: number;
+  location_lng: number;
+  landmark?: string;
+  image_url?: string;
     upvotes: number;
     ai_urgency?: "low" | "medium" | "high";
     ai_confidence?: number;
-    created_at: string;
-    updated_at: string;
-    profiles?: {
-        full_name: string;
-        email: string;
-    };
-    department?: {
-        name: string;
-        email: string;
-    };
-    assigned_profile?: {
-        full_name: string;
-        email: string;
-    };
-    comments_count?: number;
-    votes_count?: number;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    full_name: string;
+    email: string;
+  };
+  department?: {
+    name: string;
+    email: string;
+  };
+  assigned_profile?: {
+    full_name: string;
+    email: string;
+  };
+  comments_count?: number;
+  votes_count?: number;
 }
 
 const getStatusColor = (status: string) => {
-    switch (status) {
-        case "submitted":
+  switch (status) {
+    case "submitted":
             return "bg-blue-500 hover:bg-blue-600 text-white";
-        case "assigned":
+    case "assigned":
             return "bg-amber-500 hover:bg-amber-600 text-white";
-        case "in_progress":
+    case "in_progress":
             return "bg-orange-500 hover:bg-orange-600 text-white";
-        case "resolved":
+    case "resolved":
             return "bg-emerald-500 hover:bg-emerald-600 text-white";
-        case "closed":
+    case "closed":
             return "bg-slate-500 hover:bg-slate-600 text-white";
-        default:
+    default:
             return "bg-gray-100 text-gray-700";
-    }
+  }
 };
 
 const getPriorityColor = (priority: string) => {
-    switch (priority) {
-        case "high":
+  switch (priority) {
+    case "high":
             return "bg-red-50 text-red-700 border-red-200";
-        case "medium":
+    case "medium":
             return "bg-yellow-50 text-yellow-700 border-yellow-200";
-        case "low":
+    case "low":
             return "bg-green-50 text-green-700 border-green-200";
-        default:
+    default:
             return "bg-gray-50 text-gray-700 border-gray-200";
-    }
+  }
 };
 
 const getStatusIcon = (status: string) => {
-    switch (status) {
-        case "submitted":
+  switch (status) {
+    case "submitted":
             return <Clock className="w-4 h-4" />;
-        case "assigned":
+    case "assigned":
             return <User className="w-4 h-4" />;
-        case "in_progress":
+    case "in_progress":
             return <AlertTriangle className="w-4 h-4" />;
-        case "resolved":
+    case "resolved":
             return <CheckCircle className="w-4 h-4" />;
-        case "closed":
+    case "closed":
             return <CheckCircle className="w-4 h-4" />;
-        default:
+    default:
             return <Clock className="w-4 h-4" />;
-    }
+  }
 };
 
 const getCategoryLabel = (category: string) => {
-    switch (category) {
-        case "roads":
+  switch (category) {
+    case "roads":
             return "Roads & Infrastructure";
-        case "potholes":
+    case "potholes":
             return "Potholes";
-        case "streetlights":
+    case "streetlights":
             return "Street Lighting";
-        case "garbage":
+    case "garbage":
             return "Waste Management";
-        case "water":
+    case "water":
             return "Water Supply";
-        case "drainage":
+    case "drainage":
             return "Drainage";
-        case "parks":
+    case "parks":
             return "Parks & Recreation";
-        case "traffic":
+    case "traffic":
             return "Traffic Management";
-        default:
+    default:
             return "Other";
     }
 };
@@ -193,29 +193,29 @@ export default function AdminIssuesPage() {
     );
     const [showFilters, setShowFilters] = useState(false);
 
-    // Fetch issues from API
-    useEffect(() => {
-        const fetchIssues = async () => {
-            try {
+  // Fetch issues from API
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
                 setLoading(true);
 
                 const response = await fetch("/api/issues?limit=100", {
                     credentials: "include",
                 });
-                if (response.ok) {
+        if (response.ok) {
                     const data = await response.json();
                     let issues = data.issues || [];
 
                     console.log("Total issues loaded:", issues.length);
 
                     setAllIssues(issues);
-                } else {
+        } else {
                     setError("Failed to fetch issues");
-                }
-            } catch (error) {
+        }
+      } catch (error) {
                 console.error("Error fetching issues:", error);
                 setError("Error loading issues");
-            } finally {
+      } finally {
                 setLoading(false);
             }
         };
@@ -228,12 +228,12 @@ export default function AdminIssuesPage() {
     // Filtered issues
     const filteredIssues = allIssues
         .filter((issue) => {
-            const matchesSearch =
-                issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch =
+      issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 issue.location_address
                     .toLowerCase()
                     .includes(searchTerm.toLowerCase()) ||
-                issue.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      issue.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (issue.profiles?.full_name || "")
                     .toLowerCase()
                     .includes(searchTerm.toLowerCase());
@@ -265,13 +265,13 @@ export default function AdminIssuesPage() {
             );
         });
 
-    const statusCounts = {
-        all: allIssues.length,
-        submitted: allIssues.filter((i) => i.status === "submitted").length,
-        assigned: allIssues.filter((i) => i.status === "assigned").length,
-        in_progress: allIssues.filter((i) => i.status === "in_progress").length,
-        resolved: allIssues.filter((i) => i.status === "resolved").length,
-        closed: allIssues.filter((i) => i.status === "closed").length,
+  const statusCounts = {
+    all: allIssues.length,
+    submitted: allIssues.filter((i) => i.status === "submitted").length,
+    assigned: allIssues.filter((i) => i.status === "assigned").length,
+    in_progress: allIssues.filter((i) => i.status === "in_progress").length,
+    resolved: allIssues.filter((i) => i.status === "resolved").length,
+    closed: allIssues.filter((i) => i.status === "closed").length,
     };
 
     // Get unique categories from issues
@@ -292,7 +292,7 @@ export default function AdminIssuesPage() {
         priorityFilter !== "all" ||
         categoryFilter !== "all";
 
-    const handleBulkAction = (action: string) => {
+  const handleBulkAction = (action: string) => {
         setSelectedIssues([]);
     };
 
@@ -306,31 +306,31 @@ export default function AdminIssuesPage() {
                 `/api/issues/${issueId}/simple-status`,
                 {
                     method: "PUT",
-                    headers: {
+        headers: {
                         "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        status: newStatus,
+        },
+        body: JSON.stringify({
+          status: newStatus,
                         notes:
                             notes || `Status changed to ${newStatus} by admin`,
-                    }),
+        }),
                 }
             );
 
-            if (response.ok) {
+      if (response.ok) {
                 setAllIssues((prevIssues) =>
                     prevIssues.map((issue) =>
-                        issue.id === issueId
+            issue.id === issueId 
                             ? {
                                   ...issue,
                                   status: newStatus,
                                   updated_at: new Date().toISOString(),
                               }
-                            : issue
-                    )
-                );
-
-                const statusMessages = {
+              : issue
+          )
+        );
+        
+        const statusMessages = {
                     assigned: "Issue accepted and assigned",
                     in_progress: "Work started on issue",
                     resolved: "Issue marked as resolved",
@@ -345,95 +345,95 @@ export default function AdminIssuesPage() {
                 toast.className =
                     "fixed top-4 right-4 bg-emerald-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2";
                 toast.innerHTML = `<CheckCircle class="w-4 h-4" /> <span>${message}</span>`;
-                document.body.appendChild(toast);
-                setTimeout(() => document.body.removeChild(toast), 3000);
-            } else {
+        document.body.appendChild(toast);
+        setTimeout(() => document.body.removeChild(toast), 3000);
+      } else {
                 throw new Error("Failed to update status");
-            }
-        } catch (error) {
+      }
+    } catch (error) {
             console.error("Error updating status:", error);
             const errorToast = document.createElement("div");
             errorToast.className =
                 "fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2";
             errorToast.innerHTML = `<AlertTriangle class="w-4 h-4" /> <span>Failed to update issue status</span>`;
-            document.body.appendChild(errorToast);
-            setTimeout(() => document.body.removeChild(errorToast), 3000);
-        }
-    };
+      document.body.appendChild(errorToast);
+      setTimeout(() => document.body.removeChild(errorToast), 3000);
+    }
+  };
 
     const handleIssueAction = async (
         action: string,
         issueId: string,
         currentStatus: string
     ) => {
-        if (processingIssue) return;
-
-        try {
-            setProcessingIssue(issueId);
-
-            switch (action) {
+    if (processingIssue) return;
+    
+    try {
+      setProcessingIssue(issueId);
+      
+      switch (action) {
                 case "accept":
                     await handleStatusUpdate(
                         issueId,
                         "assigned",
                         "Issue accepted and assigned to department"
                     );
-                    break;
+          break;
                 case "reject":
                     await handleStatusUpdate(
                         issueId,
                         "closed",
                         "Issue rejected by admin"
                     );
-                    break;
+          break;
                 case "in_progress":
                     await handleStatusUpdate(
                         issueId,
                         "in_progress",
                         "Work started on this issue"
                     );
-                    break;
+          break;
                 case "resolve":
                     await handleStatusUpdate(
                         issueId,
                         "resolved",
                         "Issue has been resolved"
                     );
-                    break;
+          break;
                 case "close":
                     await handleStatusUpdate(
                         issueId,
                         "closed",
                         "Issue closed by admin"
                     );
-                    break;
+          break;
                 case "view":
-                    setProcessingIssue(null);
-                    window.location.href = `/admin/issues/${issueId}`;
-                    return;
+          setProcessingIssue(null);
+          window.location.href = `/admin/issues/${issueId}`;
+          return;
                 case "edit":
-                    setProcessingIssue(null);
-                    window.location.href = `/admin/issues/${issueId}`;
-                    return;
+          setProcessingIssue(null);
+          window.location.href = `/admin/issues/${issueId}`;
+          return;
                 case "assign":
-                    setProcessingIssue(null);
-                    window.location.href = `/admin/issues/${issueId}`;
-                    return;
+          setProcessingIssue(null);
+          window.location.href = `/admin/issues/${issueId}`;
+          return;
                 case "priority":
-                    setProcessingIssue(null);
-                    window.location.href = `/admin/issues/${issueId}`;
-                    return;
-                default:
+          setProcessingIssue(null);
+          window.location.href = `/admin/issues/${issueId}`;
+          return;
+        default:
                     break;
-            }
-
+      }
+      
             await new Promise((resolve) => setTimeout(resolve, 500));
-        } catch (error) {
+    } catch (error) {
             console.error("Error performing action:", error);
-        } finally {
-            setProcessingIssue(null);
-        }
-    };
+    } finally {
+      setProcessingIssue(null);
+    }
+  };
 
     const handleUserIdClick = (issueId: string) => {
         setExpandedUserIds((prev) => {
@@ -445,45 +445,45 @@ export default function AdminIssuesPage() {
             }
             return newSet;
         });
-    };
+  };
 
-    return (
+  return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
             {/* Enhanced Header */}
             <div className="border-b bg-white/80 backdrop-blur-sm shadow-sm">
                 <div className="container mx-auto px-4 py-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <Link href="/admin/dashboard">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link href="/admin/dashboard">
                                 <Button variant="outline" size="sm">
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
+                  <ArrowLeft className="w-4 h-4 mr-2" />
                                     Dashboard
                                 </Button>
-                            </Link>
-                            <div>
+              </Link>
+              <div>
                                 <h1 className="text-3xl font-bold text-gray-900">
                                     Issue Management
                                 </h1>
                                 <p className="text-gray-600 mt-1">
                                     Track, assign, and manage all civic issues
                                 </p>
-                            </div>
-                        </div>
+              </div>
+            </div>
                         <div className="flex items-center space-x-3">
-                            {selectedIssues.length > 0 && (
+              {selectedIssues.length > 0 && (
                                 <Button variant="secondary" size="sm">
                                     <Users className="w-4 h-4 mr-2" />
-                                    Bulk Actions ({selectedIssues.length})
+                  Bulk Actions ({selectedIssues.length})
                                 </Button>
-                            )}
-                            <Link href="/admin/issues/map">
+              )}
+              <Link href="/admin/issues/map">
                                 <Button>
-                                    <MapPin className="w-4 h-4 mr-2" />
-                                    Map View
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Map View
                                 </Button>
-                            </Link>
-                        </div>
-                    </div>
+              </Link>
+            </div>
+          </div>
 
                     {/* Summary Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mt-6">
@@ -548,26 +548,26 @@ export default function AdminIssuesPage() {
                             </CardContent>
                         </Card>
                     </div>
-                </div>
-            </div>
+        </div>
+      </div>
 
-            <div className="container mx-auto px-4 py-6">
+            <div className="responsive-container py-6">
                 {/* Enhanced Filters */}
                 <Card className="mb-6 shadow-sm">
-                    <CardContent className="p-6">
+                    <CardContent className="responsive-card-content">
                         {/* Search and Filter Toggle */}
                         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
                             <div className="relative flex-1 max-w-lg">
                                 <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                                <Input
+                <Input
                                     placeholder="Search issues, locations, or reporter names..."
-                                    value={searchTerm}
+                  value={searchTerm}
                                     onChange={(e) =>
                                         setSearchTerm(e.target.value)
                                     }
                                     className="pl-10 h-12"
-                                />
-                            </div>
+                />
+              </div>
 
                             <div className="flex items-center gap-2">
                                 <Button
@@ -622,8 +622,8 @@ export default function AdminIssuesPage() {
                                     >
                                         <SelectTrigger>
                                             <SelectValue placeholder="All Status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
+                  </SelectTrigger>
+                  <SelectContent>
                                             <SelectItem value="all">
                                                 All Status
                                             </SelectItem>
@@ -642,8 +642,8 @@ export default function AdminIssuesPage() {
                                             <SelectItem value="closed">
                                                 🔒 Closed
                                             </SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                  </SelectContent>
+                </Select>
                                 </div>
 
                                 <div>
@@ -656,8 +656,8 @@ export default function AdminIssuesPage() {
                                     >
                                         <SelectTrigger>
                                             <SelectValue placeholder="All Priority" />
-                                        </SelectTrigger>
-                                        <SelectContent>
+                  </SelectTrigger>
+                  <SelectContent>
                                             <SelectItem value="all">
                                                 All Priority
                                             </SelectItem>
@@ -670,8 +670,8 @@ export default function AdminIssuesPage() {
                                             <SelectItem value="low">
                                                 🟢 Low
                                             </SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                  </SelectContent>
+                </Select>
                                 </div>
 
                                 <div>
@@ -684,8 +684,8 @@ export default function AdminIssuesPage() {
                                     >
                                         <SelectTrigger>
                                             <SelectValue placeholder="All Categories" />
-                                        </SelectTrigger>
-                                        <SelectContent>
+                  </SelectTrigger>
+                  <SelectContent>
                                             <SelectItem value="all">
                                                 All Categories
                                             </SelectItem>
@@ -698,26 +698,26 @@ export default function AdminIssuesPage() {
                                                     {getCategoryLabel(category)}
                                                 </SelectItem>
                                             ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
                         )}
-                    </CardContent>
-                </Card>
+          </CardContent>
+        </Card>
 
-                {/* Loading State */}
-                {loading && (
+        {/* Loading State */}
+        {loading && (
                     <Card className="shadow-sm">
                         <CardContent className="p-12 text-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
                             <p className="text-lg">Loading issues...</p>
-                        </CardContent>
-                    </Card>
-                )}
+            </CardContent>
+          </Card>
+        )}
 
-                {/* Error State */}
-                {error && (
+        {/* Error State */}
+        {error && (
                     <Card className="shadow-sm">
                         <CardContent className="p-12 text-center">
                             <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -726,14 +726,14 @@ export default function AdminIssuesPage() {
                             </h3>
                             <p className="text-gray-600 mb-4">{error}</p>
                             <Button onClick={() => window.location.reload()}>
-                                Retry
-                            </Button>
-                        </CardContent>
-                    </Card>
-                )}
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
                 {/* Enhanced Status Tabs */}
-                {!loading && !error && (
+        {!loading && !error && (
                     <Tabs
                         value={statusFilter}
                         onValueChange={setStatusFilter}
@@ -771,7 +771,7 @@ export default function AdminIssuesPage() {
                                 <TabsTrigger value="closed" className="text-sm">
                                     🔒 Closed ({statusCounts.closed})
                                 </TabsTrigger>
-                            </TabsList>
+            </TabsList>
                         </div>
 
                         <TabsContent value={statusFilter} className="space-y-6">
@@ -785,40 +785,34 @@ export default function AdminIssuesPage() {
                                             <CardTitle className="text-xl">
                                                 Issues ({filteredIssues.length})
                                             </CardTitle>
-                                            <CardDescription>
+                <CardDescription>
                                                 {statusFilter === "all"
                                                     ? "All issues sorted by community votes"
                                                     : `Issues with status: ${statusFilter.replace(
                                                           "_",
                                                           " "
                                                       )}`}
-                                            </CardDescription>
+                </CardDescription>
                                         </div>
                                         <div className="flex items-center text-sm text-gray-500">
                                             <TrendingUp className="w-4 h-4 mr-1" />
                                             Sorted by upvotes
                                         </div>
                                     </div>
-                                </CardHeader>
+              </CardHeader>
                                 <CardContent
                                     className="p-0"
                                     style={{ overflow: "visible" }}
                                 >
                                     {/* Enhanced Desktop Table */}
                                     <div className="hidden lg:block">
-                                        <div
-                                            className="overflow-x-auto"
-                                            style={{ overflowY: "visible" }}
-                                        >
-                                            <Table
-                                                className="relative"
-                                                style={{ overflow: "visible" }}
-                                            >
-                                                <TableHeader>
+                                        <div className="responsive-table-container">
+                                            <Table className="responsive-table">
+                    <TableHeader>
                                                     <TableRow className="bg-gray-50">
-                                                        <TableHead className="w-12">
-                                                            <input
-                                                                type="checkbox"
+                        <TableHead className="w-12">
+                          <input
+                            type="checkbox"
                                                                 checked={
                                                                     selectedIssues.length ===
                                                                         filteredIssues.length &&
@@ -840,15 +834,15 @@ export default function AdminIssuesPage() {
                                                                                     issue.id
                                                                             )
                                                                         );
-                                                                    } else {
+                              } else {
                                                                         setSelectedIssues(
                                                                             []
                                                                         );
-                                                                    }
-                                                                }}
-                                                                className="rounded"
-                                                            />
-                                                        </TableHead>
+                              }
+                            }}
+                            className="rounded"
+                          />
+                        </TableHead>
                                                         <TableHead className="min-w-[350px] font-semibold">
                                                             Issue Details
                                                         </TableHead>
@@ -876,9 +870,9 @@ export default function AdminIssuesPage() {
                                                         <TableHead className="w-20 font-semibold text-center">
                                                             Actions
                                                         </TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                                                     {filteredIssues.map(
                                                         (issue, index) => (
                                                             <TableRow
@@ -889,9 +883,9 @@ export default function AdminIssuesPage() {
                                                                         : ""
                                                                 }`}
                                                             >
-                                                                <TableCell>
-                                                                    <input
-                                                                        type="checkbox"
+                          <TableCell>
+                            <input
+                              type="checkbox"
                                                                         checked={selectedIssues.includes(
                                                                             issue.id
                                                                         )}
@@ -909,7 +903,7 @@ export default function AdminIssuesPage() {
                                                                                         issue.id,
                                                                                     ]
                                                                                 );
-                                                                            } else {
+                                } else {
                                                                                 setSelectedIssues(
                                                                                     selectedIssues.filter(
                                                                                         (
@@ -919,11 +913,11 @@ export default function AdminIssuesPage() {
                                                                                             issue.id
                                                                                     )
                                                                                 );
-                                                                            }
-                                                                        }}
-                                                                        className="rounded"
-                                                                    />
-                                                                </TableCell>
+                                }
+                              }}
+                              className="rounded"
+                            />
+                          </TableCell>
                                                                 <TableCell className="py-4">
                                                                     <div className="space-y-2">
                                                                         <Link
@@ -941,7 +935,7 @@ export default function AdminIssuesPage() {
                                                                                 {
                                                                                     issue.title
                                                                                 }
-                                                                            </div>
+                              </div>
                                                                         </Link>
                                                                         <div className="flex items-center text-sm text-gray-500">
                                                                             <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
@@ -955,7 +949,7 @@ export default function AdminIssuesPage() {
                                                                                     issue.location_address
                                                                                 }
                                                                             </span>
-                                                                        </div>
+                              </div>
                                                                         <div
                                                                             className="text-xs text-gray-400 cursor-pointer hover:text-blue-500 transition-colors font-mono"
                                                                             onClick={() =>
@@ -981,9 +975,9 @@ export default function AdminIssuesPage() {
                                                                                 }
                                                                             </div>
                                                                         )}
-                                                                    </div>
-                                                                </TableCell>
-                                                                <TableCell>
+                            </div>
+                          </TableCell>
+                          <TableCell>
                                                                     <Badge
                                                                         className={`${getStatusColor(
                                                                             issue.status
@@ -998,9 +992,9 @@ export default function AdminIssuesPage() {
                                                                                 " "
                                                                             )}
                                                                         </span>
-                                                                    </Badge>
-                                                                </TableCell>
-                                                                <TableCell>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
                                                                     <Badge
                                                                         className={`${getPriorityColor(
                                                                             issue.priority
@@ -1015,9 +1009,9 @@ export default function AdminIssuesPage() {
                                                                             issue.priority.slice(
                                                                                 1
                                                                             )}
-                                                                    </Badge>
-                                                                </TableCell>
-                                                                <TableCell>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
                                                                     <AIUrgencyBadge
                                                                         urgency={
                                                                             issue.ai_urgency
@@ -1044,10 +1038,10 @@ export default function AdminIssuesPage() {
                                                                             )}
                                                                         </Badge>
                                                                     </div>
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    {issue.assigned_profile ? (
-                                                                        <div className="space-y-1">
+                          </TableCell>
+                          <TableCell>
+                            {issue.assigned_profile ? (
+                              <div className="space-y-1">
                                                                             <div className="font-medium text-sm text-gray-900">
                                                                                 {
                                                                                     issue
@@ -1062,9 +1056,9 @@ export default function AdminIssuesPage() {
                                                                                         ?.name
                                                                                 }
                                                                             </div>
-                                                                        </div>
-                                                                    ) : issue.department ? (
-                                                                        <div className="space-y-1">
+                              </div>
+                            ) : issue.department ? (
+                              <div className="space-y-1">
                                                                             <div className="text-sm font-medium text-amber-700">
                                                                                 Department
                                                                             </div>
@@ -1075,21 +1069,21 @@ export default function AdminIssuesPage() {
                                                                                         .name
                                                                                 }
                                                                             </div>
-                                                                        </div>
-                                                                    ) : (
+                              </div>
+                            ) : (
                                                                         <span className="text-gray-400 text-sm italic">
                                                                             Unassigned
                                                                         </span>
-                                                                    )}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    <div className="space-y-1">
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
                                                                         <div className="text-sm flex items-center text-gray-600">
                                                                             <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
                                                                             {new Date(
                                                                                 issue.created_at
                                                                             ).toLocaleDateString()}
-                                                                        </div>
+                              </div>
                                                                         <div className="text-xs text-gray-500 flex items-center">
                                                                             <User className="w-3 h-3 mr-1 flex-shrink-0" />
                                                                             <span
@@ -1106,10 +1100,10 @@ export default function AdminIssuesPage() {
                                                                                     ?.full_name ||
                                                                                     "Unknown"}
                                                                             </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </TableCell>
-                                                                <TableCell>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
                                                                     <div className="flex items-center justify-center">
                                                                         <div className="flex items-center space-x-1 px-2 py-1 bg-green-50 rounded-full">
                                                                             <ThumbsUp className="w-4 h-4 text-green-600" />
@@ -1127,10 +1121,10 @@ export default function AdminIssuesPage() {
                                                                     }}
                                                                 >
                                                                     <div className="flex justify-center relative">
-                                                                        <SimpleAdminActions
-                                                                            issue={{
-                                                                                id: issue.id,
-                                                                                status: issue.status,
+                            <SimpleAdminActions
+                              issue={{
+                                id: issue.id,
+                                status: issue.status,
                                                                                 title: issue.title,
                                                                             }}
                                                                             onAction={
@@ -1142,29 +1136,29 @@ export default function AdminIssuesPage() {
                                                                             }
                                                                         />
                                                                     </div>
-                                                                </TableCell>
-                                                            </TableRow>
+                          </TableCell>
+                        </TableRow>
                                                         )
                                                     )}
-                                                </TableBody>
-                                            </Table>
+                    </TableBody>
+                  </Table>
                                         </div>
-                                    </div>
+                </div>
 
                                     {/* Enhanced Mobile Card View */}
-                                    <div className="block lg:hidden px-4 pb-4">
-                                        <div className="space-y-4">
+                                    <div className="block lg:hidden responsive-spacing-sm">
+                                        <div className="responsive-grid">
                                             {filteredIssues.map(
                                                 (issue, index) => (
                                                     <Card
                                                         key={issue.id}
-                                                        className={`relative shadow-sm hover:shadow-md transition-shadow ${
+                                                        className={`responsive-card ${
                                                             index === 0
                                                                 ? "border-l-4 border-l-blue-500 bg-blue-50/30"
                                                                 : ""
                                                         }`}
                                                     >
-                                                        <CardContent className="p-4">
+                                                        <CardContent className="responsive-card-content">
                                                             <div className="flex items-start justify-between mb-3">
                                                                 <div className="flex items-start space-x-3 flex-1">
                                                                     <input
@@ -1443,7 +1437,7 @@ export default function AdminIssuesPage() {
                                     </div>
 
                                     {/* Empty State */}
-                                    {filteredIssues.length === 0 && (
+                {filteredIssues.length === 0 && (
                                         <div className="text-center py-12 px-4">
                                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                                 <AlertTriangle className="w-8 h-8 text-gray-400" />
@@ -1466,14 +1460,14 @@ export default function AdminIssuesPage() {
                                                     Clear All Filters
                                                 </Button>
                                             )}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </Tabs>
+                  </div>
                 )}
-            </div>
-        </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+        )}
+      </div>
+    </div>
     );
 }
