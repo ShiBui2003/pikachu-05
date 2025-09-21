@@ -185,9 +185,23 @@ export default function AdminProfilePage() {
         try {
             const response = await fetch("/api/profile", {
                 credentials: "include",
+                cache: "no-store",
             });
             if (response.ok) {
                 const data = await response.json();
+                console.log("[PROFILE FETCH] /api/profile data:", data);
+                const locCoords =
+                    typeof data.profile?.location_coordinates === "string"
+                        ? (() => {
+                              try {
+                                  return JSON.parse(
+                                      data.profile.location_coordinates
+                                  );
+                              } catch {
+                                  return undefined;
+                              }
+                          })()
+                        : data.profile?.location_coordinates || undefined;
                 setProfileData({
                     full_name:
                         data.profile?.full_name ||
@@ -197,8 +211,7 @@ export default function AdminProfilePage() {
                     phone: data.profile?.phone || "",
                     bio: data.profile?.bio || "",
                     location: data.profile?.location || "",
-                    location_coordinates:
-                        data.profile?.location_coordinates || undefined,
+                    location_coordinates: locCoords,
                     avatar_url: data.profile?.avatar_url || "",
                     email_notifications:
                         data.profile?.email_notifications ?? true,
@@ -210,6 +223,17 @@ export default function AdminProfilePage() {
                     department: data.profile?.department || "",
                     admin_level: data.profile?.admin_level || "senior",
                 });
+
+                // If department_id exists in DB, prefer it over user metadata
+                if (data.profile?.department_id) {
+                    const deptId: string = data.profile.department_id;
+                    if (deptId !== userDepartment) {
+                        // Update the local state so UI reflects DB value by default
+                        setUserDepartment(deptId);
+                        // Update the human-friendly name as well
+                        getDepartmentName(deptId).then(setUserDepartmentName);
+                    }
+                }
             }
         } catch (error) {
             console.error("Error fetching profile:", error);

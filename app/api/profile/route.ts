@@ -66,7 +66,10 @@ export async function PUT(request: NextRequest) {
         const body = await request.json();
         console.log("=== PROFILE API DEBUG ===");
         console.log("Received body:", JSON.stringify(body, null, 2));
-        console.log("department_id in body:", body.department_id);
+        console.log(
+            "department_id in body:",
+            body.department_id || "not provided"
+        );
 
         const {
             full_name,
@@ -103,7 +106,8 @@ export async function PUT(request: NextRequest) {
         // 1) Use explicit body value when provided (allow null to clear)
         // 2) Fallback to user metadata (department or department_id)
         // 3) Normalize empty strings to null
-        let resolvedDepartmentId: string | null | undefined = department_id;
+        let resolvedDepartmentId: string | null | undefined =
+            department_id || null;
         if (resolvedDepartmentId === undefined) {
             // fallback to metadata
             const metaDept =
