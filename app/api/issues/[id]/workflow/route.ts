@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -31,7 +32,7 @@ export async function GET(
         }
 
         // Also get issue updates for additional context
-        const { data: updates, error: updatesError } = await supabase
+        const { data: updates, error: updatesError } = await (supabase as any)
             .from("issue_updates")
             .select(
                 `

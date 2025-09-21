@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -10,7 +11,7 @@ export async function POST(
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(
@@ -49,7 +50,9 @@ export async function POST(
         }
 
         // Check if user already voted
-        const { data: existingVote, error: voteCheckError } = await supabase
+        const { data: existingVote, error: voteCheckError } = await (
+            supabase as any
+        )
             .from("issue_votes")
             .select("*")
             .eq("issue_id", issueId)
@@ -66,7 +69,9 @@ export async function POST(
 
         if (existingVote) {
             // Update existing vote
-            const { data: updatedVote, error: updateError } = await supabase
+            const { data: updatedVote, error: updateError } = await (
+                supabase as any
+            )
                 .from("issue_votes")
                 .update({ vote_type })
                 .eq("id", existingVote.id)
@@ -101,7 +106,9 @@ export async function POST(
             });
         } else {
             // Create new vote
-            const { data: newVote, error: createError } = await supabase
+            const { data: newVote, error: createError } = await (
+                supabase as any
+            )
                 .from("issue_votes")
                 .insert({
                     issue_id: issueId,
@@ -135,14 +142,16 @@ export async function POST(
 
             // If it's a dispute vote, create notification for admins
             if (vote_type === "dispute") {
-                const { data: issue, error: issueError } = await supabase
+                const { data: issue, error: issueError } = await (
+                    supabase as any
+                )
                     .from("issues")
                     .select("title")
                     .eq("id", issueId)
                     .single();
 
                 if (!issueError && issue) {
-                    await supabase.from("admin_notifications").insert({
+                    await (supabase as any).from("admin_notifications").insert({
                         title: "⚠️ Issue Status Disputed",
                         message: `A citizen has disputed the status update for issue "${issue.title}". Please review the issue and comments.`,
                         type: "urgent",
@@ -175,14 +184,14 @@ export async function GET(
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
         const issueId = params.id;
 
         // Get vote counts - try with vote_type first, fallback if column doesn't exist
         let votes, error;
 
         try {
-            const result = await supabase
+            const result = await (supabase as any)
                 .from("issue_votes")
                 .select("vote_type, user_id")
                 .eq("issue_id", issueId);
@@ -194,12 +203,13 @@ export async function GET(
                 selectError?.code === "42703" ||
                 selectError?.message?.includes("vote_type")
             ) {
-                const result = await supabase
+                const result = await (supabase as any)
                     .from("issue_votes")
                     .select("user_id")
                     .eq("issue_id", issueId);
                 votes =
-                    result.data?.map((v) => ({ ...v, vote_type: "up" })) || [];
+                    result.data?.map((v: any) => ({ ...v, vote_type: "up" })) ||
+                    [];
                 error = result.error;
             } else {
                 throw selectError;
@@ -215,16 +225,17 @@ export async function GET(
         }
 
         const voteCounts = {
-            up: votes?.filter((v) => v.vote_type === "up").length || 0,
-            down: votes?.filter((v) => v.vote_type === "down").length || 0,
+            up: votes?.filter((v: any) => v.vote_type === "up").length || 0,
+            down: votes?.filter((v: any) => v.vote_type === "down").length || 0,
             dispute:
-                votes?.filter((v) => v.vote_type === "dispute").length || 0,
+                votes?.filter((v: any) => v.vote_type === "dispute").length ||
+                0,
             total: votes?.length || 0,
         };
 
         // Check if current user has voted
         const userVote = user
-            ? votes?.find((v) => v.user_id === user.id)
+            ? votes?.find((v: any) => v.user_id === user.id)
             : null;
 
         return NextResponse.json({
@@ -251,7 +262,7 @@ export async function DELETE(
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(
@@ -263,7 +274,7 @@ export async function DELETE(
         const issueId = params.id;
 
         // Delete user's vote
-        const { error: deleteError } = await supabase
+        const { error: deleteError } = await (supabase as any)
             .from("issue_votes")
             .delete()
             .eq("issue_id", issueId)

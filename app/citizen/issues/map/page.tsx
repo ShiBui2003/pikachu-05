@@ -23,7 +23,7 @@ import { GoogleMap } from "@/components/ui/google-map";
 import { FallbackMap } from "@/components/ui/fallback-map";
 import {
     ArrowLeft,
-    Map,
+    Map as MapIcon,
     List,
     MapPin,
     Eye,
@@ -153,7 +153,7 @@ export default function CitizenIssuesMapPage() {
             setLoading(true);
             setError(null);
 
-            const { data, error: fetchError } = await supabase
+            const { data, error: fetchError } = await (supabase as any)
                 .from("issues")
                 .select(
                     `
@@ -247,24 +247,28 @@ export default function CitizenIssuesMapPage() {
             // Calculate combined scores using AI urgency and upvotes
             const getCombinedScore = (issue: Issue) => {
                 const upvotes = issue.upvotes || 0;
-                const urgency = issue.ai_urgency || 'medium';
-                
+                const urgency = issue.ai_urgency || "medium";
+
                 // AI urgency weight: low=1, medium=2, high=3
-                const urgencyWeight = urgency === 'high' ? 3 : urgency === 'medium' ? 2 : 1;
+                const urgencyWeight =
+                    urgency === "high" ? 3 : urgency === "medium" ? 2 : 1;
                 const upvoteScore = Math.log(1 + upvotes);
-                
+
                 // Combined score: 0.7 * AI urgency + 0.3 * log(1 + upvotes)
                 return 0.7 * urgencyWeight + 0.3 * upvoteScore;
             };
-            
+
             const scoreA = getCombinedScore(a);
             const scoreB = getCombinedScore(b);
             const scoreDiff = scoreB - scoreA;
-            
+
             if (scoreDiff !== 0) return scoreDiff;
-            
+
             // Secondary sort: by creation date (descending) for stable sorting
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            return (
+                new Date(b.created_at).getTime() -
+                new Date(a.created_at).getTime()
+            );
         });
 
     // Get nearby issues (within 5km of user location for citizens)
@@ -464,7 +468,7 @@ export default function CitizenIssuesMapPage() {
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="flex items-center">
-                                        <Map className="w-5 h-5 mr-2 text-accent" />
+                                        <MapIcon className="w-5 h-5 mr-2 text-accent" />
                                         Community Issues Map
                                     </CardTitle>
                                     <div className="flex items-center space-x-2">

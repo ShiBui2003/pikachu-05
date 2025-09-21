@@ -24,13 +24,10 @@ let departmentsCache: Department[] | null = null;
  * Fetch all departments from Supabase (client-side)
  */
 export async function getDepartments(): Promise<Department[]> {
-    if (departmentsCache) {
-        return departmentsCache;
-    }
 
     const supabase = createClient();
 
-    const { data: departments, error } = await supabase
+    const { data: departments, error } = await (supabase as any)
         .from("departments")
         .select(
             `
@@ -47,7 +44,12 @@ export async function getDepartments(): Promise<Department[]> {
     }
 
     departmentsCache = departments || [];
-    return departmentsCache;
+    
+    if (departmentsCache) {
+        return departmentsCache;
+    } else {
+        return [];
+    }
 }
 
 /**

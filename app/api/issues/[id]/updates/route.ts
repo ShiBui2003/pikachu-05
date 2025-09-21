@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -10,7 +11,7 @@ export async function GET(
         const supabase = createServerClient();
         const { id } = params;
 
-        const { data: updates, error } = await supabase
+        const { data: updates, error } = await (supabase as any)
             .from("issue_updates")
             .select(`*, profiles:user_id(full_name, email)`) // author profile
             .eq("issue_id", id)
@@ -44,7 +45,7 @@ export async function POST(
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(
@@ -62,7 +63,7 @@ export async function POST(
         };
 
         // Verify issue exists
-        const { data: issue, error: issueError } = await supabase
+        const { data: issue, error: issueError } = await (supabase as any)
             .from("issues")
             .select("id")
             .eq("id", id)
@@ -110,14 +111,12 @@ export async function POST(
                     .eq("issue_id", id)
                     .is("ended_at", null);
                 if (assign_to) {
-                    await (supabase as any)
-                        .from("issue_assignments")
-                        .insert({
-                            issue_id: id,
-                            user_id: assign_to,
-                            assigned_by: user.id,
-                            assigned_at: nowIso,
-                        });
+                    await (supabase as any).from("issue_assignments").insert({
+                        issue_id: id,
+                        user_id: assign_to,
+                        assigned_by: user.id,
+                        assigned_at: nowIso,
+                    });
                 }
             }
 

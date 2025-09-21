@@ -169,7 +169,7 @@ export default function AdminDashboard() {
             const {
                 data: { user },
                 error,
-            } = await supabase.auth.getUser();
+            } = await (supabase as any).auth.getUser();
 
             if (error || !user) {
                 router.push("/admin/login");
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
             setCurrentUser(user);
 
             // Fetch user profile
-            const { data: profile } = await supabase
+            const { data: profile } = await (supabase as any)
                 .from("profiles")
                 .select("*")
                 .eq("id", user.id)
@@ -262,7 +262,7 @@ export default function AdminDashboard() {
 
     const fetchOverviewStats = async (): Promise<DashboardStats> => {
         // Get all issues
-        const { data: allIssues, error } = await supabase
+        const { data: allIssues, error } = await (supabase as any)
             .from("issues")
             .select(
                 "status, created_at, updated_at, title, description, category"
@@ -355,7 +355,7 @@ export default function AdminDashboard() {
     };
 
     const fetchCategoryData = async (): Promise<CategoryData[]> => {
-        const { data: issues, error } = await supabase
+        const { data: issues, error } = await (supabase as any)
             .from("issues")
             .select("category");
 
@@ -390,7 +390,7 @@ export default function AdminDashboard() {
     };
 
     const fetchMonthlyTrends = async (): Promise<MonthlyTrend[]> => {
-        const { data: issues, error } = await supabase
+        const { data: issues, error } = await (supabase as any)
             .from("issues")
             .select("created_at, updated_at, status");
 
@@ -449,7 +449,7 @@ export default function AdminDashboard() {
     > => {
         // This would ideally come from a departments table and assignments
         // For now, we'll create mock data based on categories
-        const { data: issues, error } = await supabase
+        const { data: issues, error } = await (supabase as any)
             .from("issues")
             .select("category, status");
 
@@ -502,7 +502,7 @@ export default function AdminDashboard() {
     };
 
     const fetchRecentIssues = async (): Promise<Issue[]> => {
-        const { data: issues, error } = await supabase
+        const { data: issues, error } = await (supabase as any)
             .from("issues")
             .select(
                 `
@@ -537,7 +537,7 @@ export default function AdminDashboard() {
 
     const fetchNotificationCount = async (): Promise<number> => {
         // Count unread notifications (new issues, urgent issues, etc.)
-        const { data: newIssues, error } = await supabase
+        const { data: newIssues, error } = await (supabase as any)
             .from("issues")
             .select("id")
             .eq("status", "submitted")
@@ -552,7 +552,7 @@ export default function AdminDashboard() {
 
     // Additional analytics data fetching functions
     const fetchAnalyticsMonthlyData = async () => {
-        const { data: issues, error } = await supabase
+        const { data: issues, error } = await (supabase as any)
             .from("issues")
             .select("created_at, updated_at, status");
 
@@ -607,7 +607,7 @@ export default function AdminDashboard() {
     };
 
     const fetchAnalyticsCategoryData = async () => {
-        const { data: issues, error } = await supabase
+        const { data: issues, error } = await (supabase as any)
             .from("issues")
             .select("category");
 
@@ -644,7 +644,7 @@ export default function AdminDashboard() {
     };
 
     const fetchAnalyticsResponseTimeData = async () => {
-        const { data: issues, error } = await supabase
+        const { data: issues, error } = await (supabase as any)
             .from("issues")
             .select("category, status, created_at, updated_at");
 
@@ -699,7 +699,7 @@ export default function AdminDashboard() {
     };
 
     const fetchAnalyticsResolutionTrendData = async () => {
-        const { data: issues, error } = await supabase
+        const { data: issues, error } = await (supabase as any)
             .from("issues")
             .select("updated_at, status");
 

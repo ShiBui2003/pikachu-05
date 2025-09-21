@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -10,7 +11,7 @@ export async function PATCH(
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(

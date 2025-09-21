@@ -73,8 +73,9 @@ export default function UsersPage() {
             setLoading(true);
 
             // Fetch profiles with issue counts
-            const { data: profiles, error: profilesError } =
-                await supabase.from("profiles").select(`
+            const { data: profiles, error: profilesError } = await (
+                supabase as any
+            ).from("profiles").select(`
                     *,
                     reported_issues:issues!user_id(count)
                 `);

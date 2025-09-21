@@ -13,10 +13,12 @@ export async function POST(request: NextRequest) {
         }
 
         const supabase = createClient();
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+        const { data, error } = await (supabase as any).auth.signInWithPassword(
+            {
+                email,
+                password,
+            }
+        );
 
         if (error || !data.session || !data.user) {
             return NextResponse.json(
@@ -27,7 +29,8 @@ export async function POST(request: NextRequest) {
 
         // Enforce admin-only for this endpoint
         const isAdmin =
-            (data.user.user_metadata?.role && data.user.user_metadata.role !== "citizen") || 
+            (data.user.user_metadata?.role &&
+                data.user.user_metadata.role !== "citizen") ||
             (data.user.role && data.user.role !== "citizen");
         if (!isAdmin) {
             return NextResponse.json(
@@ -40,7 +43,10 @@ export async function POST(request: NextRequest) {
             user: {
                 id: data.user.id,
                 email: data.user.email,
-                role: data.user.user_metadata?.role || data.user.role || "citizen",
+                role:
+                    data.user.user_metadata?.role ||
+                    data.user.role ||
+                    "citizen",
             },
         });
 
@@ -53,13 +59,17 @@ export async function POST(request: NextRequest) {
             maxAge: 60 * 60 * 24,
         });
         if (data.session.refresh_token) {
-            response.cookies.set("sb-refresh-token", data.session.refresh_token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "lax",
-                path: "/",
-                maxAge: 60 * 60 * 24,
-            });
+            response.cookies.set(
+                "sb-refresh-token",
+                data.session.refresh_token,
+                {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === "production",
+                    sameSite: "lax",
+                    path: "/",
+                    maxAge: 60 * 60 * 24,
+                }
+            );
         }
 
         return response;

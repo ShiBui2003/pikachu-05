@@ -7,7 +7,7 @@ export async function GET() {
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(
@@ -17,7 +17,7 @@ export async function GET() {
         }
 
         // Get user's profile information with role from roles table
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = await (supabase as any)
             .from("profiles")
             .select(
                 `

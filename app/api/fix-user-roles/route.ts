@@ -6,7 +6,9 @@ export async function POST() {
         const supabase = createServerClient();
 
         // Get all profiles without role_id
-        const { data: profilesWithoutRoles, error: fetchError } = await supabase
+        const { data: profilesWithoutRoles, error: fetchError } = await (
+            supabase as any
+        )
             .from("profiles")
             .select("id, email, full_name")
             .is("role_id", null);
@@ -20,7 +22,7 @@ export async function POST() {
         }
 
         // Get citizen role ID
-        const { data: citizenRole, error: roleError } = await supabase
+        const { data: citizenRole, error: roleError } = await (supabase as any)
             .from("roles")
             .select("id")
             .eq("name", "Citizen")
@@ -37,7 +39,7 @@ export async function POST() {
         // Update profiles to have citizen role
         const updates = [];
         for (const profile of profilesWithoutRoles || []) {
-            const { error: updateError } = await supabase
+            const { error: updateError } = await (supabase as any)
                 .from("profiles")
                 .update({ role_id: citizenRole.id })
                 .eq("id", profile.id);

@@ -95,7 +95,7 @@ export default function ReportIssuePage() {
             : "en-US"
     );
     const [transcript, setTranscript] = useState<string>("");
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
+    const recognitionRef = useRef<any| null>(null);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -298,7 +298,7 @@ export default function ReportIssuePage() {
                     .trim();
                 setTranscript(combined);
             };
-            recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
+            recognition.onerror = (e: any) => {
                 console.warn("Speech recognition error:", e);
             };
             recognition.onend = () => {
@@ -309,7 +309,7 @@ export default function ReportIssuePage() {
                         recognition.start();
                         setRecognizing(true);
                     } catch (error) {
-                        console.warn('Failed to restart recognition:', error);
+                        console.warn("Failed to restart recognition:", error);
                     }
                 }
             };
@@ -477,7 +477,7 @@ export default function ReportIssuePage() {
                         audioFile.name
                     }`;
 
-                    const { data, error } = await supabase.storage
+                    const { data, error } = await (supabase as any).storage
                         .from("audio")
                         .upload(fileName, audioFile, {
                             cacheControl: "3600",
@@ -583,7 +583,10 @@ export default function ReportIssuePage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleSubmit} className="responsive-form">
+                            <form
+                                onSubmit={handleSubmit}
+                                className="responsive-form"
+                            >
                                 {/* Title */}
                                 <div className="space-y-2">
                                     <Label htmlFor="title">Issue Title *</Label>

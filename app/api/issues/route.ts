@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
 
         // If id is provided, return a single issue with relations
         if (id) {
-            const { data: issue, error } = await supabase
+            const { data: issue, error } = await (supabase as any)
                 .from("issues")
                 .select(
                     `
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         let query = supabase
             .from("issues")
@@ -110,7 +111,7 @@ export async function GET(request: NextRequest) {
         let userProfile: any = null;
         if (user) {
             // Get user's profile information with role from roles table
-            const { data: profile } = await supabase
+            const { data: profile } = await (supabase as any)
                 .from("profiles")
                 .select(
                     `
@@ -353,7 +354,7 @@ export async function POST(request: NextRequest) {
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(
@@ -420,7 +421,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Find the department that matches the category (since categories are now department names)
-        const { data: departments } = await supabase
+        const { data: departments } = await (supabase as any)
             .from("departments")
             .select("id, name")
             .eq("name", category);

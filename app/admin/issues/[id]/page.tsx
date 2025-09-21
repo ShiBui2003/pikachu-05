@@ -18,7 +18,7 @@ import {
     CheckCircle,
     FileText,
     ExternalLink,
-    Map,
+    Map as MapIcon,
     MessageCircle,
 } from "lucide-react";
 import AdminIssueStatusUpdater from "@/components/admin-issue-status-updater";
@@ -345,7 +345,7 @@ export default function AdminIssueDetailPage() {
                                             target="_blank"
                                             rel="noopener noreferrer"
                                         >
-                                            <Map className="w-4 h-4 mr-2" />
+                                            <MapIcon className="w-4 h-4 mr-2" />
                                             Get Directions
                                         </a>
                                     </Button>
@@ -546,7 +546,7 @@ export default function AdminIssueDetailPage() {
                         currentAssignee={issue.assigned_profile || null}
                         onAssigned={handleUserAssigned}
                     />
-{/* 
+                    {/* 
                     <AdminIssueStatusUpdater
                         issueId={issue.id}
                         currentStatus={issue.status}
@@ -593,7 +593,7 @@ export default function AdminIssueDetailPage() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-                                    <Map className="w-4 h-4 mr-2" />
+                                    <MapIcon className="w-4 h-4 mr-2" />
                                     Navigate to Location
                                 </a>
                             </Button>

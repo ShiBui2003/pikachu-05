@@ -36,7 +36,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 // Navigation items for desktop
-const navItems = [
+type NavItem = {
+    href: string;
+    label: string;
+    icon: typeof Home;
+    badge?: number;
+};
+
+const navItems: NavItem[] = [
     {
         href: "/citizen/dashboard",
         label: "Dashboard",

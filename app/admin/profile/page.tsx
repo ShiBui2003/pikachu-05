@@ -352,7 +352,7 @@ export default function AdminProfilePage() {
                     const supabase = createClient();
 
                     // Update user metadata
-                    await supabase.auth.updateUser({
+                    await (supabase as any).auth.updateUser({
                         data: {
                             department: userDepartment,
                         },

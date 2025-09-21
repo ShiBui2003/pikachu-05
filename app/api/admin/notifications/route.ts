@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
     try {
@@ -7,7 +8,7 @@ export async function GET(request: NextRequest) {
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Check if user has admin-type role using roles table
-        const { data: profile } = await supabase
+        const { data: profile } = await (supabase as any)
             .from("profiles")
             .select(
                 `
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Get unread count
-        const { count: unreadCount } = await supabase
+        const { count: unreadCount } = await (supabase as any)
             .from("admin_notifications")
             .select("*", { count: "exact", head: true })
             .eq("read", false);
@@ -107,7 +108,7 @@ export async function PUT(request: NextRequest) {
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(
@@ -120,7 +121,7 @@ export async function PUT(request: NextRequest) {
         const { notificationIds, markAllAsRead } = body;
 
         if (markAllAsRead) {
-            const { error } = await supabase
+            const { error } = await (supabase as any)
                 .from("admin_notifications")
                 .update({ read: true })
                 .eq("read", false);
@@ -136,7 +137,7 @@ export async function PUT(request: NextRequest) {
                 );
             }
         } else if (notificationIds && Array.isArray(notificationIds)) {
-            const { error } = await supabase
+            const { error } = await (supabase as any)
                 .from("admin_notifications")
                 .update({ read: true })
                 .in("id", notificationIds);

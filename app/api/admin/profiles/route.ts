@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
         if (authError || !user) {
             return NextResponse.json(
                 { error: "Unauthorized" },
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
             );
         }
         // Check if user has admin-type role using roles table
-        const { data: profile } = await supabase
+        const { data: profile } = await (supabase as any)
             .from("profiles")
             .select(
                 `

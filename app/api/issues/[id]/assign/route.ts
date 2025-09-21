@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -12,7 +13,7 @@ export async function PATCH(
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
         if (authError || !user) {
             return NextResponse.json(
                 { error: "Unauthorized" },
@@ -32,11 +33,11 @@ export async function PATCH(
         }
 
         // Fetch the issue to get department, ensure exists
-        const { data: issue, error: issueErr } = await supabase
+        const { data: issue, error: issueErr } = await (supabase as any)
             .from("issues" as any)
             .select("id, department_id")
             .eq("id", issueId)
-            .single<any>();
+            .single();
         if (issueErr || !issue) {
             return NextResponse.json(
                 { error: "Issue not found" },
@@ -55,11 +56,13 @@ export async function PATCH(
         if (assigned_to) {
             // Validate assignee belongs to department (if issue has a dept)
             if (issue.department_id) {
-                const { data: profile, error: profErr } = await supabase
+                const { data: profile, error: profErr } = await (
+                    supabase as any
+                )
                     .from("profiles" as any)
                     .select("id, department_id")
                     .eq("id", assigned_to)
-                    .single<any>();
+                    .single();
                 if (profErr || !profile) {
                     return NextResponse.json(
                         { error: "Target user not found" },

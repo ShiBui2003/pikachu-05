@@ -17,7 +17,7 @@ import {
     MapPin,
     Plus,
     Search,
-    Map,
+    Map as MapIcon,
     List,
     Calendar,
     AlertTriangle,
@@ -156,7 +156,7 @@ export default function CitizenDashboard() {
                 setError(null);
 
                 // Fetch issues with profiles
-                const { data, error: fetchError } = await supabase
+                const { data, error: fetchError } = await (supabase as any)
                     .from("issues")
                     .select(
                         `
@@ -421,10 +421,15 @@ export default function CitizenDashboard() {
                             </div>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                            <Button asChild className="w-full sm:w-auto h-10 sm:h-11">
+                            <Button
+                                asChild
+                                className="w-full sm:w-auto h-10 sm:h-11"
+                            >
                                 <Link href="/citizen/report">
                                     <Plus className="w-4 h-4 mr-2" />
-                                    <span className="hidden xs:inline">Report Issue</span>
+                                    <span className="hidden xs:inline">
+                                        Report Issue
+                                    </span>
                                     <span className="xs:hidden">Report</span>
                                 </Link>
                             </Button>
@@ -434,9 +439,8 @@ export default function CitizenDashboard() {
                                 className="w-full sm:w-auto h-10 sm:h-11 bg-transparent"
                             >
                                 <Link href="/citizen/issues/map">
-                                    <Map className="w-4 h-4 mr-2" />
-                                    <span className="hidden xs:inline">Map View</span>
-                                    <span className="xs:hidden">Map</span>
+                                    <MapIcon className="w-4 h-4 mr-2" />
+                                    Map
                                 </Link>
                             </Button>
                             <Button
@@ -444,10 +448,7 @@ export default function CitizenDashboard() {
                                 asChild
                                 className="w-full sm:w-auto h-10 sm:h-11 bg-transparent"
                             >
-                                <Link href="/citizen/issues">
-                                    <span className="hidden xs:inline">My Issues</span>
-                                    <span className="xs:hidden">My Issues</span>
-                                </Link>
+                                <Link href="/citizen/issues">My Issues</Link>
                             </Button>
                         </div>
                     </div>
@@ -636,7 +637,7 @@ export default function CitizenDashboard() {
                                             onClick={() => setViewMode("map")}
                                             className="h-9 px-3 flex-1 sm:flex-none"
                                         >
-                                            <Map className="w-4 h-4 mr-1 sm:mr-0" />
+                                            <MapIcon className="w-4 h-4 mr-1 sm:mr-0" />
                                             <span className="sm:hidden">
                                                 Map
                                             </span>
@@ -680,7 +681,7 @@ export default function CitizenDashboard() {
                                                     className="w-full h-full object-cover"
                                                 />
                                             </div>
-                                            
+
                                             {/* Content below image - safe padding that won't cause overflow */}
                                             <div className="px-4 py-3 space-y-3 w-full">
                                                 {/* Title and urgency badges */}
@@ -693,7 +694,7 @@ export default function CitizenDashboard() {
                                                             {issue.title}
                                                         </h3>
                                                     </Link>
-                                                    
+
                                                     {/* Status and AI urgency badges */}
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <Badge
@@ -701,14 +702,23 @@ export default function CitizenDashboard() {
                                                                 issue.status
                                                             )} text-xs h-6`}
                                                         >
-                                                            {getStatusIcon(issue.status)}
+                                                            {getStatusIcon(
+                                                                issue.status
+                                                            )}
                                                             <span className="ml-1 capitalize">
-                                                                {issue.status.replace("-", " ")}
+                                                                {issue.status.replace(
+                                                                    "-",
+                                                                    " "
+                                                                )}
                                                             </span>
                                                         </Badge>
-                                                        <AIUrgencyBadge 
-                                                            urgency={issue.ai_urgency}
-                                                            confidence={issue.ai_confidence}
+                                                        <AIUrgencyBadge
+                                                            urgency={
+                                                                issue.ai_urgency
+                                                            }
+                                                            confidence={
+                                                                issue.ai_confidence
+                                                            }
                                                             className="text-xs"
                                                         />
                                                     </div>
@@ -724,14 +734,17 @@ export default function CitizenDashboard() {
                                                     <div className="flex items-center min-w-0 flex-1">
                                                         <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
                                                         <span className="truncate">
-                                                            {issue.location_address || "N/A"}
+                                                            {issue.location_address ||
+                                                                "N/A"}
                                                         </span>
                                                     </div>
                                                     <Badge
                                                         variant="outline"
                                                         className="text-xs flex-shrink-0"
                                                     >
-                                                        {getCategoryLabel(issue.category)}
+                                                        {getCategoryLabel(
+                                                            issue.category
+                                                        )}
                                                     </Badge>
                                                 </div>
 
@@ -741,7 +754,9 @@ export default function CitizenDashboard() {
                                                         <div className="flex items-center">
                                                             <Calendar className="w-3 h-3 mr-1" />
                                                             <span>
-                                                                {new Date(issue.created_at).toLocaleDateString(
+                                                                {new Date(
+                                                                    issue.created_at
+                                                                ).toLocaleDateString(
                                                                     "en-US",
                                                                     {
                                                                         month: "short",
@@ -752,11 +767,16 @@ export default function CitizenDashboard() {
                                                         </div>
                                                         <div className="flex items-center">
                                                             <ThumbsUp className="w-3 h-3 mr-1" />
-                                                            {(issue as any).votes_count ?? issue.upvotes ?? 0}
+                                                            {(issue as any)
+                                                                .votes_count ??
+                                                                issue.upvotes ??
+                                                                0}
                                                         </div>
                                                         <div className="flex items-center">
                                                             <MessageCircle className="w-3 h-3 mr-1" />
-                                                            {(issue as any).comments_count ?? 0}
+                                                            {(issue as any)
+                                                                .comments_count ??
+                                                                0}
                                                         </div>
                                                     </div>
 
@@ -766,7 +786,9 @@ export default function CitizenDashboard() {
                                                         asChild
                                                         className="h-8 px-3 text-xs"
                                                     >
-                                                        <Link href={`/citizen/issues/${issue.id}`}>
+                                                        <Link
+                                                            href={`/citizen/issues/${issue.id}`}
+                                                        >
                                                             View
                                                         </Link>
                                                     </Button>
@@ -777,110 +799,128 @@ export default function CitizenDashboard() {
                                         {/* Tablet & Desktop: Side-by-side layout */}
                                         <div className="hidden md:block w-full">
                                             <div className="p-4 lg:p-6 w-full">
-                                        <div className="flex flex-col gap-4">
+                                                <div className="flex flex-col gap-4">
                                                     <div className="flex gap-4">
                                                         {/* Image on the left */}
                                                         <div className="w-20 h-20 lg:w-24 lg:h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                                                    <img
-                                                        src={
-                                                            issue.image_url ||
-                                                            "/placeholder.svg"
-                                                        }
-                                                        alt={issue.title}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-
-                                                        {/* Content on the right */}
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-start justify-between gap-2 mb-2">
-                                                        <Link
-                                                            href={`/citizen/issues/${issue.id}`}
-                                                            className="hover:underline min-h-[44px] flex items-start"
-                                                        >
-                                                                    <h3 className="font-semibold text-base lg:text-lg line-clamp-2 text-balance leading-tight">
-                                                                {issue.title}
-                                                            </h3>
-                                                        </Link>
-                                                        <div className="flex flex-col gap-1 items-end">
-                                                            <Badge
-                                                                className={`${getStatusColor(
-                                                                    issue.status
-                                                                )} flex-shrink-0 text-xs h-6`}
-                                                            >
-                                                                {getStatusIcon(
-                                                                    issue.status
-                                                                )}
-                                                                <span className="ml-1 hidden sm:inline capitalize">
-                                                                    {issue.status.replace(
-                                                                        "-",
-                                                                        " "
-                                                                    )}
-                                                                </span>
-                                                            </Badge>
-                                                            <AIUrgencyBadge
-                                                                urgency={
-                                                                    issue.ai_urgency
+                                                            <img
+                                                                src={
+                                                                    issue.image_url ||
+                                                                    "/placeholder.svg"
                                                                 }
-                                                                confidence={
-                                                                    issue.ai_confidence
+                                                                alt={
+                                                                    issue.title
                                                                 }
-                                                                className="text-xs"
+                                                                className="w-full h-full object-cover"
                                                             />
                                                         </div>
-                                                    </div>
+
+                                                        {/* Content on the right */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                                                <Link
+                                                                    href={`/citizen/issues/${issue.id}`}
+                                                                    className="hover:underline min-h-[44px] flex items-start"
+                                                                >
+                                                                    <h3 className="font-semibold text-base lg:text-lg line-clamp-2 text-balance leading-tight">
+                                                                        {
+                                                                            issue.title
+                                                                        }
+                                                                    </h3>
+                                                                </Link>
+                                                                <div className="flex flex-col gap-1 items-end">
+                                                                    <Badge
+                                                                        className={`${getStatusColor(
+                                                                            issue.status
+                                                                        )} flex-shrink-0 text-xs h-6`}
+                                                                    >
+                                                                        {getStatusIcon(
+                                                                            issue.status
+                                                                        )}
+                                                                        <span className="ml-1 hidden sm:inline capitalize">
+                                                                            {issue.status.replace(
+                                                                                "-",
+                                                                                " "
+                                                                            )}
+                                                                        </span>
+                                                                    </Badge>
+                                                                    <AIUrgencyBadge
+                                                                        urgency={
+                                                                            issue.ai_urgency
+                                                                        }
+                                                                        confidence={
+                                                                            issue.ai_confidence
+                                                                        }
+                                                                        className="text-xs"
+                                                                    />
+                                                                </div>
+                                                            </div>
 
                                                             <p className="text-sm text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
-                                                        {issue.description}
-                                                    </p>
+                                                                {
+                                                                    issue.description
+                                                                }
+                                                            </p>
 
                                                             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
-                                                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                                            <div className="flex items-center">
-                                                                <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                                                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                                                    <div className="flex items-center">
+                                                                        <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
                                                                         <span className="truncate">
-                                                                            {issue.location_address || "N/A"}
-                                                                </span>
+                                                                            {issue.location_address ||
+                                                                                "N/A"}
+                                                                        </span>
+                                                                    </div>
+                                                                    <Badge
+                                                                        variant="outline"
+                                                                        className="text-xs"
+                                                                    >
+                                                                        {getCategoryLabel(
+                                                                            issue.category
+                                                                        )}
+                                                                    </Badge>
+                                                                </div>
                                                             </div>
-                                                            <Badge
-                                                                variant="outline"
-                                                                className="text-xs"
-                                                            >
-                                                                        {getCategoryLabel(issue.category)}
-                                                            </Badge>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
 
-                                            <div className="flex items-center justify-between pt-3 border-t">
-                                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                                    <div className="flex items-center">
-                                                        <Calendar className="w-3 h-3 mr-1" />
+                                                    <div className="flex items-center justify-between pt-3 border-t">
+                                                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                                            <div className="flex items-center">
+                                                                <Calendar className="w-3 h-3 mr-1" />
                                                                 <span>
-                                                                    {new Date(issue.created_at).toLocaleDateString()}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center">
-                                                        <ThumbsUp className="w-3 h-3 mr-1" />
-                                                                {(issue as any).votes_count ?? issue.upvotes ?? 0}
-                                                    </div>
-                                                    <div className="flex items-center">
-                                                        <MessageCircle className="w-3 h-3 mr-1" />
-                                                                {(issue as any).comments_count ?? 0}
-                                                    </div>
-                                                </div>
+                                                                    {new Date(
+                                                                        issue.created_at
+                                                                    ).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center">
+                                                                <ThumbsUp className="w-3 h-3 mr-1" />
+                                                                {(issue as any)
+                                                                    .votes_count ??
+                                                                    issue.upvotes ??
+                                                                    0}
+                                                            </div>
+                                                            <div className="flex items-center">
+                                                                <MessageCircle className="w-3 h-3 mr-1" />
+                                                                {(issue as any)
+                                                                    .comments_count ??
+                                                                    0}
+                                                            </div>
+                                                        </div>
 
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    asChild
-                                                    className="h-9 px-3"
-                                                >
-                                                            <Link href={`/citizen/issues/${issue.id}`}>
-                                                            View Details
-                                                    </Link>
-                                                </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            asChild
+                                                            className="h-9 px-3"
+                                                        >
+                                                            <Link
+                                                                href={`/citizen/issues/${issue.id}`}
+                                                            >
+                                                                View Details
+                                                            </Link>
+                                                        </Button>
                                                     </div>
                                                 </div>
                                             </div>

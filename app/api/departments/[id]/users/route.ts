@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -14,7 +15,7 @@ export async function GET(
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
         if (authError || !user) {
             return NextResponse.json(
                 { error: "Unauthorized" },
@@ -30,7 +31,7 @@ export async function GET(
             );
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
             .from("profiles")
             .select("id, full_name, email")
             .eq("department_id", departmentId)

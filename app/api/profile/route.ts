@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -7,7 +8,7 @@ export async function GET(request: NextRequest) {
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Get user profile from profiles table
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = await (supabase as any)
             .from("profiles")
             .select("*")
             .eq("id", user.id)
@@ -54,7 +55,7 @@ export async function PUT(request: NextRequest) {
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(
@@ -125,7 +126,7 @@ export async function PUT(request: NextRequest) {
         console.log("Profile update data (final):", updateData);
 
         // Update or insert profile
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = await (supabase as any)
             .from("profiles")
             // on_conflict by primary key id (Supabase will match on id for upsert)
             .upsert(updateData, { onConflict: "id" })

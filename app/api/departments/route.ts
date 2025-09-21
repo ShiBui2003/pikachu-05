@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -5,7 +6,7 @@ export async function GET(request: NextRequest) {
     try {
         const supabase = createServerClient();
 
-        const { data: departments, error } = await supabase
+        const { data: departments, error } = await (supabase as any)
             .from("departments")
             .select(
                 `
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
         const {
             data: { user },
             error: authError,
-        } = await supabase.auth.getUser();
+        } = await (supabase as any).auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { data: department, error } = await supabase
+        const { data: department, error } = await (supabase as any)
             .from("departments")
             .insert({
                 name,

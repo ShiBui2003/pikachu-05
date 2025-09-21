@@ -23,7 +23,7 @@ import { GoogleMap } from "@/components/ui/google-map";
 import { FallbackMap } from "@/components/ui/fallback-map";
 import {
     ArrowLeft,
-    Map,
+    Map as MapIcon,
     List,
     MapPin,
     Eye,
@@ -155,17 +155,12 @@ export default function IssuesMapPage() {
             setLoading(true);
             setError(null);
 
-            const { data, error: fetchError } = await supabase
-                .from("issues")
-                .select(
-                    `
-          *,
-          profiles:user_id (
-            full_name,
-            email
-          ),
-        `
-                )
+                        const { data, error: fetchError } = await (supabase as any)
+                                .from("issues")
+                                .select(`
+                    *,
+                    profiles:user_id(full_name, email)
+                `)
                 .not("location_lat", "is", null)
                 .not("location_lng", "is", null)
                 .order("created_at", { ascending: false });
@@ -178,23 +173,23 @@ export default function IssuesMapPage() {
             // Fetch active assignments and attach profiles
             if (issues.length > 0) {
                 const ids = issues.map((i) => i.id);
-                const { data: assigns } = await supabase
+                const { data: assigns } = await (supabase as any)
                     .from("issue_assignments")
                     .select("issue_id, user_id")
                     .in("issue_id", ids)
                     .is("ended_at", null);
-                const map = new (Map as any)();
+                const assignMap = new Map<any, any>();
                 ((assigns as any[]) || []).forEach((a: any) =>
-                    map.set(a.issue_id, a.user_id)
+                    assignMap.set(a.issue_id, a.user_id)
                 );
                 const userIds = Array.from(
                     new Set(
                         ((assigns as any[]) || []).map((a: any) => a.user_id)
                     )
                 );
-                let profMap = new (Map as any)();
+                const profMap = new Map<any, any>();
                 if (userIds.length > 0) {
-                    const { data: profs } = await supabase
+                    const { data: profs } = await (supabase as any)
                         .from("profiles")
                         .select("id, full_name, email")
                         .in("id", userIds);
@@ -206,7 +201,7 @@ export default function IssuesMapPage() {
                     );
                 }
                 issues.forEach((it) => {
-                    const uid = map.get(it.id);
+                    const uid = assignMap.get(it.id);
                     it.assigned_profile = uid ? profMap.get(uid) || null : null;
                 });
             }
@@ -511,7 +506,7 @@ export default function IssuesMapPage() {
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="flex items-center">
-                                        <Map className="w-5 h-5 mr-2 text-accent" />
+                                        <MapIcon className="w-5 h-5 mr-2 text-accent" />
                                         Interactive Map
                                     </CardTitle>
                                     <div className="flex items-center space-x-2">
