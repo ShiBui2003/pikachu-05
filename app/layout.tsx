@@ -4,6 +4,7 @@ import Script from "next/script"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
 import { ToastProvider, ToastViewport } from "@/components/ui/toast"
+import VapiWidget from "@/components/VapiWidget"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -18,6 +19,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const vapiApiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY as string | undefined
+  const vapiAssistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID as string | undefined
   return (
     <html lang="en">
       <body className={`${inter.className} overflow-x-hidden`}>
@@ -27,6 +30,10 @@ export default function RootLayout({
           <ToastProvider>
             <ToastViewport />
           </ToastProvider>
+          {/* Global sticky voice widget (renders once, bottom-right) */}
+          {vapiApiKey && vapiAssistantId ? (
+            <VapiWidget apiKey={vapiApiKey} assistantId={vapiAssistantId} />
+          ) : null}
         </AuthProvider>
       
 
