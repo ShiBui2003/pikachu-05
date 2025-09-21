@@ -546,14 +546,14 @@ export default function AdminIssueDetailPage() {
                         currentAssignee={issue.assigned_profile || null}
                         onAssigned={handleUserAssigned}
                     />
-
+{/* 
                     <AdminIssueStatusUpdater
                         issueId={issue.id}
                         currentStatus={issue.status}
                         currentAssignedTo={undefined}
                         departmentId={issue.department?.id}
                         onStatusUpdate={handleStatusUpdate}
-                    />
+                    /> */}
 
                     {/* Quick Actions */}
                     <Card>
