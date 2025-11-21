@@ -462,9 +462,9 @@ export async function POST(request: NextRequest) {
             const aiUrl = `${
                 process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
             }/api/issues/${(issue as any).id}/ai-urgency`;
-            
-            console.log('Triggering AI urgency detection:', aiUrl);
-            
+
+            console.log("Triggering AI urgency detection:", aiUrl);
+
             fetch(aiUrl, {
                 method: "POST",
                 headers: {
@@ -472,14 +472,17 @@ export async function POST(request: NextRequest) {
                 },
             })
                 .then((res) => {
-                    console.log('AI urgency response:', res.status);
+                    console.log("AI urgency response:", res.status);
                     return res.json();
                 })
                 .then((data) => {
-                    console.log('AI urgency result:', data);
+                    console.log("AI urgency result:", data);
                 })
                 .catch((err) => {
-                    console.error("Failed to trigger AI urgency detection:", err);
+                    console.error(
+                        "Failed to trigger AI urgency detection:",
+                        err
+                    );
                     // Don't fail the issue creation if AI detection fails
                 });
 

@@ -170,26 +170,24 @@ export default function CitizenDashboard() {
                 .order("created_at", { ascending: false })
                 .limit(50);
 
-                if (fetchError) {
-                    throw fetchError;
-                }
+            if (fetchError) {
+                throw fetchError;
+            }
 
-                // Type assertion for issues data
-                type IssueWithProfile = Issue & {
-                    profiles?: {
-                        full_name: string;
-                        email: string;
-                    };
+            // Type assertion for issues data
+            type IssueWithProfile = Issue & {
+                profiles?: {
+                    full_name: string;
+                    email: string;
                 };
-                const typedIssues = (data || []) as IssueWithProfile[];
+            };
+            const typedIssues = (data || []) as IssueWithProfile[];
 
-                // Get vote and comment counts for each issue
-                const issuesWithCounts = await Promise.all(
-                    typedIssues.map(async (issue) => {
-                        const [
-                            { count: votesCount },
-                            { count: commentsCount },
-                        ] = await Promise.all([
+            // Get vote and comment counts for each issue
+            const issuesWithCounts = await Promise.all(
+                typedIssues.map(async (issue) => {
+                    const [{ count: votesCount }, { count: commentsCount }] =
+                        await Promise.all([
                             supabase
                                 .from("issue_votes")
                                 .select("*", { count: "exact", head: true })
@@ -200,45 +198,49 @@ export default function CitizenDashboard() {
                                 .eq("issue_id", issue.id),
                         ]);
 
-                        return {
-                            ...issue,
-                            votes_count: votesCount || 0,
-                            comments_count: commentsCount || 0,
-                            upvotes: votesCount || 0, // For backward compatibility
-                        };
-                    })
-                );
+                    return {
+                        ...issue,
+                        votes_count: votesCount || 0,
+                        comments_count: commentsCount || 0,
+                        upvotes: votesCount || 0, // For backward compatibility
+                    };
+                })
+            );
 
-                setIssues(issuesWithCounts);
-            } catch (e: any) {
-                setError(e.message || "Failed to fetch issues");
-            } finally {
-                setLoading(false);
-            }
-        };
-    
+            setIssues(issuesWithCounts);
+        } catch (e: any) {
+            setError(e.message || "Failed to fetch issues");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchIssues();
         getCurrentLocation();
 
         // Subscribe to realtime changes for AI urgency updates
         const channel = supabase
-            .channel('issues-ai-urgency')
+            .channel("issues-ai-urgency")
             .on(
-                'postgres_changes',
+                "postgres_changes",
                 {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'issues',
-                    filter: 'ai_urgency=neq.null'
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "issues",
+                    filter: "ai_urgency=neq.null",
                 },
                 (payload) => {
-                    console.log('AI urgency updated:', payload);
+                    console.log("AI urgency updated:", payload);
                     // Update the specific issue in the list
                     setIssues((prevIssues) =>
                         prevIssues.map((issue) =>
                             issue.id === payload.new.id
-                                ? { ...issue, ai_urgency: payload.new.ai_urgency, ai_confidence: payload.new.ai_confidence }
+                                ? {
+                                      ...issue,
+                                      ai_urgency: payload.new.ai_urgency,
+                                      ai_confidence: payload.new.ai_confidence,
+                                  }
                                 : issue
                         )
                     );

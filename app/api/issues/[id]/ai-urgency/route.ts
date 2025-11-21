@@ -46,7 +46,7 @@ export async function POST(
 
         // Detect AI urgency
         const aiResult = await detectAIUrgency(issueData);
-        
+
         console.log(`[AI Urgency] Result for ${issueId}:`, aiResult);
 
         // Update the issue with AI urgency
@@ -67,7 +67,9 @@ export async function POST(
             );
         }
 
-        console.log(`[AI Urgency] Successfully updated issue ${issueId} with urgency: ${aiResult.urgency}`);
+        console.log(
+            `[AI Urgency] Successfully updated issue ${issueId} with urgency: ${aiResult.urgency}`
+        );
 
         return NextResponse.json({
             success: true,
