@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { detectAIUrgency, type AIUrgencyRequest } from "@/lib/aiUrgency";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 60; // Allow 60s for model loading
+
 /**
  * POST /api/issues/[id]/ai-urgency
  * Detect AI urgency for an issue and update the database
