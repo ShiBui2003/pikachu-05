@@ -84,6 +84,9 @@ export default function ReportIssuePage() {
         "text"
     );
     const [departments, setDepartments] = useState<Department[]>([]);
+    const [isQuickPhotoMode, setIsQuickPhotoMode] = useState(false);
+    const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     // Speech-to-text (Web Speech API) state
     const [supportsSpeech, setSupportsSpeech] = useState(false);
@@ -95,7 +98,7 @@ export default function ReportIssuePage() {
             : "en-US"
     );
     const [transcript, setTranscript] = useState<string>("");
-    const recognitionRef = useRef<any| null>(null);
+    const recognitionRef = useRef<any | null>(null);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -560,6 +563,169 @@ export default function ReportIssuePage() {
         }
     };
 
+    const handleQuickPhotoCapture = async (file: File) => {
+        if (!user) {
+            toast({
+                title: "Authentication required",
+                description: "Please sign in to report issues",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsProcessingPhoto(true);
+        toast({
+            title: "Processing photo...",
+            description: "AI is analyzing your image to extract issue details",
+        });
+
+        try {
+            // Convert image to base64
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+
+            await new Promise((resolve, reject) => {
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+            });
+
+            const imageBase64 = reader.result as string;
+
+            // Call Gemini to extract all details from photo
+            const response = await fetch("/api/analyze-photo", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ imageBase64 }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to process image");
+            }
+
+            const result = await response.json();
+            console.log("Photo analysis result:", result);
+
+            // Find matching department (AI now returns exact department names)
+            const suggestedDept = departments.find(
+                (dept) =>
+                    dept.name === result.category ||
+                    dept.name.toLowerCase() === result.category?.toLowerCase()
+            );
+
+            console.log("AI suggested category:", result.category);
+            console.log(
+                "Matched department:",
+                suggestedDept?.name || "None (will use AI category as-is)"
+            );
+
+            // Upload the image
+            const formData = new FormData();
+            formData.append("file", file);
+            const uploadRes = await fetch("/api/upload", {
+                method: "POST",
+                body: formData,
+                credentials: "include",
+            });
+            const uploadData = await uploadRes.json();
+            if (!uploadRes.ok) throw new Error("Image upload failed");
+
+            // Get current location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        const { latitude, longitude } = position.coords;
+
+                        // Set form data with AI-extracted info
+                        setFormData({
+                            title: result.title || "Issue Report",
+                            description:
+                                result.description ||
+                                "Issue detected via Quick Photo Report",
+                            category:
+                                suggestedDept?.name || result.category || "",
+                            priority: result.urgency || "medium",
+                            location_address: `${latitude.toFixed(
+                                6
+                            )}, ${longitude.toFixed(6)}`,
+                            location_lat: latitude.toString(),
+                            location_lng: longitude.toString(),
+                            image_url: uploadData.url,
+                            audio_url: "",
+                        });
+
+                        setIsQuickPhotoMode(true);
+                        setIsProcessingPhoto(false);
+
+                        toast({
+                            title: "Photo processed! ✅",
+                            description:
+                                "Review the auto-filled details and submit",
+                        });
+                    },
+                    (error) => {
+                        console.error("Location error:", error);
+                        // Set form data without location
+                        setFormData({
+                            title: result.title || "Issue Report",
+                            description:
+                                result.description ||
+                                "Issue detected via Quick Photo Report",
+                            category:
+                                suggestedDept?.name || result.category || "",
+                            priority: result.urgency || "medium",
+                            location_address: "",
+                            location_lat: "",
+                            location_lng: "",
+                            image_url: uploadData.url,
+                            audio_url: "",
+                        });
+
+                        setIsQuickPhotoMode(true);
+                        setIsProcessingPhoto(false);
+
+                        toast({
+                            title: "Photo processed! ✅",
+                            description: "Please add your location manually",
+                        });
+                    }
+                );
+            } else {
+                // No geolocation support
+                setFormData({
+                    title: result.title || "Issue Report",
+                    description:
+                        result.description ||
+                        "Issue detected via Quick Photo Report",
+                    category: suggestedDept?.name || result.category || "",
+                    priority: result.urgency || "medium",
+                    location_address: "",
+                    location_lat: "",
+                    location_lng: "",
+                    image_url: uploadData.url,
+                    audio_url: "",
+                });
+
+                setIsQuickPhotoMode(true);
+                setIsProcessingPhoto(false);
+
+                toast({
+                    title: "Photo processed! ✅",
+                    description: "Please add your location manually",
+                });
+            }
+        } catch (error: any) {
+            console.error("Quick photo error:", error);
+            setIsProcessingPhoto(false);
+            toast({
+                title: "Processing failed",
+                description:
+                    error.message ||
+                    "Failed to process photo. Please try manual entry.",
+                variant: "destructive",
+            });
+        }
+    };
+
     return (
         <div className="min-h-screen bg-background">
             <div className="responsive-container py-8">
@@ -574,12 +740,116 @@ export default function ReportIssuePage() {
                         </p>
                     </div>
 
+                    {/* Quick Photo Report */}
+                    {!isQuickPhotoMode && (
+                        <Card className="mb-6 border-2 border-dashed border-primary/50 bg-primary/5">
+                            <CardHeader>
+                                <div className="flex items-center gap-3">
+                                    <Camera className="w-6 h-6 text-primary" />
+                                    <div>
+                                        <CardTitle>
+                                            Quick Photo Report ⚡
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Just snap a picture - AI will handle
+                                            the rest!
+                                        </CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    <p className="text-sm text-muted-foreground">
+                                        📸 Take a photo → 🤖 AI extracts title,
+                                        description, category → 📍 Auto-detects
+                                        location → ✅ Submit
+                                    </p>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file)
+                                                handleQuickPhotoCapture(file);
+                                        }}
+                                    />
+                                    <Button
+                                        type="button"
+                                        size="lg"
+                                        className="w-full"
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
+                                        disabled={isProcessingPhoto}
+                                    >
+                                        <Camera className="w-5 h-5 mr-2" />
+                                        {isProcessingPhoto
+                                            ? "Processing..."
+                                            : "Take Photo & Auto-Report"}
+                                    </Button>
+                                    {isProcessingPhoto && (
+                                        <p className="text-sm text-center text-muted-foreground animate-pulse">
+                                            🔄 AI is analyzing your photo...
+                                        </p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {isQuickPhotoMode && (
+                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0">✅</div>
+                                <div className="flex-1">
+                                    <p className="font-medium text-green-900">
+                                        Photo processed successfully!
+                                    </p>
+                                    <p className="text-sm text-green-700 mt-1">
+                                        Review the auto-filled information below
+                                        and make any adjustments before
+                                        submitting.
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        setIsQuickPhotoMode(false);
+                                        setFormData({
+                                            title: "",
+                                            description: "",
+                                            category: "",
+                                            priority: "medium",
+                                            location_address: "",
+                                            location_lat: "",
+                                            location_lng: "",
+                                            image_url: "",
+                                            audio_url: "",
+                                        });
+                                    }}
+                                >
+                                    Start Over
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
                     <Card>
                         <CardHeader>
-                            <CardTitle>Issue Details</CardTitle>
+                            <CardTitle>
+                                {isQuickPhotoMode
+                                    ? "Review & Submit"
+                                    : "Issue Details"}
+                            </CardTitle>
                             <CardDescription>
-                                Provide as much detail as possible to help us
-                                address the issue quickly
+                                {isQuickPhotoMode
+                                    ? "AI has filled in the details. Review and submit when ready."
+                                    : "Provide as much detail as possible to help us address the issue quickly"}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -928,68 +1198,36 @@ export default function ReportIssuePage() {
                                     </Tabs>
                                 </div>
 
-                                {/* Category and Priority */}
-                                <div className="responsive-form-row">
-                                    <div className="responsive-form-field space-y-2">
-                                        <Label htmlFor="category">
-                                            Category *
-                                        </Label>
-                                        <Select
-                                            value={formData.category}
-                                            onValueChange={(v) =>
-                                                handleInputChange("category", v)
-                                            }
-                                        >
-                                            <SelectTrigger className="responsive-focus">
-                                                <SelectValue placeholder="Select category" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {departments.map((dept) => (
-                                                    <SelectItem
-                                                        key={dept.id}
-                                                        value={dept.name}
-                                                    >
-                                                        <div className="flex items-center space-x-2">
-                                                            <Shield className="w-4 h-4 text-blue-600" />
-                                                            <span>
-                                                                {dept.name}
-                                                            </span>
-                                                        </div>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="responsive-form-field space-y-2">
-                                        <Label htmlFor="priority">
-                                            Priority
-                                        </Label>
-                                        <Select
-                                            value={formData.priority}
-                                            onValueChange={(value) =>
-                                                handleInputChange(
-                                                    "priority",
-                                                    value
-                                                )
-                                            }
-                                        >
-                                            <SelectTrigger className="responsive-focus">
-                                                <SelectValue placeholder="Select priority" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="low">
-                                                    Low
+                                {/* Category */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="category">Category *</Label>
+                                    <Select
+                                        value={formData.category}
+                                        onValueChange={(v) =>
+                                            handleInputChange("category", v)
+                                        }
+                                    >
+                                        <SelectTrigger className="responsive-focus">
+                                            <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {departments.map((dept) => (
+                                                <SelectItem
+                                                    key={dept.id}
+                                                    value={dept.name}
+                                                >
+                                                    <div className="flex items-center space-x-2">
+                                                        <Shield className="w-4 h-4 text-blue-600" />
+                                                        <span>{dept.name}</span>
+                                                    </div>
                                                 </SelectItem>
-                                                <SelectItem value="medium">
-                                                    Medium
-                                                </SelectItem>
-                                                <SelectItem value="high">
-                                                    High
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">
+                                        🤖 AI will automatically determine
+                                        urgency level after submission
+                                    </p>
                                 </div>
 
                                 {/* Location (Required) with Google Maps */}

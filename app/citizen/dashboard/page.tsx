@@ -459,9 +459,6 @@ export default function CitizenDashboard() {
                             >
                                 <Link href="/citizen/report">
                                     <Plus className="w-4 h-4 mr-2" />
-                                    <span className="hidden xs:inline">
-                                        Report Issue
-                                    </span>
                                     <span className="xs:hidden">Report</span>
                                 </Link>
                             </Button>

@@ -49,12 +49,13 @@ export async function POST(
 
         console.log(`[AI Urgency] Result for ${issueId}:`, aiResult);
 
-        // Update the issue with AI urgency
+        // Update the issue with AI urgency AND override priority
         const { error: updateError } = await (supabase as any)
             .from("issues")
             .update({
                 ai_urgency: aiResult.urgency,
                 ai_confidence: aiResult.confidence,
+                priority: aiResult.urgency, // Override user priority with AI urgency
                 updated_at: new Date().toISOString(),
             })
             .eq("id", issueId);
@@ -68,7 +69,7 @@ export async function POST(
         }
 
         console.log(
-            `[AI Urgency] Successfully updated issue ${issueId} with urgency: ${aiResult.urgency}`
+            `[AI Urgency] Successfully updated issue ${issueId} - urgency: ${aiResult.urgency}, priority overridden to: ${aiResult.urgency}`
         );
 
         return NextResponse.json({
