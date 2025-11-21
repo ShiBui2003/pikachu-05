@@ -17,6 +17,8 @@ const publicRoutes = [
     "/api/transcribe",
     "/api/translate",
     "/api/test-db-setup",
+    "/api/test-hf-deployment",
+    "/api/verify-issue",
     "/_next",
     "/favicon.ico",
 ];

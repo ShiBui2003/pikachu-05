@@ -459,20 +459,29 @@ export async function POST(request: NextRequest) {
 
         if (issue && !error) {
             // Trigger AI urgency detection asynchronously (non-blocking)
-            fetch(
-                `${
-                    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
-                }/api/issues/${(issue as any).id}/ai-urgency`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            ).catch((err) => {
-                console.error("Failed to trigger AI urgency detection:", err);
-                // Don't fail the issue creation if AI detection fails
-            });
+            const aiUrl = `${
+                process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+            }/api/issues/${(issue as any).id}/ai-urgency`;
+            
+            console.log('Triggering AI urgency detection:', aiUrl);
+            
+            fetch(aiUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
+                .then((res) => {
+                    console.log('AI urgency response:', res.status);
+                    return res.json();
+                })
+                .then((data) => {
+                    console.log('AI urgency result:', data);
+                })
+                .catch((err) => {
+                    console.error("Failed to trigger AI urgency detection:", err);
+                    // Don't fail the issue creation if AI detection fails
+                });
 
             return NextResponse.json({ issue }, { status: 201 });
         }

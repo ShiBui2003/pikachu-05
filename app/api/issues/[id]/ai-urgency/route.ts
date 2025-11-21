@@ -42,8 +42,12 @@ export async function POST(
             category: issue.category,
         };
 
+        console.log(`[AI Urgency] Processing issue ${issueId}:`, issueData);
+
         // Detect AI urgency
         const aiResult = await detectAIUrgency(issueData);
+        
+        console.log(`[AI Urgency] Result for ${issueId}:`, aiResult);
 
         // Update the issue with AI urgency
         const { error: updateError } = await (supabase as any)
@@ -62,6 +66,8 @@ export async function POST(
                 { status: 500 }
             );
         }
+
+        console.log(`[AI Urgency] Successfully updated issue ${issueId} with urgency: ${aiResult.urgency}`);
 
         return NextResponse.json({
             success: true,

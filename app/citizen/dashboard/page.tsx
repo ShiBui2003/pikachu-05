@@ -149,26 +149,26 @@ export default function CitizenDashboard() {
         );
     };
 
-    useEffect(() => {
-        const fetchIssues = async () => {
-            try {
-                setLoading(true);
-                setError(null);
+    // Fetch issues function (extracted so it can be called from realtime updates)
+    const fetchIssues = async () => {
+        try {
+            setLoading(true);
+            setError(null);
 
-                // Fetch issues with profiles
-                const { data, error: fetchError } = await (supabase as any)
-                    .from("issues")
-                    .select(
-                        `
-                        *,
-                        profiles:user_id (
-                            full_name,
-                            email
-                        )
+            // Fetch issues with profiles
+            const { data, error: fetchError } = await (supabase as any)
+                .from("issues")
+                .select(
                     `
+                    *,
+                    profiles:user_id (
+                        full_name,
+                        email
                     )
-                    .order("created_at", { ascending: false })
-                    .limit(50);
+                `
+                )
+                .order("created_at", { ascending: false })
+                .limit(50);
 
                 if (fetchError) {
                     throw fetchError;
@@ -216,9 +216,39 @@ export default function CitizenDashboard() {
                 setLoading(false);
             }
         };
-
+    
+    useEffect(() => {
         fetchIssues();
         getCurrentLocation();
+
+        // Subscribe to realtime changes for AI urgency updates
+        const channel = supabase
+            .channel('issues-ai-urgency')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'issues',
+                    filter: 'ai_urgency=neq.null'
+                },
+                (payload) => {
+                    console.log('AI urgency updated:', payload);
+                    // Update the specific issue in the list
+                    setIssues((prevIssues) =>
+                        prevIssues.map((issue) =>
+                            issue.id === payload.new.id
+                                ? { ...issue, ai_urgency: payload.new.ai_urgency, ai_confidence: payload.new.ai_confidence }
+                                : issue
+                        )
+                    );
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     // Fetch departments for the filter
