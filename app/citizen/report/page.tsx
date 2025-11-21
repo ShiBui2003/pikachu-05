@@ -98,7 +98,7 @@ export default function ReportIssuePage() {
             : "en-US"
     );
     const [transcript, setTranscript] = useState<string>("");
-    const recognitionRef = useRef<any| null>(null);
+    const recognitionRef = useRef<any | null>(null);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -583,7 +583,7 @@ export default function ReportIssuePage() {
             // Convert image to base64
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            
+
             await new Promise((resolve, reject) => {
                 reader.onload = () => resolve(reader.result);
                 reader.onerror = reject;
@@ -603,16 +603,20 @@ export default function ReportIssuePage() {
             }
 
             const result = await response.json();
-            console.log('Photo analysis result:', result);
-            
+            console.log("Photo analysis result:", result);
+
             // Find matching department (AI now returns exact department names)
-            const suggestedDept = departments.find(dept => 
-                dept.name === result.category || 
-                dept.name.toLowerCase() === result.category?.toLowerCase()
+            const suggestedDept = departments.find(
+                (dept) =>
+                    dept.name === result.category ||
+                    dept.name.toLowerCase() === result.category?.toLowerCase()
             );
 
-            console.log('AI suggested category:', result.category);
-            console.log('Matched department:', suggestedDept?.name || 'None (will use AI category as-is)');
+            console.log("AI suggested category:", result.category);
+            console.log(
+                "Matched department:",
+                suggestedDept?.name || "None (will use AI category as-is)"
+            );
 
             // Upload the image
             const formData = new FormData();
@@ -630,14 +634,19 @@ export default function ReportIssuePage() {
                 navigator.geolocation.getCurrentPosition(
                     async (position) => {
                         const { latitude, longitude } = position.coords;
-                        
+
                         // Set form data with AI-extracted info
                         setFormData({
                             title: result.title || "Issue Report",
-                            description: result.description || "Issue detected via Quick Photo Report",
-                            category: suggestedDept?.name || result.category || "",
+                            description:
+                                result.description ||
+                                "Issue detected via Quick Photo Report",
+                            category:
+                                suggestedDept?.name || result.category || "",
                             priority: result.urgency || "medium",
-                            location_address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+                            location_address: `${latitude.toFixed(
+                                6
+                            )}, ${longitude.toFixed(6)}`,
                             location_lat: latitude.toString(),
                             location_lng: longitude.toString(),
                             image_url: uploadData.url,
@@ -649,7 +658,8 @@ export default function ReportIssuePage() {
 
                         toast({
                             title: "Photo processed! ✅",
-                            description: "Review the auto-filled details and submit",
+                            description:
+                                "Review the auto-filled details and submit",
                         });
                     },
                     (error) => {
@@ -657,8 +667,11 @@ export default function ReportIssuePage() {
                         // Set form data without location
                         setFormData({
                             title: result.title || "Issue Report",
-                            description: result.description || "Issue detected via Quick Photo Report",
-                            category: suggestedDept?.name || result.category || "",
+                            description:
+                                result.description ||
+                                "Issue detected via Quick Photo Report",
+                            category:
+                                suggestedDept?.name || result.category || "",
                             priority: result.urgency || "medium",
                             location_address: "",
                             location_lat: "",
@@ -680,7 +693,9 @@ export default function ReportIssuePage() {
                 // No geolocation support
                 setFormData({
                     title: result.title || "Issue Report",
-                    description: result.description || "Issue detected via Quick Photo Report",
+                    description:
+                        result.description ||
+                        "Issue detected via Quick Photo Report",
                     category: suggestedDept?.name || result.category || "",
                     priority: result.urgency || "medium",
                     location_address: "",
@@ -698,13 +713,14 @@ export default function ReportIssuePage() {
                     description: "Please add your location manually",
                 });
             }
-
         } catch (error: any) {
             console.error("Quick photo error:", error);
             setIsProcessingPhoto(false);
             toast({
                 title: "Processing failed",
-                description: error.message || "Failed to process photo. Please try manual entry.",
+                description:
+                    error.message ||
+                    "Failed to process photo. Please try manual entry.",
                 variant: "destructive",
             });
         }
@@ -731,9 +747,12 @@ export default function ReportIssuePage() {
                                 <div className="flex items-center gap-3">
                                     <Camera className="w-6 h-6 text-primary" />
                                     <div>
-                                        <CardTitle>Quick Photo Report ⚡</CardTitle>
+                                        <CardTitle>
+                                            Quick Photo Report ⚡
+                                        </CardTitle>
                                         <CardDescription>
-                                            Just snap a picture - AI will handle the rest!
+                                            Just snap a picture - AI will handle
+                                            the rest!
                                         </CardDescription>
                                     </div>
                                 </div>
@@ -741,7 +760,9 @@ export default function ReportIssuePage() {
                             <CardContent>
                                 <div className="space-y-4">
                                     <p className="text-sm text-muted-foreground">
-                                        📸 Take a photo → 🤖 AI extracts title, description, category → 📍 Auto-detects location → ✅ Submit
+                                        📸 Take a photo → 🤖 AI extracts title,
+                                        description, category → 📍 Auto-detects
+                                        location → ✅ Submit
                                     </p>
                                     <input
                                         ref={fileInputRef}
@@ -751,18 +772,23 @@ export default function ReportIssuePage() {
                                         className="hidden"
                                         onChange={(e) => {
                                             const file = e.target.files?.[0];
-                                            if (file) handleQuickPhotoCapture(file);
+                                            if (file)
+                                                handleQuickPhotoCapture(file);
                                         }}
                                     />
                                     <Button
                                         type="button"
                                         size="lg"
                                         className="w-full"
-                                        onClick={() => fileInputRef.current?.click()}
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
                                         disabled={isProcessingPhoto}
                                     >
                                         <Camera className="w-5 h-5 mr-2" />
-                                        {isProcessingPhoto ? "Processing..." : "Take Photo & Auto-Report"}
+                                        {isProcessingPhoto
+                                            ? "Processing..."
+                                            : "Take Photo & Auto-Report"}
                                     </Button>
                                     {isProcessingPhoto && (
                                         <p className="text-sm text-center text-muted-foreground animate-pulse">
@@ -777,15 +803,15 @@ export default function ReportIssuePage() {
                     {isQuickPhotoMode && (
                         <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                             <div className="flex items-start gap-3">
-                                <div className="flex-shrink-0">
-                                    ✅
-                                </div>
+                                <div className="flex-shrink-0">✅</div>
                                 <div className="flex-1">
                                     <p className="font-medium text-green-900">
                                         Photo processed successfully!
                                     </p>
                                     <p className="text-sm text-green-700 mt-1">
-                                        Review the auto-filled information below and make any adjustments before submitting.
+                                        Review the auto-filled information below
+                                        and make any adjustments before
+                                        submitting.
                                     </p>
                                 </div>
                                 <Button
@@ -815,9 +841,13 @@ export default function ReportIssuePage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>{isQuickPhotoMode ? "Review & Submit" : "Issue Details"}</CardTitle>
+                            <CardTitle>
+                                {isQuickPhotoMode
+                                    ? "Review & Submit"
+                                    : "Issue Details"}
+                            </CardTitle>
                             <CardDescription>
-                                {isQuickPhotoMode 
+                                {isQuickPhotoMode
                                     ? "AI has filled in the details. Review and submit when ready."
                                     : "Provide as much detail as possible to help us address the issue quickly"}
                             </CardDescription>
@@ -1170,9 +1200,7 @@ export default function ReportIssuePage() {
 
                                 {/* Category */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="category">
-                                        Category *
-                                    </Label>
+                                    <Label htmlFor="category">Category *</Label>
                                     <Select
                                         value={formData.category}
                                         onValueChange={(v) =>
@@ -1190,16 +1218,15 @@ export default function ReportIssuePage() {
                                                 >
                                                     <div className="flex items-center space-x-2">
                                                         <Shield className="w-4 h-4 text-blue-600" />
-                                                        <span>
-                                                            {dept.name}
-                                                        </span>
+                                                        <span>{dept.name}</span>
                                                     </div>
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                     <p className="text-xs text-muted-foreground">
-                                        🤖 AI will automatically determine urgency level after submission
+                                        🤖 AI will automatically determine
+                                        urgency level after submission
                                     </p>
                                 </div>
 

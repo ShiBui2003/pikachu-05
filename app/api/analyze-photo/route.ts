@@ -1,6 +1,6 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 /**
  * POST /api/analyze-photo
@@ -12,15 +12,15 @@ export async function POST(req: Request) {
 
         if (!imageBase64) {
             return NextResponse.json(
-                { error: 'Image is required' },
+                { error: "Image is required" },
                 { status: 400 }
             );
         }
 
         if (!process.env.GEMINI_API_KEY) {
-            console.error('GEMINI_API_KEY not configured');
+            console.error("GEMINI_API_KEY not configured");
             return NextResponse.json(
-                { error: 'AI service not configured' },
+                { error: "AI service not configured" },
                 { status: 500 }
             );
         }
@@ -62,15 +62,15 @@ If this is NOT a civic issue (e.g., personal photo, unrelated content), return:
 }`;
 
         // Parse base64 image
-        let mimeType = 'image/jpeg';
+        let mimeType = "image/jpeg";
         let base64Data = imageBase64;
 
         const matches = imageBase64.match(/^data:(.+);base64,(.+)$/);
         if (matches) {
             mimeType = matches[1];
             base64Data = matches[2];
-        } else if (imageBase64.includes(',')) {
-            base64Data = imageBase64.split(',')[1];
+        } else if (imageBase64.includes(",")) {
+            base64Data = imageBase64.split(",")[1];
         }
 
         const requestBody = {
@@ -91,12 +91,12 @@ If this is NOT a civic issue (e.g., personal photo, unrelated content), return:
 
         const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
-        console.log('[Analyze Photo] Calling Gemini API...');
+        console.log("[Analyze Photo] Calling Gemini API...");
         const startTime = Date.now();
 
         const response = await fetch(GEMINI_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestBody),
         });
 
@@ -105,17 +105,18 @@ If this is NOT a civic issue (e.g., personal photo, unrelated content), return:
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Gemini API error:', response.status, errorText);
+            console.error("Gemini API error:", response.status, errorText);
             return NextResponse.json(
-                { 
-                    error: 'AI analysis failed', 
+                {
+                    error: "AI analysis failed",
                     details: errorText,
                     // Fallback response
-                    title: 'Issue Report',
-                    description: 'Unable to analyze image automatically. Please provide details manually.',
-                    category: 'Road Maintenance',
-                    urgency: 'medium',
-                    confidence: 0.0
+                    title: "Issue Report",
+                    description:
+                        "Unable to analyze image automatically. Please provide details manually.",
+                    category: "Road Maintenance",
+                    urgency: "medium",
+                    confidence: 0.0,
                 },
                 { status: 200 } // Return 200 with fallback so frontend doesn't break
             );
@@ -124,16 +125,17 @@ If this is NOT a civic issue (e.g., personal photo, unrelated content), return:
         const data = await response.json();
 
         // Extract the AI response text
-        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        console.log('[Analyze Photo] AI Response:', aiText);
+        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        console.log("[Analyze Photo] AI Response:", aiText);
 
         if (!aiText) {
             return NextResponse.json({
-                title: 'Issue Report',
-                description: 'Image analysis incomplete. Please provide details manually.',
-                category: 'Road Maintenance',
-                urgency: 'medium',
-                confidence: 0.0
+                title: "Issue Report",
+                description:
+                    "Image analysis incomplete. Please provide details manually.",
+                category: "Road Maintenance",
+                urgency: "medium",
+                confidence: 0.0,
             });
         }
 
@@ -141,59 +143,61 @@ If this is NOT a civic issue (e.g., personal photo, unrelated content), return:
         let result;
         try {
             // Try to extract JSON from markdown code blocks if present
-            const jsonMatch = aiText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) || 
-                             aiText.match(/(\{[\s\S]*?\})/);
-            
+            const jsonMatch =
+                aiText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) ||
+                aiText.match(/(\{[\s\S]*?\})/);
+
             if (jsonMatch) {
                 result = JSON.parse(jsonMatch[1]);
             } else {
-                throw new Error('No JSON found in response');
+                throw new Error("No JSON found in response");
             }
         } catch (parseError) {
-            console.error('[Analyze Photo] JSON parse error:', parseError);
-            console.error('Raw AI text:', aiText);
-            
+            console.error("[Analyze Photo] JSON parse error:", parseError);
+            console.error("Raw AI text:", aiText);
+
             // Fallback: try to extract fields manually
             return NextResponse.json({
-                title: 'Civic Issue Detected',
+                title: "Civic Issue Detected",
                 description: aiText.slice(0, 200),
-                category: 'Road Maintenance',
-                urgency: 'medium',
+                category: "Road Maintenance",
+                urgency: "medium",
                 confidence: 0.5,
-                rawResponse: aiText
+                rawResponse: aiText,
             });
         }
 
         // Validate and normalize the response
         const normalizedResult = {
-            title: result.title || 'Issue Report',
-            description: result.description || 'Issue detected in image',
-            category: result.category || 'Road Maintenance', // Default to most common
-            urgency: ['low', 'medium', 'high'].includes(result.urgency?.toLowerCase()) 
-                ? result.urgency.toLowerCase() 
-                : 'medium',
-            confidence: typeof result.confidence === 'number' 
-                ? result.confidence 
-                : 0.8,
-            rawResponse: aiText
+            title: result.title || "Issue Report",
+            description: result.description || "Issue detected in image",
+            category: result.category || "Road Maintenance", // Default to most common
+            urgency: ["low", "medium", "high"].includes(
+                result.urgency?.toLowerCase()
+            )
+                ? result.urgency.toLowerCase()
+                : "medium",
+            confidence:
+                typeof result.confidence === "number" ? result.confidence : 0.8,
+            rawResponse: aiText,
         };
 
-        console.log('[Analyze Photo] Normalized result:', normalizedResult);
+        console.log("[Analyze Photo] Normalized result:", normalizedResult);
 
         return NextResponse.json(normalizedResult);
-
     } catch (error: any) {
-        console.error('[Analyze Photo] Error:', error);
+        console.error("[Analyze Photo] Error:", error);
         return NextResponse.json(
             {
-                error: 'Internal server error',
+                error: "Internal server error",
                 message: error.message,
                 // Fallback
-                title: 'Issue Report',
-                description: 'An error occurred during analysis. Please provide details manually.',
-                category: 'Road Maintenance',
-                urgency: 'medium',
-                confidence: 0.0
+                title: "Issue Report",
+                description:
+                    "An error occurred during analysis. Please provide details manually.",
+                category: "Road Maintenance",
+                urgency: "medium",
+                confidence: 0.0,
             },
             { status: 200 } // Return 200 with fallback
         );
