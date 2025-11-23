@@ -740,7 +740,8 @@ export default function ReportIssuePage() {
                             Report an Issue
                         </h1>
                         <p className="responsive-body text-gray-600 max-w-2xl mx-auto">
-                            Help improve your community by reporting issues that need attention. Every report makes a difference! 🌟
+                            Help improve your community by reporting issues that
+                            need attention. Every report makes a difference! 🌟
                         </p>
                     </div>
 
@@ -755,11 +756,12 @@ export default function ReportIssuePage() {
                                     </div>
                                     <div>
                                         <CardTitle className="text-gray-900 flex items-center gap-2">
-                                            Quick Photo Report 
+                                            Quick Photo Report
                                             <span className="text-2xl">⚡</span>
                                         </CardTitle>
                                         <CardDescription className="text-gray-700">
-                                            Just snap a picture - AI will handle the rest!
+                                            Just snap a picture - AI will handle
+                                            the rest!
                                         </CardDescription>
                                     </div>
                                 </div>
@@ -768,7 +770,9 @@ export default function ReportIssuePage() {
                                 <div className="space-y-4">
                                     <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4 shadow-md">
                                         <p className="text-sm text-gray-700 font-medium text-center">
-                                            📸 Take a photo → 🤖 AI extracts title, description, category → 📍 Auto-detects location → ✅ Submit
+                                            📸 Take a photo → 🤖 AI extracts
+                                            title, description, category → 📍
+                                            Auto-detects location → ✅ Submit
                                         </p>
                                     </div>
                                     <input
@@ -800,7 +804,9 @@ export default function ReportIssuePage() {
                                     {isProcessingPhoto && (
                                         <div className="flex items-center justify-center gap-2 text-sm text-orange-700 animate-pulse">
                                             <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
-                                            <span className="font-medium">🔄 AI is analyzing your photo...</span>
+                                            <span className="font-medium">
+                                                🔄 AI is analyzing your photo...
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -819,7 +825,9 @@ export default function ReportIssuePage() {
                                         ✨ Photo processed successfully!
                                     </p>
                                     <p className="text-sm text-green-700 mt-1">
-                                        Review the auto-filled information below and make any adjustments before submitting.
+                                        Review the auto-filled information below
+                                        and make any adjustments before
+                                        submitting.
                                     </p>
                                 </div>
                                 <Button
@@ -1406,24 +1414,50 @@ export default function ReportIssuePage() {
                                     </p>
                                     <ul className="space-y-2 text-gray-700">
                                         <li className="flex items-start gap-2">
-                                            <span className="text-blue-600 font-bold">•</span>
-                                            <span>Be specific about the location and nature of the issue</span>
+                                            <span className="text-blue-600 font-bold">
+                                                •
+                                            </span>
+                                            <span>
+                                                Be specific about the location
+                                                and nature of the issue
+                                            </span>
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <span className="text-indigo-600 font-bold">•</span>
-                                            <span>Include photos when possible to help with identification</span>
+                                            <span className="text-indigo-600 font-bold">
+                                                •
+                                            </span>
+                                            <span>
+                                                Include photos when possible to
+                                                help with identification
+                                            </span>
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <span className="text-purple-600 font-bold">•</span>
-                                            <span>Use audio recording to provide detailed descriptions when typing is inconvenient</span>
+                                            <span className="text-purple-600 font-bold">
+                                                •
+                                            </span>
+                                            <span>
+                                                Use audio recording to provide
+                                                detailed descriptions when
+                                                typing is inconvenient
+                                            </span>
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <span className="text-blue-600 font-bold">•</span>
-                                            <span>Provide accurate contact information for follow-up</span>
+                                            <span className="text-blue-600 font-bold">
+                                                •
+                                            </span>
+                                            <span>
+                                                Provide accurate contact
+                                                information for follow-up
+                                            </span>
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <span className="text-indigo-600 font-bold">•</span>
-                                            <span>Check if similar issues have already been reported</span>
+                                            <span className="text-indigo-600 font-bold">
+                                                •
+                                            </span>
+                                            <span>
+                                                Check if similar issues have
+                                                already been reported
+                                            </span>
                                         </li>
                                     </ul>
                                 </div>
