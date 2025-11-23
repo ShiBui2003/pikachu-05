@@ -34,6 +34,8 @@ import {
     Trash2,
     Download,
     Shield,
+    CheckCircle,
+    Lightbulb,
 } from "lucide-react";
 import MapPicker, { MapPickerValue } from "@/components/map-picker";
 import { useToast } from "@/hooks/use-toast";
@@ -727,43 +729,52 @@ export default function ReportIssuePage() {
     };
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
             <div className="responsive-container py-8">
                 <div className="max-w-4xl mx-auto">
                     <div className="text-center mb-8">
-                        <h1 className="responsive-heading-1 mb-2">
+                        <div className="inline-block p-3 bg-gradient-to-br from-[#2E6A56]/10 to-emerald-100 rounded-2xl mb-4">
+                            <AlertCircle className="w-8 h-8 text-[#2E6A56]" />
+                        </div>
+                        <h1 className="responsive-heading-1 mb-3 bg-gradient-to-r from-[#2E6A56] to-emerald-600 bg-clip-text text-transparent">
                             Report an Issue
                         </h1>
-                        <p className="responsive-body text-muted-foreground">
+                        <p className="responsive-body text-gray-600 max-w-2xl mx-auto">
                             Help improve your community by reporting issues that
-                            need attention
+                            need attention. Every report makes a difference! 🌟
                         </p>
                     </div>
 
                     {/* Quick Photo Report */}
                     {!isQuickPhotoMode && (
-                        <Card className="mb-6 border-2 border-dashed border-primary/50 bg-primary/5">
-                            <CardHeader>
+                        <Card className="mb-6 border-0 shadow-xl bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 overflow-hidden relative">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-300/20 to-orange-300/20 rounded-full blur-3xl"></div>
+                            <CardHeader className="relative">
                                 <div className="flex items-center gap-3">
-                                    <Camera className="w-6 h-6 text-primary" />
+                                    <div className="p-3 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl shadow-md">
+                                        <Camera className="w-6 h-6 text-white" />
+                                    </div>
                                     <div>
-                                        <CardTitle>
-                                            Quick Photo Report ⚡
+                                        <CardTitle className="text-gray-900 flex items-center gap-2">
+                                            Quick Photo Report
+                                            <span className="text-2xl">⚡</span>
                                         </CardTitle>
-                                        <CardDescription>
+                                        <CardDescription className="text-gray-700">
                                             Just snap a picture - AI will handle
                                             the rest!
                                         </CardDescription>
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="relative">
                                 <div className="space-y-4">
-                                    <p className="text-sm text-muted-foreground">
-                                        📸 Take a photo → 🤖 AI extracts title,
-                                        description, category → 📍 Auto-detects
-                                        location → ✅ Submit
-                                    </p>
+                                    <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4 shadow-md">
+                                        <p className="text-sm text-gray-700 font-medium text-center">
+                                            📸 Take a photo → 🤖 AI extracts
+                                            title, description, category → 📍
+                                            Auto-detects location → ✅ Submit
+                                        </p>
+                                    </div>
                                     <input
                                         ref={fileInputRef}
                                         type="file"
@@ -779,7 +790,7 @@ export default function ReportIssuePage() {
                                     <Button
                                         type="button"
                                         size="lg"
-                                        className="w-full"
+                                        className="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 text-base font-semibold"
                                         onClick={() =>
                                             fileInputRef.current?.click()
                                         }
@@ -791,9 +802,12 @@ export default function ReportIssuePage() {
                                             : "Take Photo & Auto-Report"}
                                     </Button>
                                     {isProcessingPhoto && (
-                                        <p className="text-sm text-center text-muted-foreground animate-pulse">
-                                            🔄 AI is analyzing your photo...
-                                        </p>
+                                        <div className="flex items-center justify-center gap-2 text-sm text-orange-700 animate-pulse">
+                                            <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+                                            <span className="font-medium">
+                                                🔄 AI is analyzing your photo...
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                             </CardContent>
@@ -801,12 +815,14 @@ export default function ReportIssuePage() {
                     )}
 
                     {isQuickPhotoMode && (
-                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="mb-6 p-5 bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 shadow-lg rounded-xl">
                             <div className="flex items-start gap-3">
-                                <div className="flex-shrink-0">✅</div>
+                                <div className="flex-shrink-0 p-2 bg-green-500 rounded-lg">
+                                    <CheckCircle className="w-5 h-5 text-white" />
+                                </div>
                                 <div className="flex-1">
-                                    <p className="font-medium text-green-900">
-                                        Photo processed successfully!
+                                    <p className="font-semibold text-green-900 text-lg">
+                                        ✨ Photo processed successfully!
                                     </p>
                                     <p className="text-sm text-green-700 mt-1">
                                         Review the auto-filled information below
@@ -839,18 +855,26 @@ export default function ReportIssuePage() {
                         </div>
                     )}
 
-                    <Card>
+                    <Card className="bg-white/95 backdrop-blur-sm shadow-xl border-0 overflow-hidden">
+                        <div className="h-1 bg-gradient-to-r from-[#2E6A56] via-emerald-500 to-[#2E6A56]"></div>
                         <CardHeader>
-                            <CardTitle>
-                                {isQuickPhotoMode
-                                    ? "Review & Submit"
-                                    : "Issue Details"}
-                            </CardTitle>
-                            <CardDescription>
-                                {isQuickPhotoMode
-                                    ? "AI has filled in the details. Review and submit when ready."
-                                    : "Provide as much detail as possible to help us address the issue quickly"}
-                            </CardDescription>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-gradient-to-br from-[#2E6A56]/10 to-emerald-100 rounded-lg">
+                                    <AlertCircle className="w-5 h-5 text-[#2E6A56]" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-gray-900">
+                                        {isQuickPhotoMode
+                                            ? "Review & Submit"
+                                            : "Issue Details"}
+                                    </CardTitle>
+                                    <CardDescription className="text-gray-600">
+                                        {isQuickPhotoMode
+                                            ? "AI has filled in the details. Review and submit when ready."
+                                            : "Provide as much detail as possible to help us address the issue quickly"}
+                                    </CardDescription>
+                                </div>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <form
@@ -917,9 +941,9 @@ export default function ReportIssuePage() {
                                             value="audio"
                                             className="space-y-4"
                                         >
-                                            <div className="border rounded-lg p-4 space-y-4">
+                                            <div className="rounded-lg p-4 space-y-4 bg-gray-50/50 shadow-sm">
                                                 {supportsSpeech ? (
-                                                    <div className="flex flex-col gap-3 rounded-md border p-3 bg-muted/30">
+                                                    <div className="flex flex-col gap-3 rounded-md p-3 bg-muted/30 shadow-sm">
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-2">
                                                                 <Shield className="w-4 h-4 text-blue-600" />
@@ -1073,7 +1097,7 @@ export default function ReportIssuePage() {
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="rounded-md border p-3 bg-muted/30 text-xs text-muted-foreground">
+                                                    <div className="rounded-md p-3 bg-muted/30 text-xs text-muted-foreground shadow-sm">
                                                         Your browser does not
                                                         support free speech
                                                         transcription. You can
@@ -1133,7 +1157,7 @@ export default function ReportIssuePage() {
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-4">
-                                                        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                                                        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg shadow-md">
                                                             <div className="flex items-center space-x-3">
                                                                 <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                                                                     <Mic className="w-5 h-5 text-green-600" />
@@ -1327,7 +1351,7 @@ export default function ReportIssuePage() {
                                         />
                                         <label
                                             htmlFor="image-upload"
-                                            className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
+                                            className="flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer shadow-sm hover:shadow-md hover:bg-gray-50 bg-gray-50/50"
                                         >
                                             <Camera className="h-4 w-4" />
                                             {isUploading
@@ -1344,12 +1368,12 @@ export default function ReportIssuePage() {
                                 </div>
 
                                 {/* Submit Button */}
-                                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                                <div className="flex flex-col sm:flex-row gap-4 pt-6">
                                     <Button
                                         type="button"
                                         variant="outline"
                                         onClick={() => router.back()}
-                                        className="responsive-button flex-1"
+                                        className="responsive-button flex-1 shadow-sm hover:shadow-md hover:bg-gray-50"
                                     >
                                         Cancel
                                     </Button>
@@ -1366,7 +1390,7 @@ export default function ReportIssuePage() {
                                                 formData.location_lng
                                             )
                                         }
-                                        className="responsive-button flex-1"
+                                        className="responsive-button flex-1 bg-gradient-to-r from-[#2E6A56] to-emerald-600 hover:from-[#1f4a3a] hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isSubmitting
                                             ? "Submitting..."
@@ -1378,35 +1402,62 @@ export default function ReportIssuePage() {
                     </Card>
 
                     {/* Help Text */}
-                    <Card className="mt-6">
+                    <Card className="mt-6 border-0 shadow-lg bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
                         <CardContent className="pt-6">
                             <div className="flex items-start gap-3">
-                                <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
-                                <div className="text-sm text-muted-foreground">
-                                    <p className="font-medium mb-1">
-                                        Tips for better issue reports:
+                                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md flex-shrink-0">
+                                    <Lightbulb className="h-5 w-5 text-white" />
+                                </div>
+                                <div className="text-sm">
+                                    <p className="font-semibold mb-3 text-gray-900 text-base">
+                                        💡 Tips for better issue reports:
                                     </p>
-                                    <ul className="list-disc list-inside space-y-1">
-                                        <li>
-                                            Be specific about the location and
-                                            nature of the issue
+                                    <ul className="space-y-2 text-gray-700">
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-blue-600 font-bold">
+                                                •
+                                            </span>
+                                            <span>
+                                                Be specific about the location
+                                                and nature of the issue
+                                            </span>
                                         </li>
-                                        <li>
-                                            Include photos when possible to help
-                                            with identification
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-indigo-600 font-bold">
+                                                •
+                                            </span>
+                                            <span>
+                                                Include photos when possible to
+                                                help with identification
+                                            </span>
                                         </li>
-                                        <li>
-                                            Use audio recording to provide
-                                            detailed descriptions when typing is
-                                            inconvenient
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-purple-600 font-bold">
+                                                •
+                                            </span>
+                                            <span>
+                                                Use audio recording to provide
+                                                detailed descriptions when
+                                                typing is inconvenient
+                                            </span>
                                         </li>
-                                        <li>
-                                            Provide accurate contact information
-                                            for follow-up
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-blue-600 font-bold">
+                                                •
+                                            </span>
+                                            <span>
+                                                Provide accurate contact
+                                                information for follow-up
+                                            </span>
                                         </li>
-                                        <li>
-                                            Check if similar issues have already
-                                            been reported
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-indigo-600 font-bold">
+                                                •
+                                            </span>
+                                            <span>
+                                                Check if similar issues have
+                                                already been reported
+                                            </span>
                                         </li>
                                     </ul>
                                 </div>

@@ -11,29 +11,16 @@ import {
     Plus,
     FileText,
     Bell,
-    Trophy,
     User,
     LogOut,
     Menu,
     Flag,
-    CheckCircle,
     DollarSign,
     ChevronRight,
 } from "lucide-react";
 import RealTimeNotifications from "@/components/real-time-notifications";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
 
 // Navigation items for desktop
 type NavItem = {
@@ -99,7 +86,7 @@ const getPageTitle = (pathname: string) => {
         "/citizen/leaderboard": "Leaderboard",
         "/citizen/resolved": "Resolved Issues",
     };
-    
+
     return titles[pathname] || "CivicReport";
 };
 
@@ -138,12 +125,17 @@ export default function CitizenNav() {
                         variant={isActive ? "default" : "ghost"}
                         size={mobile ? "default" : "sm"}
                         asChild
-                        className={`relative ${mobile ? "w-full justify-start h-11 mobile-menu-item" : "h-9"
-                            }`}
+                        className={`relative ${
+                            mobile
+                                ? "w-full justify-start h-11 mobile-menu-item"
+                                : "h-9"
+                        }`}
                         onClick={onItemClick}
                     >
                         <Link href={item.href as any}>
-                            {IconComponent && <IconComponent className="w-4 h-4 mr-2" />}
+                            {IconComponent && (
+                                <IconComponent className="w-4 h-4 mr-2" />
+                            )}
                             {item.label}
                             {item.badge && (
                                 <Badge
@@ -168,19 +160,19 @@ export default function CitizenNav() {
     return (
         <>
             {/* Main Navbar */}
-            <div className="border-b bg-card sticky top-0 z-50 mobile-navbar">
-                <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3 mobile-navbar-container">
+            <div className="border-b bg-white/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+                <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3">
                     <div className="flex items-center justify-between">
                         {/* Logo */}
                         <Link
                             href="/citizen/dashboard"
-                            className="flex items-center space-x-2 flex-shrink-0"
+                            className="flex items-center space-x-2 flex-shrink-0 group"
                         >
-                            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-                                <Home className="w-5 h-5 text-accent-foreground" />
+                            <div className="w-10 h-10 bg-gradient-to-br from-[#2E6A56] to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                                <Home className="w-5 h-5 text-white" />
                             </div>
-                            <span className="font-semibold text-base sm:text-lg">
-                                CivicReport
+                            <span className="font-bold text-base sm:text-lg text-[#2E6A56]">
+                                JANMARG
                             </span>
                         </Link>
 
@@ -197,22 +189,32 @@ export default function CitizenNav() {
                                     className="h-9 text-foreground hover:bg-muted/50"
                                     asChild
                                 >
-                                    <Link href="/citizen/crowdfunding" className="flex items-center">
+                                    <Link
+                                        href="/citizen/crowdfunding"
+                                        className="flex items-center"
+                                    >
                                         <DollarSign className="w-4 h-4 mr-1" />
-                                        <span className="hidden xl:inline">₹ Funds</span>
+                                        <span className="hidden xl:inline">
+                                            ₹ Funds
+                                        </span>
                                         <span className="xl:hidden">₹</span>
                                     </Link>
                                 </Button>
-                                
+
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     className="h-9 text-foreground hover:bg-muted/50"
                                     asChild
                                 >
-                                    <Link href="/citizen/Abhiyaan" className="flex items-center">
+                                    <Link
+                                        href="/citizen/Abhiyaan"
+                                        className="flex items-center"
+                                    >
                                         <Flag className="w-4 h-4 mr-1" />
-                                        <span className="hidden xl:inline">Abhiyaan</span>
+                                        <span className="hidden xl:inline">
+                                            Abhiyaan
+                                        </span>
                                         <span className="xl:hidden">Flag</span>
                                     </Link>
                                 </Button>
@@ -224,7 +226,7 @@ export default function CitizenNav() {
                                 <Button
                                     variant="default"
                                     size="sm"
-                                    className="h-9 bg-orange-500 hover:bg-orange-600 text-white px-4"
+                                    className="h-9 bg-primary hover:bg-[#1f4a3a] text-primary-foreground px-4"
                                     asChild
                                 >
                                     <Link
@@ -237,18 +239,23 @@ export default function CitizenNav() {
                                                     (user?.user_metadata as any)
                                                         ?.avatar_url ||
                                                     (user?.user_metadata as any)
-                                                        ?.picture
+                                                        ?.picture ||
+                                                    "/placeholder.svg"
                                                 }
                                                 alt={displayName}
                                             />
-                                            <AvatarFallback className="bg-white text-orange-500 text-xs font-bold">
+                                            <AvatarFallback className="bg-white text-primary text-xs font-bold">
                                                 {String(displayName)
                                                     .substring(0, 2)
                                                     .toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <span className="hidden xl:inline">{displayName}</span>
-                                        <span className="xl:hidden">Profile</span>
+                                        <span className="hidden xl:inline">
+                                            {displayName}
+                                        </span>
+                                        <span className="xl:hidden">
+                                            Profile
+                                        </span>
                                     </Link>
                                 </Button>
                             </div>
@@ -268,7 +275,7 @@ export default function CitizenNav() {
                         <div className="flex lg:hidden items-center space-x-2">
                             {/* Notifications Bell Icon */}
                             <RealTimeNotifications />
-                            
+
                             {/* Hamburger Menu */}
                             <Sheet open={isOpen} onOpenChange={setIsOpen}>
                                 <SheetTrigger asChild>
@@ -280,8 +287,8 @@ export default function CitizenNav() {
                                         <Menu className="w-5 h-5" />
                                     </Button>
                                 </SheetTrigger>
-                                <SheetContent 
-                                    side="right" 
+                                <SheetContent
+                                    side="right"
                                     className="w-80 sm:w-96 transition-all duration-300 ease-in-out"
                                 >
                                     <div className="flex flex-col h-full">
@@ -303,7 +310,12 @@ export default function CitizenNav() {
                                                 <h3 className="text-sm font-medium text-muted-foreground px-2">
                                                     Navigation
                                                 </h3>
-                                                <NavItems mobile onItemClick={() => setIsOpen(false)} />
+                                                <NavItems
+                                                    mobile
+                                                    onItemClick={() =>
+                                                        setIsOpen(false)
+                                                    }
+                                                />
                                             </div>
 
                                             {/* Mobile Menu Items */}
@@ -312,26 +324,42 @@ export default function CitizenNav() {
                                                     Account & More
                                                 </h3>
                                                 {mobileMenuItems.map((item) => {
-                                                    const isActive = pathname === item.href;
-                                                    const IconComponent = item.icon;
-                                                    
+                                                    const isActive =
+                                                        pathname === item.href;
+                                                    const IconComponent =
+                                                        item.icon;
+
                                                     return (
                                                         <Button
                                                             key={item.href}
-                                                            variant={isActive ? "default" : "ghost"}
+                                                            variant={
+                                                                isActive
+                                                                    ? "default"
+                                                                    : "ghost"
+                                                            }
                                                             className="w-full justify-start h-11 transition-all duration-200 mobile-menu-item"
                                                             asChild
-                                                            onClick={() => setIsOpen(false)}
+                                                            onClick={() =>
+                                                                setIsOpen(false)
+                                                            }
                                                         >
-                                                            <Link href={item.href as any}>
-                                                                {IconComponent && <IconComponent className="w-4 h-4 mr-3" />}
+                                                            <Link
+                                                                href={
+                                                                    item.href as any
+                                                                }
+                                                            >
+                                                                {IconComponent && (
+                                                                    <IconComponent className="w-4 h-4 mr-3" />
+                                                                )}
                                                                 {item.label}
                                                                 {item.badge && (
                                                                     <Badge
                                                                         variant="destructive"
                                                                         className="ml-auto px-1 py-0 text-xs"
                                                                     >
-                                                                        {item.badge}
+                                                                        {
+                                                                            item.badge
+                                                                        }
                                                                     </Badge>
                                                                 )}
                                                             </Link>
@@ -347,12 +375,17 @@ export default function CitizenNav() {
                                                 <Avatar className="w-10 h-10">
                                                     <AvatarImage
                                                         src={
-                                                            (user?.user_metadata as any)?.avatar_url ||
-                                                            (user?.user_metadata as any)?.picture
+                                                            (
+                                                                user?.user_metadata as any
+                                                            )?.avatar_url ||
+                                                            (
+                                                                user?.user_metadata as any
+                                                            )?.picture ||
+                                                            "/placeholder.svg"
                                                         }
                                                         alt={displayName}
                                                     />
-                                                    <AvatarFallback className="bg-orange-100 text-orange-600">
+                                                    <AvatarFallback className="bg-primary/10 text-primary">
                                                         {String(displayName)
                                                             .substring(0, 2)
                                                             .toUpperCase()}
@@ -367,7 +400,7 @@ export default function CitizenNav() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                             <Button
                                                 variant="ghost"
                                                 className="w-full justify-start h-11 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
@@ -399,4 +432,3 @@ export default function CitizenNav() {
         </>
     );
 }
-

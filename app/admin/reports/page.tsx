@@ -129,7 +129,7 @@ export default function AdminReportsPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/admin/dashboard">
+              <Link href="/admin/reports">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Dashboard
               </Link>
