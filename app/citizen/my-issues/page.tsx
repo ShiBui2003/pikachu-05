@@ -29,15 +29,15 @@ type Issue = {
 const getStatusColor = (status: string) => {
   switch (status) {
     case "submitted":
-      return "bg-status-submitted text-white"
+      return "bg-status-submitted text-white shadow-md"
     case "in-review":
-      return "bg-status-review text-white"
+      return "bg-status-review text-white shadow-md"
     case "in-progress":
-      return "bg-status-progress text-white"
+      return "bg-status-progress text-white shadow-md"
     case "resolved":
-      return "bg-status-resolved text-white"
+      return "bg-status-resolved text-white shadow-md"
     default:
-      return "bg-muted text-muted-foreground"
+      return "bg-muted text-muted-foreground shadow-md"
   }
 }
 
@@ -172,9 +172,9 @@ export default function MyIssuesPage() {
   const selectedIssueData = issues.find((issue) => issue.id === selectedIssue) || null
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
       {/* Header */}
-      <div className="border-b bg-card">
+      <div className="bg-white/95 backdrop-blur-sm shadow-lg border-0">
         <div className="responsive-container py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center space-x-4">

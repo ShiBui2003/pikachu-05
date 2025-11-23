@@ -96,7 +96,7 @@ const getNotificationIcon = (type: string) => {
 const getPriorityColor = (priority: string) => {
   switch (priority) {
     case "high":
-      return "bg-destructive text-destructive-foreground"
+      return "bg-destructive text-destructive-foreground shadow-sm"
     case "medium":
       return "bg-status-review text-white"
     case "low":
@@ -145,21 +145,21 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
       {/* Header */}
-      <div className="border-b bg-card">
+      <div className="bg-white/95 backdrop-blur-sm shadow-lg border-0">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" asChild className="hover:bg-[#2E6A56]/10">
                 <Link href="/citizen/dashboard">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Dashboard
                 </Link>
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">Notifications</h1>
-                <p className="text-muted-foreground">Stay updated on your issues and community activity</p>
+                <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+                <p className="text-gray-600">Stay updated on your issues and community activity</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -193,7 +193,7 @@ export default function NotificationsPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Unread ({unreadNotifications.length})</h3>
                 {unreadNotifications.map((notification) => (
-                  <Card key={notification.id} className="border-l-4 border-l-accent">
+                  <Card key={notification.id} className="shadow-md border-0 bg-gradient-to-r from-white to-emerald-50/20">
                     <CardContent className="p-4">
                       <div className="flex gap-4">
                         <div className="flex-shrink-0 mt-1">{getNotificationIcon(notification.type)}</div>
@@ -236,7 +236,7 @@ export default function NotificationsPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Earlier</h3>
                 {readNotifications.map((notification) => (
-                  <Card key={notification.id} className="opacity-75">
+                  <Card key={notification.id} className="opacity-75 shadow-sm border-0 bg-white/80">
                     <CardContent className="p-4">
                       <div className="flex gap-4">
                         <div className="flex-shrink-0 mt-1 opacity-60">{getNotificationIcon(notification.type)}</div>

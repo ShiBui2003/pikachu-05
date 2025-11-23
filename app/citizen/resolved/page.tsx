@@ -52,9 +52,9 @@ export default function ResolvedIssuesPage() {
   const [activeTab, setActiveTab] = useState("all");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
       {/* Header */}
-      <div className="border-b bg-card">
+      <div className="bg-white/95 backdrop-blur-sm shadow-lg border-0">
         <div className="container mx-auto px-4 py-4 sm:py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -80,7 +80,7 @@ export default function ResolvedIssuesPage() {
 
       <div className="container mx-auto px-4 py-6">
         {/* Success Stats */}
-        <Card className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+        <Card className="mb-6 bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 shadow-lg border-0">
           <CardContent className="p-6">
             <div className="flex items-center justify-center text-center">
               <div>

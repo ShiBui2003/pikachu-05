@@ -219,20 +219,21 @@ export default function AccountManagement({ userType }: AccountManagementProps) 
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-red-600">Permanently Delete Account</p>
-              <p className="text-sm text-muted-foreground">
-                This action cannot be undone. All your data will be permanently deleted.
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 sm:mb-0">
+              <h3 className="font-semibold text-red-600">Permanently Delete Your Account</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                This action is final and cannot be undone.
               </p>
             </div>
             <Button 
               variant="destructive" 
               size="sm"
               onClick={() => setShowDeleteDialog(true)}
+              className="self-start sm:self-center"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete Account
+              Request Account Deletion
             </Button>
           </div>
         </CardContent>
@@ -405,7 +406,7 @@ export default function AccountManagement({ userType }: AccountManagementProps) 
               onClick={handleAccountDeletion}
               disabled={deleteLoading || !deletePassword || confirmDelete !== "DELETE"}
             >
-              {deleteLoading ? "Deleting..." : "Delete Account"}
+              {deleteLoading ? "Deleting..." : "I understand, delete my account"}
             </Button>
           </DialogFooter>
         </DialogContent>

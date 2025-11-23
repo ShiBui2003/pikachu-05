@@ -101,16 +101,16 @@ const getCategoryLabel = (category: string) => {
 
 const getCategoryColor = (category: string) => {
   const colors: Record<string, string> = {
-    "Roads": "bg-red-100 text-red-800 border-red-200",
-    "Lighting": "bg-yellow-100 text-yellow-800 border-yellow-200",
-    "Sanitation": "bg-green-100 text-green-800 border-green-200",
-    "Water": "bg-blue-100 text-blue-800 border-blue-200",
-    "Traffic": "bg-purple-100 text-purple-800 border-purple-200",
-    "pothole": "bg-red-100 text-red-800 border-red-200",
-    "streetlight": "bg-yellow-100 text-yellow-800 border-yellow-200",
-    "garbage": "bg-green-100 text-green-800 border-green-200"
+    "Roads": "bg-red-100 text-red-800 shadow-sm",
+    "Lighting": "bg-yellow-100 text-yellow-800 shadow-sm",
+    "Sanitation": "bg-green-100 text-green-800 shadow-sm",
+    "Water": "bg-blue-100 text-blue-800 shadow-sm",
+    "Traffic": "bg-purple-100 text-purple-800 shadow-sm",
+    "pothole": "bg-red-100 text-red-800 shadow-sm",
+    "streetlight": "bg-yellow-100 text-yellow-800 shadow-sm",
+    "garbage": "bg-green-100 text-green-800 shadow-sm"
   }
-  return colors[category] || "bg-gray-100 text-gray-800 border-gray-200"
+  return colors[category] || "bg-gray-100 text-gray-800 shadow-sm"
 }
 
 const LoadingSkeleton = () => (
@@ -194,10 +194,9 @@ export default function MyIssuesPage() {
   const totalUpvotes = issues.reduce((sum, issue) => sum + (issue.upvotes || 0), 0)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
       {/* Enhanced Header with Stats - Mobile Responsive */}
-      <div className="border-b bg-white shadow-sm">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="bg-white/95 backdrop-blur-sm shadow-lg border-0">\n        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="sm" asChild className="hover:bg-gray-100 flex-shrink-0">
@@ -223,7 +222,7 @@ export default function MyIssuesPage() {
           
           {/* Stats Cards - Mobile Responsive Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <Card className="bg-blue-50 border-blue-200 transition-all duration-200 hover:shadow-md">
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 shadow-md border-0 transition-all duration-200 hover:shadow-lg">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center">
                   <div className="p-2 bg-blue-100 rounded-lg mr-2 sm:mr-3 flex-shrink-0">
@@ -240,7 +239,7 @@ export default function MyIssuesPage() {
               </CardContent>
             </Card>
             
-            <Card className="bg-orange-50 border-orange-200 transition-all duration-200 hover:shadow-md">
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 shadow-md border-0 transition-all duration-200 hover:shadow-lg">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center">
                   <div className="p-2 bg-orange-100 rounded-lg mr-2 sm:mr-3 flex-shrink-0">

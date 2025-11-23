@@ -48,13 +48,13 @@ const getStatusColor = (status: string) => {
 const getPriorityColor = (priority: string) => {
     switch (priority) {
         case "low":
-            return "bg-green-100 text-green-800 border-green-200";
+            return "bg-green-100 text-green-800 shadow-sm";
         case "medium":
-            return "bg-yellow-100 text-yellow-800 border-yellow-200";
+            return "bg-yellow-100 text-yellow-800 shadow-sm";
         case "high":
-            return "bg-red-100 text-red-800 border-red-200";
+            return "bg-red-100 text-red-800 shadow-sm";
         default:
-            return "bg-gray-100 text-gray-800 border-gray-200";
+            return "bg-gray-100 text-gray-800 shadow-sm";
     }
 };
 
@@ -253,9 +253,9 @@ export default function IssueDetailPage() {
     };
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
             {/* Mobile-first header */}
-            <div className="sticky top-0 z-10 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm shadow-lg border-0">
                 <div className="container mx-auto px-4 py-3">
                     <div className="flex items-center justify-between">
                         <Button variant="ghost" size="sm" asChild>
