@@ -371,7 +371,7 @@ export default function AccountManagement({ userType }: AccountManagementProps) 
                   onClick={() => setShowDeletePassword(!showDeletePassword)}
                 >
                   {showDeletePassword ? (
-                    <EyeOff className="h-4 h-4" />
+                    <EyeOff className="h-4 w-4" />
                   ) : (
                     <Eye className="h-4 w-4" />
                   )}

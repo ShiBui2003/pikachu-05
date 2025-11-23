@@ -429,7 +429,7 @@ const AdminDashboard = () => {
 
   const navigateTo = (route: string) => {
     setMobileMenuOpen(false)
-    router.push(route)
+    router.push(route as any)
   }
 
   if (loading) {
